@@ -3,7 +3,7 @@
 **Community AI Developer Toolkit & MCP Server for Cyberpunk 2077 Multiplayer (CyberMP)**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-green.svg)](https://nodejs.org/)
 
 An offline-first Model Context Protocol (MCP) server, universal agent skills, and anti-hallucination rules for building multiplayer resources in [CyberMP](https://cyber.mp).
@@ -149,4 +149,4 @@ pnpm run build
 
 ## License
 
-[MIT](LICENSE)
+[GNU General Public License v3.0](LICENSE)

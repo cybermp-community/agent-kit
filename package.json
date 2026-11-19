@@ -1,6 +1,7 @@
 {
   "name": "cybermp-agent-kit",
   "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
   "description": "CyberMP AI Agent Toolkit & MCP Server",
   "type": "module",
   "main": "./dist/src/index.js",
