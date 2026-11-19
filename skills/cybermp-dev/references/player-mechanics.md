@@ -845,3 +845,128 @@ export function setPlayerFrozen(frozen: boolean): void {
   }
 }
 ```
+
+---
+
+## 10. Weapon Drawing & Equipment Manipulation (`EquipmentSystem` & `TransactionSystem`)
+
+Manipulating what weapon is drawn in the player's hands, checking whether an item is equipped, and removing or assigning items in specific equipment slots is handled via REDengine's `EquipmentSystem` and `TransactionSystem`.
+
+### Equipping Weapons into Player Hands (`gameDrawItemRequest`)
+
+To immediately equip a weapon from inventory into the player's active hands:
+
+```typescript
+import { EquipmentManipulationAction } from '@cybermp/client-types/enums';
+
+/**
+ * Draws and equips a specific weapon into the player's hands.
+ *
+ * @param weaponTdbId TweakDB record string (e.g. 'Items.Preset_Katana_Saburo')
+ */
+export function drawWeaponIntoHands(weaponTdbId: string): void {
+  const player = mp.game.GetPlayerObject();
+  if (!player) return;
+
+  const equipmentSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'EquipmentSystem',
+  );
+
+  const drawItemRequest = Object.assign(new mp.game.gameDrawItemRequest(), {
+    owner: player,
+    itemID: mp.game.gameItemID.CreateQuery(weaponTdbId),
+  });
+
+  equipmentSystem.QueueRequest(drawItemRequest);
+}
+
+/**
+ * Commands the player to switch to their last used or first available weapon.
+ */
+export function switchWeaponToAvailable(): void {
+  const player = mp.game.GetPlayerObject();
+  if (!player) return;
+
+  const equipmentSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'EquipmentSystem',
+  );
+
+  const request = Object.assign(new mp.game.EquipmentSystemWeaponManipulationRequest(), {
+    owner: player,
+    requestType: EquipmentManipulationAction.RequestLastUsedOrFirstAvailableWeapon,
+  });
+
+  equipmentSystem.QueueRequest(request);
+}
+```
+
+### Unequipping Items from Equipment Slots (`RequestUnequipItem`)
+
+`mp.game.EquipmentSystem.RequestUnequipItem` is a static method that removes equipped gear from weapon slots (0, 1, 2) or cyberware slots:
+
+```typescript
+import { gamedataEquipmentArea } from '@cybermp/client-types/enums';
+
+/**
+ * Unequips all weapons from the 3 active weapon slots.
+ */
+export function unequipAllWeapons(): void {
+  const player = mp.game.GetPlayerObject();
+  if (!player) return;
+
+  for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+    mp.game.EquipmentSystem.RequestUnequipItem(
+      player,
+      gamedataEquipmentArea.Weapon,
+      slotIndex,
+    );
+  }
+}
+
+/**
+ * Equips cyberware directly by TweakDB ID.
+ */
+export function equipCyberware(cyberwareTdbId: string): void {
+  const player = mp.game.GetPlayer();
+  if (!player) return;
+
+  const eqSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'EquipmentSystem',
+  );
+  eqSystem.EquipCyberwareByTDBID(player, cyberwareTdbId);
+}
+```
+
+---
+
+## 11. Ragdoll Knockdown Reset & Revive (`AnimFeature_SwimmingData`)
+
+When a player entity enters a ragdoll or knockdown state (e.g. after health drops to 0 and is revived, or after being hit by high-speed vehicles), REDengine's ragdoll animation state may fail to recover automatically. 
+
+The engine-tested method to force the skeletal controller back into an upright standing posture is to pulse the `SwimmingData` animation feature:
+
+```typescript
+/**
+ * Forces a downed or ragdolled player puppet to immediately stand back up.
+ */
+export async function forcePlayerStandUp(): Promise<void> {
+  const player = mp.game.GetPlayer();
+  if (!player) return;
+
+  const animController = player.GetAnimationControllerComponent();
+  if (!animController) return;
+
+  // 1. Transition into swimming animation state (forces ragdoll termination)
+  const animFeature = Object.assign(new mp.game.AnimFeature_SwimmingData(), {
+    state: 1,
+  });
+  animController.ApplyFeature('SwimmingData', animFeature);
+
+  // 2. Short frame delay
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  // 3. Reset swimming state to 0 (restores normal standing idle)
+  animFeature.state = 0;
+  animController.ApplyFeature('SwimmingData', animFeature);
+}
+```

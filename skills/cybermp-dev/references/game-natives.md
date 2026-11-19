@@ -666,7 +666,83 @@ export function hookPlayerPuppetActions(): void {
 
 ---
 
-## 13. Anti-Patterns & Negative Constraints
+## 13. Targeting & Crosshair Raycasting (`GetTargetingSystem`)
+
+REDengine provides instant crosshair targeting and entity inspection via `gametargetingTargetingSystem` (`mp.game.ScriptGameInstance.GetTargetingSystem()`).
+
+### Raycasting Look-At Objects
+
+```typescript
+import type { gameObject } from '@cybermp/client-types/game';
+
+/**
+ * Returns the entity or device the player is directly looking at with their crosshair.
+ */
+export function getCrosshairTarget(): gameObject | null {
+  const targetingSystem = mp.game.ScriptGameInstance.GetTargetingSystem();
+  const player = mp.game.GetPlayerObject();
+  if (!player) return null;
+
+  return targetingSystem.GetLookAtObject(player);
+}
+
+/**
+ * Interacts with or unlocks a door in front of the player.
+ */
+export function interactWithLookAtDoor(): boolean {
+  const target = getCrosshairTarget();
+  if (!target || !target.IsA('Door')) {
+    return false;
+  }
+
+  // Cast to device to access its persistent state (PS)
+  const door = target as any;
+  const ps = door.GetDevicePS();
+
+  // Unlock and unseal door
+  if (ps.IsSealed()) {
+    ps.ToggleSealOnDoor();
+  }
+  if (!ps.IsLocked()) {
+    ps.ToggleLockOnDoor();
+  }
+
+  door.OpenDoor();
+  return true;
+}
+```
+
+---
+
+## 14. Native Engine Multiplayer System (`GetMultiplayerSystem`)
+
+Cyberpunk 2077 includes an internal engine multiplayer subsystem accessible via `mp.game.ScriptGameInstance.GetMultiplayerSystem()`.
+
+```typescript
+import { createVector4 } from './vectors';
+
+/**
+ * Configures the engine's internal default respawn coordinates.
+ *
+ * @param x World X coordinate
+ * @param y World Y coordinate
+ * @param z World Z coordinate
+ * @param heading Facing angle in degrees
+ */
+export function setEngineDefaultSpawn(x: number, y: number, z: number, heading = 0): void {
+  const mpSystem = mp.game.ScriptGameInstance.GetMultiplayerSystem();
+  const vec4 = createVector4(x, y, z, heading);
+
+  mpSystem.SetDefaultSpawnPosition(
+    mp.game.Vector4.Vector4To3(vec4),
+    heading,
+  );
+}
+```
+
+---
+
+## 15. Anti-Patterns & Negative Constraints
 
 | Prohibited Pattern (Hallucinated / FiveM) | Approved CyberMP Pattern |
 | :--- | :--- |
@@ -678,3 +754,4 @@ export function hookPlayerPuppetActions(): void {
 | `new mp.game.Vector3(x, y, z)` | `Object.assign(new mp.game.Vector3(), { x, y, z })` |
 | `AddBlipForCoord(x, y, z)` | `GetMappinSystem().RegisterMappin(data, pos)` |
 | `CreateObject(model, x, y, z)` | `mp.local.spawnObject(...)` or server `mp.objects.create(...)` |
+| `GetEntityForwardVector(ped)` | `ScriptGameInstance.GetCameraSystem().GetActiveCameraForward()` |

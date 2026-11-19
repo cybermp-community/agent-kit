@@ -146,6 +146,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetMappinSystem');
       expect(content).toContain('GetFxSystem');
       expect(content).toContain('mp.local.spawnObject');
+      expect(content).toContain('GetTargetingSystem');
+      expect(content).toContain('GetLookAtObject');
+      expect(content).toContain('GetMultiplayerSystem');
     });
 
     it('provides comprehensive vehicles-physics reference', () => {
@@ -177,6 +180,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('PlayerDevelopmentSystem');
       expect(content).toContain('SetPlayerGender');
       expect(content).toContain('Ammo.HandgunAmmo');
+      expect(content).toContain('gameDrawItemRequest');
+      expect(content).toContain('RequestUnequipItem');
+      expect(content).toContain('AnimFeature_SwimmingData');
     });
 
     it('provides comprehensive cameras-input-cef reference', () => {
