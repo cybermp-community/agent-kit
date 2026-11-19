@@ -230,6 +230,25 @@ describe('Types Engine', () => {
     expect(result.type).toBeDefined();
     expect(result.type?.methods.some((m) => m.name === 'Mount')).toBe(true);
   });
+
+  it('does not hijack generic Player query with REDengine class and matches MpPlayer', () => {
+    const result = getTypeInfo('Player');
+    expect(result.type).toBeUndefined();
+    expect(result.matches.some((m) => m.name === 'MpPlayer')).toBe(true);
+    expect(result.formattedText).toContain('MpPlayer');
+  });
+
+  it('does not hijack generic Vehicle query with REDengine class and matches MpVehicle', () => {
+    const result = getTypeInfo('Vehicle');
+    expect(result.type).toBeUndefined();
+    expect(result.matches.some((m) => m.name === 'MpVehicle')).toBe(true);
+    expect(result.formattedText).toContain('MpVehicle');
+  });
+
+  it('does not resolve client REDengine classes when environment filter is server', () => {
+    const result = getTypeInfo('TeleportationFacility', 'server');
+    expect(result.type).toBeUndefined();
+  });
 });
 
 describe('Docs Search Engine', () => {

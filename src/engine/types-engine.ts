@@ -71,10 +71,12 @@ function formatEnumMembersTable(members: EnumMemberRecord[]): string {
 }
 
 let cachedGameDts: string | null = null;
+let dtsLoadAttempted = false;
 const parsedRedengineCache = new Map<string, TypeRecord | null>();
 
 function getGameDtsContent(): string | null {
-  if (cachedGameDts !== null) return cachedGameDts;
+  if (dtsLoadAttempted) return cachedGameDts;
+  dtsLoadAttempted = true;
   try {
     const candidatePaths = [
       path.resolve(__dirname, '../../node_modules/@cybermp/client-types/out/game.d.ts'),
@@ -109,12 +111,16 @@ export function parseRedengineType(name: string, visited = new Set<string>()): T
   if (!content) return null;
 
   const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`export\\s+(class|interface)\\s+(${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
-  let match = content.match(regex);
 
+  // 1. Exact match (case-insensitive)
+  const exactRegex = new RegExp(`export\\s+(class|interface)\\s+(${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
+  let match = content.match(exactRegex);
+
+  // 2. Controlled REDengine subsystem prefix match for PascalCase queries (e.g. gamemountingMountingFacility)
   if (!match) {
-    const fallbackRegex = new RegExp(`export\\s+(class|interface)\\s+(\\w*${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
-    match = content.match(fallbackRegex);
+    const capitalized = q.charAt(0).toUpperCase() + q.slice(1);
+    const prefixRegex = new RegExp(`export\\s+(class|interface)\\s+(game[a-z]*${capitalized})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`);
+    match = content.match(prefixRegex);
   }
 
   if (!match) {
@@ -192,9 +198,9 @@ export function parseRedengineType(name: string, visited = new Set<string>()): T
     description: 'REDengine native class available under mp.game.* when use_game_natives = true',
   };
 
-  parsedRedengineCache.set(cacheKey, record);
-  if (matchedName.toLowerCase() !== cacheKey) {
-    parsedRedengineCache.set(matchedName.toLowerCase(), record);
+  parsedRedengineCache.set(matchedName.toLowerCase(), record);
+  if (matchedName.toLowerCase() === cacheKey) {
+    parsedRedengineCache.set(cacheKey, record);
   }
 
   return record;
@@ -223,19 +229,23 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
     }
   }
 
-  if (!exactMatch && (!env || env === 'client') && q) {
-    const redengineType = parseRedengineType(name);
-    if (redengineType) {
-      exactMatch = redengineType;
-    }
-  }
-
   // Matches
   let matches = filtered.filter(
     (t) =>
       t.name.toLowerCase().includes(q) ||
       (t.description && t.description.toLowerCase().includes(q))
   );
+
+  if (!exactMatch && (!env || env === 'client') && q) {
+    const redengineType = parseRedengineType(name);
+    if (redengineType) {
+      const isExactMatch = redengineType.name.toLowerCase() === q;
+      // If CyberMP types matched and this is only a prefix-fallback match, do not hijack
+      if (isExactMatch || matches.length === 0) {
+        exactMatch = redengineType;
+      }
+    }
+  }
 
   if (exactMatch) {
     matches = [exactMatch, ...matches.filter((m) => m !== exactMatch)];
