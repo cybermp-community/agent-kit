@@ -135,6 +135,20 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetLoadingScreenSystem');
       expect(content).toContain('world3dToScreen2d');
     });
+
+    it('provides comprehensive vehicles-physics reference', () => {
+      const vehPhysicsPath = path.join(rootDir, 'skills/cybermp-dev/references/vehicles-physics.md');
+      expect(fs.existsSync(vehPhysicsPath)).toBe(true);
+      const content = fs.readFileSync(vehPhysicsPath, 'utf-8');
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain('GetMountingFacility');
+      expect(content).toContain('gamemountingMountingRequest');
+      expect(content).toContain('seat_front_left');
+      expect(content).toContain('DestructionResetGrid');
+      expect(content).toContain('entAnimationControllerComponent');
+      expect(content).toContain('AddLinelyVelocity');
+      expect(content).toContain('GetValueFromCurve');
+    });
   });
 
   describe('Starter Examples', () => {
