@@ -866,6 +866,102 @@ export function disableDropPoints(): void {
   const dropPointSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('DropPointSystem');
   dropPointSystem.OnToggleDropPointSystemRequest(req);
 }
+
+### Journal Manager & Quest Marker Suppression (`GetJournalManager`)
+
+Singleplayer quests can trigger unwanted map pins or objectives in multiplayer. Suppress tracked entries via `JournalManager`:
+
+```typescript
+import { gameJournalEntryState, gameJournalNotifyOption } from '@cybermp/client-types/enums';
+
+/**
+ * Suppresses active singleplayer tracked quests.
+ */
+export function suppressSingleplayerTrackedQuests(): void {
+  const journalManager = mp.game.ScriptGameInstance.GetJournalManager();
+  if (!journalManager) return;
+
+  const trackedEntry = journalManager.GetTrackedEntry();
+  if (!trackedEntry) return;
+
+  const parentEntry = journalManager.GetParentEntry(journalManager.GetParentEntry(trackedEntry));
+  const entryHash = journalManager.GetEntryHash(parentEntry);
+  journalManager.ChangeEntryStateByHash(
+    entryHash,
+    gameJournalEntryState.Succeeded,
+    gameJournalNotifyOption.DoNotNotify,
+  );
+}
+```
+
+### In-Engine UI System & Menus (`GetUISystem` & `StartHubMenuEvent`)
+
+To programmatically open native game menus (such as the character perks/skills development screen):
+
+```typescript
+import { gamedataStatType } from '@cybermp/client-types/enums';
+
+/**
+ * Opens the native perks/character development tree.
+ */
+export function openPerksMenu(stat: gamedataStatType = gamedataStatType.Reflexes): void {
+  const uiSystem = mp.game.ScriptGameInstance.GetUISystem();
+  const startHub = Object.assign(new mp.game.StartHubMenuEvent(), {});
+  const userData = Object.assign(new mp.game.PerkUserData(), {
+    statType: stat,
+  });
+
+  startHub.SetStartMenu('new_perks', 'ico_character', userData);
+  uiSystem.QueueEvent(startHub);
+}
+```
+
+### Right-Hand Weapon Inspection (`ScriptedPuppet.GetWeaponRight`)
+
+Query and manipulate weapons currently held in the player's right hand:
+
+```typescript
+/**
+ * Retrieves the weapon entity currently held in the player's right hand.
+ */
+export function getHeldRightHandWeapon() {
+  const playerObj = mp.game.GetPlayerObject();
+  if (!playerObj) return null;
+
+  return mp.game.ScriptedPuppet.GetWeaponRight(playerObj);
+}
+```
+
+### Client Hashing, Network & Vector Utilities (`toTweakdbid`, `getLocalPlayerId`, `Vector4.Distance`)
+
+```typescript
+/**
+ * Converts a TweakDB string to its integer hash on the client.
+ */
+export function getClientTweakDbHash(itemKey: string): bigint {
+  return BigInt(mp.game.hashes.toTweakdbid(itemKey));
+}
+
+/**
+ * Returns the local player's network ID on the client.
+ */
+export function getClientNetworkPlayerId(): number {
+  return mp.network.getLocalPlayerId();
+}
+
+/**
+ * Calculates 3D distance between two Vector4 coordinates.
+ */
+export function getEntityDistance(posA: mp.game.Vector4, posB: mp.game.Vector4): number {
+  return mp.game.Vector4.Distance(posA, posB);
+}
+
+/**
+ * Creates a native 2D vector for screen projections.
+ */
+export function createVector2(x: number, y: number): mp.game.Vector2 {
+  return Object.assign(new mp.game.Vector2(), { x, y });
+}
 ```
 
 ---

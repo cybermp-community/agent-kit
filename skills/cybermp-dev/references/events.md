@@ -83,6 +83,7 @@ cybermp.events.off('updateHealth', handler);
 | `playerDespawn` | `(playerId: number): void` | Triggered when a player entity is despawned from the world. |
 | `playerDeath` | `(playerId: number, data: PlayerDeathEventData): void` | Triggered when a player character dies (`data.killerId?: number`). |
 | `playerDisconnected` | `(playerId: number, reason: string): void` | Triggered when a player disconnects from the server. |
+| `playerQuit` | `(player: MpPlayer): void` | Triggered when a player quits, providing the complete `MpPlayer` instance. |
 | `playerAppearanceChange` | `(playerId: number, data: PlayerAppearanceChangeEventData): void \| boolean` | Triggered when player clothing/morph attributes update. |
 
 ### Combat & Actions
@@ -150,6 +151,7 @@ cybermp.events.off('updateHealth', handler);
 | `anyServerResourceStart` | `(resourceName: string): void` | Dedicated server resource started (useful for dev watchers / hotreload). |
 | `anyServerResourceStop` | `(resourceName: string): void` | Dedicated server resource stopped. |
 | `resourcesRefresh` | `(): void` | Resource system refreshed. |
+| `__coreConfig` | `(config: any): void` | Internal core sync event delivering `server.toml` core configuration to client. |
 
 ---
 
