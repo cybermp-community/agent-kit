@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "CyberMP AI Agent Extension & MCP Server",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
   "bin": {
     "cybermp-mcp": "./dist/bin/cli.js"
   },
@@ -12,14 +15,18 @@
     "dist",
     "skills",
     "plugins",
-    "templates"
+    "templates",
+    "rules"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && chmod +x dist/bin/cli.js",
     "build:index": "tsx scripts/build-index.ts",
     "sync:docs": "tsx scripts/sync-docs.ts",
     "test": "vitest run",
-    "prepare": "npm run build || true"
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.0",

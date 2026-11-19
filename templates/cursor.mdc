@@ -1,0 +1,67 @@
+---
+description: CyberMP multiplayer development guidelines, context boundaries, anti-hallucination rules, and MCP tool instructions
+globs: **/*
+---
+
+# CyberMP Development Guidelines for Cursor
+
+You are an expert CyberMP multiplayer developer building resources for Cyberpunk 2077. Follow these architectural context boundaries, anti-hallucination constraints, and MCP tool workflows.
+
+## 1. Three-Tier Architecture & Context Boundaries
+
+CyberMP isolates execution across three completely distinct JavaScript runtimes. Never mix their APIs:
+
+- **Server (`@cybermp/server-types`)**: Node.js host with state authority, database access, filesystem, and server commands.
+  - Native engine events: `events.on(eventName, callback)`
+  - Listen to client RPCs: `events.onClient(eventName, (player: MpPlayer, ...args) => ...)`
+  - Emit RPC to a client: `events.emitClient(player, eventName, ...args)`
+  - Register chat commands: `commands.add(commandName, (player: MpPlayer, ...args) => ...)`
+- **Client (`@cybermp/client-types`)**: In-game client runtime (V8) inside Cyberpunk 2077.
+  - Listen to server RPCs: `events.onServer(eventName, (...args) => ...)`
+  - Emit RPC to server: `events.emitServer(eventName, ...args)`
+  - Emit IPC to CEF UI: `events.emitCef(eventName, ...args)`
+  - Listen to CEF UI IPCs: `events.onCef(eventName, (...args) => ...)`
+- **CEF Browser UI (`@cybermp/browser-types`)**: Isolated Chromium web browser runtime for HTML/CSS/React UIs.
+  - Listen to client IPCs: `window.cybermp.events.on(eventName, (...args) => ...)`
+  - Emit IPC to client: `window.cybermp.events.emit(eventName, ...args)`
+
+> **CRITICAL ARCHITECTURAL RULE**: The Server and the CEF Browser cannot communicate directly. All communication between the server and the UI must bridge through the Client runtime (`Server <-> Client <-> CEF`).
+
+## 2. Strict Negative Constraints & Anti-Hallucination
+
+CyberMP has unique APIs. NEVER use foreign APIs from FiveM, alt:V, RAGEMP, or SA-MP:
+
+| Prohibited Foreign API | Platform | Official CyberMP Equivalent |
+|---|---|---|
+| `RegisterNetEvent('ev')` / `onNet('ev', cb)` | FiveM | `events.onClient('ev', (player, ...args) => ...)` (Server) or `events.onServer('ev', cb)` (Client) |
+| `TriggerServerEvent('ev', ...args)` | FiveM | `events.emitServer('ev', ...args)` (Client) |
+| `TriggerClientEvent('ev', id, ...args)` | FiveM | `events.emitClient(player, 'ev', ...args)` (Server) |
+| `AddEventHandler('ev', cb)` | FiveM | `events.on('ev', cb)` |
+| `GetPlayerPed(-1)` | FiveM | Local player entity reference / `player` instance |
+| `SetEntityCoords(ped, x, y, z)` | FiveM | `entity.position = new Vector3(x, y, z)` |
+| `alt.onClient('ev', cb)` / `alt.onServer` | alt:V | `events.onClient` / `events.onServer` |
+| `alt.emitClient(p, 'ev', ...args)` | alt:V | `events.emitClient(player, 'ev', ...args)` |
+| `alt.emitServer('ev', ...args)` | alt:V | `events.emitServer('ev', ...args)` |
+| `alt.Player.local` | alt:V | Client-side player entity streaming / reference |
+| `mp.events.add('ev', cb)` | RAGEMP | `events.on('ev', cb)` |
+| `mp.events.callRemote('ev', ...args)` | RAGEMP | `events.emitServer('ev', ...args)` |
+| `mp.events.callClient(p, 'ev', ...args)` | RAGEMP | `events.emitClient(player, 'ev', ...args)` |
+| `mp.players.local` | RAGEMP | Local client player context |
+| `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `events.on('playerConnected', (id, tempId) => ...)` / `player.position` |
+
+## 3. MCP Tool Instructions
+
+When the `cybermp` MCP server is active in Cursor, invoke these tools before guessing signatures:
+- `cybermp_get_event`: Look up verified event listener signatures, payloads, and execution contexts (e.g. `playerConnected`, `damage`).
+- `cybermp_get_type`: Look up TypeScript interface definitions and properties (e.g. `MpPlayer`, `MpVehicle`, `Vector3`).
+- `cybermp_get_rpc_flow`: Generate paired sender/receiver code snippets across contexts.
+- `cybermp_search_docs`: Search official guides, runbooks, and architectural patterns.
+
+## 4. TypeScript Setup & Imports
+
+- Install packages: `@cybermp/server-types`, `@cybermp/client-types`, `@cybermp/browser-types`.
+- `events` and `commands` are global runtime objects provided by CyberMP. Do not import `events` as a value from `@cybermp/*`. Only import types:
+  ```typescript
+  import type { MpPlayer } from '@cybermp/server-types';
+  ```
+- Keep separate `tsconfig.server.json` and `tsconfig.client.json` to avoid context collision.
