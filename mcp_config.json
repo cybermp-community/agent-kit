@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cybermp": {
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/dist/bin/cli.js",
+        "run"
+      ]
+    }
+  }
+}
