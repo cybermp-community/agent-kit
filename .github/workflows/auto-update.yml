@@ -1,0 +1,63 @@
+name: Auto-update Types & Docs
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-update:
+    name: Check Updates & Sync Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Update CyberMP type packages
+        run: pnpm update @cybermp/server-types @cybermp/client-types @cybermp/browser-types --latest
+
+      - name: Sync documentation
+        run: pnpm run sync:docs
+
+      - name: Rebuild AST type index
+        run: pnpm run build:index
+
+      - name: Verify tests pass
+        run: pnpm test
+
+      - name: Verify build compiles
+        run: pnpm run build
+
+      - name: Create Pull Request for updates
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(types): auto-update CyberMP types and regenerated indices'
+          title: 'chore(types): update CyberMP types and documentation index'
+          body: |
+            Automated weekly update of CyberMP type definitions and indexed documentation:
+            - `@cybermp/server-types`
+            - `@cybermp/client-types`
+            - `@cybermp/browser-types`
+
+            Verified with `pnpm test` and `pnpm run build`.
+          branch: auto-update/types-and-docs
+          delete-branch: true
