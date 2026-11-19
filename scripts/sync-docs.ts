@@ -65,12 +65,27 @@ export function extractDocMetadata(content: string): { title: string; descriptio
 }
 
 export function cleanMdxContent(content: string): string {
-  return content
+  // Stash code blocks (``` ... ``` or ~~~ ... ~~~) to prevent stripping code imports/tags
+  const codeBlocks: string[] = [];
+  const placeholder = '___CODE_BLOCK_PLACEHOLDER_';
+
+  const withoutCode = content.replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g, (match) => {
+    const token = `${placeholder}${codeBlocks.length}___`;
+    codeBlocks.push(match);
+    return token;
+  });
+
+  const cleaned = withoutCode
     .replace(/^import\s+.*$/gm, '')
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     .replace(/<TabItem\b[^>]*\blabel=(["'])(.*?)\1[^>]*>/gi, '#### $2:\n')
-    .replace(/<\/?(Steps|Tabs|TabItem|FileTree|CardGrid|LinkCard|Card|Badge|Icon)\b[^>]*\/?>/gi, '')
-    .trim();
+    .replace(/<\/?(Steps|Tabs|TabItem|FileTree|CardGrid|LinkCard|Card|Badge|Icon)\b[^>]*\/?>/gi, '');
+
+  const restored = cleaned.replace(new RegExp(`${placeholder}(\\d+)___`, 'g'), (_, index) => {
+    return codeBlocks[Number(index)] ?? '';
+  });
+
+  return restored.trim();
 }
 
 function findDocFiles(dir: string, baseDir = dir): { relativePath: string; fullPath: string }[] {
@@ -97,7 +112,6 @@ export async function syncDocs(options?: SyncDocsOptions): Promise<string[]> {
   const potentialLocalDirs = [
     options?.sourceDir,
     process.env.CYBERMP_DOCS_DIR,
-    '/Users/user/CyberMP-Docs/src/content/docs/guides',
     path.resolve(process.cwd(), '../CyberMP-Docs/src/content/docs/guides'),
   ].filter((p): p is string => Boolean(p));
 
@@ -188,11 +202,10 @@ export async function syncDocs(options?: SyncDocsOptions): Promise<string[]> {
   return syncedFiles;
 }
 
-const isDirectExecution =
+const isDirectExecution = Boolean(
   process.argv[1] &&
-  (process.argv[1].endsWith('sync-docs.ts') ||
-    process.argv[1].endsWith('sync-docs.js') ||
-    process.argv[1].includes('sync-docs'));
+  (process.argv[1].endsWith('sync-docs.ts') || process.argv[1].endsWith('sync-docs.js'))
+);
 
 if (isDirectExecution) {
   syncDocs().catch(console.error);

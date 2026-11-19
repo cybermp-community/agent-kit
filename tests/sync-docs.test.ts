@@ -71,6 +71,36 @@ import { FileTree } from '@astrojs/starlight/components';
     expect(cleaned).toContain('- server.toml');
   });
 
+  it('preserves unindented import statements inside code blocks while stripping outer imports', () => {
+    const rawMdx = `import { Steps } from '@astrojs/starlight/components';
+import CustomCard from '../components/CustomCard.astro';
+
+# TypeScript Server Guide
+
+Here is an example server script:
+
+\`\`\`ts
+import type { PlayerPuppet } from '@cybermp/client-types/game';
+import { events } from '@cybermp/server';
+
+events.on('init', () => {
+  console.log('Server started');
+});
+\`\`\`
+
+Another block:
+\`\`\`javascript
+import fs from 'node:fs';
+\`\`\``;
+
+    const cleaned = cleanMdxContent(rawMdx);
+    expect(cleaned).not.toContain("from '@astrojs/starlight/components'");
+    expect(cleaned).not.toContain("from '../components/CustomCard.astro'");
+    expect(cleaned).toContain("import type { PlayerPuppet } from '@cybermp/client-types/game';");
+    expect(cleaned).toContain("import { events } from '@cybermp/server';");
+    expect(cleaned).toContain("import fs from 'node:fs';");
+  });
+
   it('handles metadata extraction with quotes and fallbacks', () => {
     const quoted = `---
 title: "Quoted Title"
@@ -137,8 +167,10 @@ import { Steps } from '@astrojs/starlight/components';
     expect(outContent).toContain('1. Register command');
   });
 
-  it('syncs real guides from /Users/user/CyberMP-Docs if present', async () => {
-    const realGuidesDir = '/Users/user/CyberMP-Docs/src/content/docs/guides';
+  it('syncs real guides from local CyberMP-Docs directory if present', async () => {
+    const realGuidesDir =
+      process.env.CYBERMP_DOCS_DIR ||
+      path.resolve(__dirname, '../../CyberMP-Docs/src/content/docs/guides');
     if (!fs.existsSync(realGuidesDir)) {
       return; // Skip if directory absent
     }
