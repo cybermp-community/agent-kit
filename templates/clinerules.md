@@ -7,20 +7,20 @@ Follow these core instructions when developing CyberMP multiplayer resources for
 CyberMP code is strictly isolated into three runtimes. Never mix their APIs:
 
 1. **Server (`@cybermp/server-types`)**:
-   - `events.on(eventName, callback)` - Native engine events.
-   - `events.onClient(eventName, (player: MpPlayer, ...args) => ...)` - RPC from client.
-   - `events.emitClient(player, eventName, ...args)` - RPC to client.
-   - `commands.add(commandName, (player: MpPlayer, ...args) => ...)` - Chat/console commands.
+   - `mp.events.on(eventName, callback)` - Native engine events.
+   - `mp.events.onClient(eventName, (player: MpPlayer, ...args) => ...)` - RPC from client.
+   - `mp.events.emitClient(player, eventName, ...args)` - RPC to client.
+   - `mp.commands.add(commandName, (player: MpPlayer, ...args) => ...)` - Chat/console commands.
 
 2. **Client (`@cybermp/client-types`)**:
-   - `events.onServer(eventName, (...args) => ...)` - RPC from server.
-   - `events.emitServer(eventName, ...args)` - RPC to server.
-   - `events.onCef(eventName, (...args) => ...)` - IPC from CEF browser UI.
-   - `events.emitCef(eventName, ...args)` - IPC to CEF browser UI.
+   - `mp.events.onServer(eventName, (...args) => ...)` - RPC from server.
+   - `mp.events.emitServer(eventName, ...args)` - RPC to server.
+   - `mp.events.onCef(eventName, (...args) => ...)` - IPC from CEF browser UI.
+   - `mp.events.emitCef(eventName, ...args)` - IPC to CEF browser UI.
 
 3. **CEF Browser UI (`@cybermp/browser-types`)**:
-   - `cybermp.events.on(eventName, (...args) => ...)` - IPC from client.
-   - `cybermp.events.emit(eventName, ...args)` - IPC to client.
+   - `mp.events.on(eventName, (...args) => ...)` - IPC from client.
+   - `mp.events.emit(eventName, ...args)` - IPC to client.
    - Note: Server and CEF cannot communicate directly; all data must bridge through the Client script.
 
 ## Strict Negative Constraints & Anti-Hallucination
@@ -31,7 +31,7 @@ Never import or use functions from FiveM, alt:V, RAGEMP, or SA-MP:
 - Prohibited: `mp.events.add`, `mp.events.callRemote`, `mp.players.local`.
 - Prohibited: `SetEntityCoords`, `GetPlayerPed`, `OnPlayerConnect`.
 
-Always use official CyberMP events (`events.on`, `events.onClient`, `events.onServer`, `events.onCef`, `cybermp.events.on`).
+Always use official CyberMP events (`mp.events.on`, `mp.events.onClient`, `mp.events.onServer`, `mp.events.onCef`).
 
 ## CyberMP MCP Tools
 

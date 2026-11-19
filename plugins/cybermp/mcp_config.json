@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cybermp": {
+      "command": "cybermp-agent-kit",
+      "args": []
+    }
+  }
+}

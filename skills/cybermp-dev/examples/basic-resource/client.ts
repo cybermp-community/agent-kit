@@ -6,25 +6,25 @@
  */
 
 // 1. Listen for Server-to-Client RPC events
-events.onServer('chat:receiveMessage', (payload: { sender: string; text: string; timestamp: number }) => {
+mp.events.onServer('chat:receiveMessage', (payload: { sender: string; text: string; timestamp: number }) => {
   console.log(`[Client Chat] ${payload.sender}: ${payload.text}`);
 
   // Optional: forward to local CEF browser HUD
-  events.emitCef('hud:chatMessage', payload);
+  mp.events.emitCef('hud:chatMessage', payload);
 });
 
-events.onServer('player:healed', (healthAmount: number) => {
+mp.events.onServer('player:healed', (healthAmount: number) => {
   console.log(`[Client] Received heal from server: ${healthAmount} HP`);
 });
 
 // 2. Send Client-to-Server RPC event
 // The server automatically identifies the sending player
 function sendChatMessage(text: string) {
-  events.emitServer('chat:sendMessage', text);
+  mp.events.emitServer('chat:sendMessage', text);
 }
 
 // Example: Send greeting upon resource startup
-events.on('resourceStart', (resourceName: string) => {
+mp.events.on('resourceStart', (resourceName: string) => {
   console.log(`[Client] Resource ${resourceName} started. Connecting to chat...`);
   sendChatMessage('Hello Night City!');
 });

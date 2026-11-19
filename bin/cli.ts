@@ -40,6 +40,7 @@ program
   .description('Initialize CyberMP rules and MCP configuration in the current project')
   .option('-e, --editors <editors...>', 'Target editors (cursor, claude, antigravity, cline, windsurf, zed)')
   .option('--skill', 'Copy cybermp-dev Agent Skill into .agents/skills/')
+  .option('--plugin', 'Copy cybermp Antigravity plugin into .agents/plugins/')
   .option('-y, --yes', 'Non-interactive mode with default settings')
   .option('-f, --force', 'Overwrite existing files')
   .action(async (options) => {
@@ -47,6 +48,7 @@ program
       await initProject({
         editors: options.editors,
         copySkill: options.skill,
+        plugin: options.plugin,
         nonInteractive: options.yes,
         force: options.force,
       });

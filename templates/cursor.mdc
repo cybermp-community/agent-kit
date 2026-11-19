@@ -22,8 +22,8 @@ CyberMP isolates execution across three completely distinct JavaScript runtimes.
   - Emit IPC to CEF UI: `events.emitCef(eventName, ...args)`
   - Listen to CEF UI IPCs: `events.onCef(eventName, (...args) => ...)`
 - **CEF Browser UI (`@cybermp/browser-types`)**: Isolated Chromium web browser runtime for HTML/CSS/React UIs.
-  - Listen to client IPCs: `window.cybermp.events.on(eventName, (...args) => ...)`
-  - Emit IPC to client: `window.cybermp.events.emit(eventName, ...args)`
+  - Listen to client IPCs: `mp.events.on(eventName, (...args) => ...)` (or `window.mp.events.on`)
+  - Emit IPC to client: `mp.events.emit(eventName, ...args)` (or `window.mp.events.emit`)
 
 > **CRITICAL ARCHITECTURAL RULE**: The Server and the CEF Browser cannot communicate directly. All communication between the server and the UI must bridge through the Client runtime (`Server <-> Client <-> CEF`).
 

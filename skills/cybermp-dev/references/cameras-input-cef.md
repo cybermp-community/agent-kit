@@ -804,7 +804,7 @@ function dispatchSyntheticKey(key: EInputKey, type: 'down' | 'up'): void {
 }
 
 // In browser script: listen for bridged events from client V8
-cybermp.events.on('incomingKeyPressed', (data: { action: EInputAction; key: EInputKey }) => {
+mp.events.on('incomingKeyPressed', (data: { action: EInputAction; key: EInputKey }) => {
   if (data.action === EInputAction.IACT_Press) {
     dispatchSyntheticKey(data.key, 'down');
   } else if (data.action === EInputAction.IACT_Release) {
@@ -961,10 +961,10 @@ export function requestDiscordAuth(appId: string): void {
     if (authCode && authCode.length > 0) {
       console.log('[Discord] Authorization code retrieved successfully');
       // Transmit code to authoritative server for secure token exchange
-      events.emitServer('auth:verifyDiscordCode', authCode);
+      mp.events.emitServer('auth:verifyDiscordCode', authCode);
     } else {
       console.warn('[Discord] Empty authorization code received');
-      events.emitCef('auth:status', { success: false, reason: 'Discord auth declined' });
+      mp.events.emitCef('auth:status', { success: false, reason: 'Discord auth declined' });
     }
   } catch (err) {
     console.error('[Discord] Failed to obtain OAuth2 code:', err);
@@ -1143,7 +1143,7 @@ registerClientCommand('fov', (localPlayerId, args) => {
 let hudVisible = true;
 registerClientCommand('hud', (localPlayerId) => {
   hudVisible = !hudVisible;
-  events.emitCef('hud:setVisible', hudVisible);
+  mp.events.emitCef('hud:setVisible', hudVisible);
   console.log(`[Command] HUD visibility: ${hudVisible ? 'Visible' : 'Hidden'}`);
 });
 

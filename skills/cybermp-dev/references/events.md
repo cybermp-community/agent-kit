@@ -16,57 +16,57 @@ events.on('playerConnected', (playerId: number, tempId: string) => {
 });
 
 // 2. Client-to-Server RPC Events (First argument is ALWAYS the sending MpPlayer instance)
-events.onClient('buyItem', (player: MpPlayer, itemId: string, amount: number) => {
+mp.events.onClient('buyItem', (player: MpPlayer, itemId: string, amount: number) => {
   console.log(`Player ${player.name} requested to buy ${amount}x ${itemId}`);
 });
 
 // 3. Emitting to Client
-events.emitClient(player, 'purchaseSuccess', { itemId, balance: 5000 });
+mp.events.emitClient(player, 'purchaseSuccess', { itemId, balance: 5000 });
 
 // 4. Deregistering listeners
-events.off('playerConnected', handler);
+mp.events.off('playerConnected', handler);
 ```
 
 ### Client Environment (`@cybermp/client-types`)
-The client environment runs within the Cyberpunk 2077 V8 runtime. Event listeners are registered through the global `events` object:
+The client environment runs within the Cyberpunk 2077 V8 runtime. Event listeners are registered through the global `mp.events` object:
 
 ```typescript
 // 1. Engine & Streaming Events
-events.on('remotePlayerStreamIn', (player: MpPlayer) => {
+mp.events.on('remotePlayerStreamIn', (player: MpPlayer) => {
   console.log(`Remote player streamed in: ${player.name}`);
 });
 
-// 2. Server-to-Client RPC Events (Triggered by events.emitClient on server)
-events.onServer('purchaseSuccess', (data: { itemId: string; balance: number }) => {
+// 2. Server-to-Client RPC Events (Triggered by mp.events.emitClient on server)
+mp.events.onServer('purchaseSuccess', (data: { itemId: string; balance: number }) => {
   console.log(`Purchased ${data.itemId}, new balance: ${data.balance}`);
 });
 
-// 3. Browser (CEF) to Client Events (Triggered by cybermp.events.emit in CEF)
-events.onCef('submitLogin', (username: string, passHash: string) => {
-  events.emitServer('authLogin', username, passHash);
+// 3. Browser (CEF) to Client Events (Triggered by mp.events.emit in CEF)
+mp.events.onCef('submitLogin', (username: string, passHash: string) => {
+  mp.events.emitServer('authLogin', username, passHash);
 });
 
 // 4. Emitting to Server
-events.emitServer('requestInventory');
+mp.events.emitServer('requestInventory');
 
 // 5. Emitting to Browser (CEF)
-events.emitCef('updateHealth', 85);
+mp.events.emitCef('updateHealth', 85);
 ```
 
 ### Browser Environment (`@cybermp/browser-types`)
-The CEF browser runs inside Chromium for web UIs. Events communicate with the game client via `window.cybermp.events`:
+The CEF browser runs inside Chromium for web UIs. Events communicate with the game client via `window.mp.events`:
 
 ```javascript
 // 1. Listen for messages from client-side script
-cybermp.events.on('updateHealth', (health) => {
+mp.events.on('updateHealth', (health) => {
   document.getElementById('health-bar').style.width = `${health}%`;
 });
 
 // 2. Send messages back to client-side script
-cybermp.events.emit('uiReady');
+mp.events.emit('uiReady');
 
 // 3. Remove listener
-cybermp.events.off('updateHealth', handler);
+mp.events.off('updateHealth', handler);
 ```
 
 ---
@@ -183,10 +183,10 @@ cybermp.events.off('updateHealth', handler);
 
 ---
 
-## 4. Browser (CEF) Events Catalog (`cybermp.events.on`)
+## 4. Browser (CEF) Events Catalog (`mp.events.on`)
 
 | Method | Parameters | Description |
 |---|---|---|
-| `cybermp.events.on(name, cb)` | `(name: string, callback: (...args: any[]) => void)` | Listens for events sent by client via `events.emitCef`. |
-| `cybermp.events.emit(name, ...args)` | `(name: string, ...args: any[])` | Sends event to client, received by `events.onCef`. |
-| `cybermp.events.off(name, cb)` | `(name: string, func: (...args: any[]) => void)` | Removes an active CEF listener. |
+| `mp.events.on(name, cb)` | `(name: string, callback: (...args: any[]) => void)` | Listens for events sent by client via `mp.events.emitCef`. |
+| `mp.events.emit(name, ...args)` | `(name: string, ...args: any[])` | Sends event to client, received by `mp.events.onCef`. |
+| `mp.events.off(name, cb)` | `(name: string, func: (...args: any[]) => void)` | Removes an active CEF listener. |

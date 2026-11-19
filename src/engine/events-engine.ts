@@ -24,18 +24,18 @@ const allEvents = eventsData as EventRecord[];
 function generateListenerSyntax(event: EventRecord): string {
   const paramNames = event.parameters.map((p) => p.name).join(', ');
   if (event.env === 'server') {
-    return `// Server listener:\nevents.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
+    return `// Server listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
   }
   if (event.env === 'client') {
     if (event.source === 'MpCefEventsMap') {
-      return `// Client listener for CEF event:\nevents.onCef('${event.name}', (${paramNames}) => {\n  // Handle CEF event\n});`;
+      return `// Client listener for CEF event:\nmp.events.onCef('${event.name}', (${paramNames}) => {\n  // Handle CEF event\n});`;
     }
-    return `// Client listener:\nevents.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
+    return `// Client listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
   }
   if (event.env === 'browser') {
-    return `// CEF Web UI listener:\ncybermp.events.on('${event.name}', (${paramNames}) => {\n  // Browser handler\n});`;
+    return `// CEF Web UI listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Browser handler\n});`;
   }
-  return `events.on('${event.name}', (${paramNames}) => {});`;
+  return `mp.events.on('${event.name}', (${paramNames}) => {});`;
 }
 
 function formatParametersTable(parameters: EventParameter[]): string {

@@ -11,31 +11,31 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   // FiveM
   registernetevent: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.onClient(name, (player, ...args) => ...)',
+    cybermpAlternative: 'mp.events.onClient(name, (player, ...args) => ...)',
   },
   triggerclientevent: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.emitClient(player, name, ...args)',
+    cybermpAlternative: 'mp.events.emitClient(player, name, ...args)',
   },
   triggerserverevent: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.emitServer(name, ...args)',
+    cybermpAlternative: 'mp.events.emitServer(name, ...args)',
   },
   triggerevent: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.emit(name, ...args)',
+    cybermpAlternative: 'mp.events.emit(name, ...args)',
   },
   onnet: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.onClient(name, (player, ...args) => ...)',
+    cybermpAlternative: 'mp.events.onClient(name, (player, ...args) => ...)',
   },
   emitnet: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.emitServer(name, ...args) or events.emitClient(player, name, ...args)',
+    cybermpAlternative: 'mp.events.emitServer(name, ...args) or mp.events.emitClient(player, name, ...args)',
   },
   addeventhandler: {
     platform: 'FiveM',
-    cybermpAlternative: 'events.on(name, callback)',
+    cybermpAlternative: 'mp.events.on(name, callback)',
   },
   getplayerped: {
     platform: 'FiveM',
@@ -49,27 +49,27 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   // alt:V
   'alt.onclient': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.onClient(name, (player, ...args) => ...)',
+    cybermpAlternative: 'mp.events.onClient(name, (player, ...args) => ...)',
   },
   'alt.onserver': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.onServer(name, (...args) => ...)',
+    cybermpAlternative: 'mp.events.onServer(name, (...args) => ...)',
   },
   'alt.on': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.on(name, callback)',
+    cybermpAlternative: 'mp.events.on(name, callback)',
   },
   'alt.emitclient': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.emitClient(player, name, ...args)',
+    cybermpAlternative: 'mp.events.emitClient(player, name, ...args)',
   },
   'alt.emitserver': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.emitServer(name, ...args)',
+    cybermpAlternative: 'mp.events.emitServer(name, ...args)',
   },
   'alt.emit': {
     platform: 'alt:V',
-    cybermpAlternative: 'events.emit(name, ...args)',
+    cybermpAlternative: 'mp.events.emit(name, ...args)',
   },
   'alt.player': {
     platform: 'alt:V',
@@ -91,19 +91,19 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   // RAGEMP
   'mp.events.add': {
     platform: 'RAGEMP',
-    cybermpAlternative: 'events.on(name, callback)',
+    cybermpAlternative: 'mp.events.on(name, callback)',
   },
   'mp.events.callremote': {
     platform: 'RAGEMP',
-    cybermpAlternative: 'events.emitServer(name, ...args)',
+    cybermpAlternative: 'mp.events.emitServer(name, ...args)',
   },
   'mp.events.callclient': {
     platform: 'RAGEMP',
-    cybermpAlternative: 'events.emitClient(player, name, ...args)',
+    cybermpAlternative: 'mp.events.emitClient(player, name, ...args)',
   },
   'mp.events.call': {
     platform: 'RAGEMP',
-    cybermpAlternative: 'events.emit(name, ...args)',
+    cybermpAlternative: 'mp.events.emit(name, ...args)',
   },
   'mp.players.local': {
     platform: 'RAGEMP',
@@ -111,25 +111,25 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   },
   'mp.players.broadcast': {
     platform: 'RAGEMP',
-    cybermpAlternative: 'events.emitClients(name, ...args) or player iteration',
+    cybermpAlternative: 'mp.events.emitClients(name, ...args) or player iteration',
   },
 
   // SA-MP
   onplayerconnect: {
     platform: 'SA-MP',
-    cybermpAlternative: "events.on('playerConnect', (player) => ...)",
+    cybermpAlternative: "mp.events.on('playerConnect', (player) => ...)",
   },
   onplayerdisconnect: {
     platform: 'SA-MP',
-    cybermpAlternative: "events.on('playerDisconnect', (player, reason) => ...)",
+    cybermpAlternative: "mp.events.on('playerDisconnect', (player, reason) => ...)",
   },
   onplayerdeath: {
     platform: 'SA-MP',
-    cybermpAlternative: "events.on('playerDeath', (player, ...) => ...)",
+    cybermpAlternative: "mp.events.on('playerDeath', (player, ...) => ...)",
   },
   onplayerspawn: {
     platform: 'SA-MP',
-    cybermpAlternative: "events.on('playerSpawn', (player) => ...)",
+    cybermpAlternative: "mp.events.on('playerSpawn', (player) => ...)",
   },
   sendclientmessage: {
     platform: 'SA-MP',
@@ -159,6 +159,19 @@ const OFFICIAL_CYBERMP_SYMBOLS = new Set<string>([
   'events.emitclient',
   'events.emitserver',
   'events.emitcef',
+  'mp.events.on',
+  'mp.events.once',
+  'mp.events.off',
+  'mp.events.onclient',
+  'mp.events.onserver',
+  'mp.events.oncef',
+  'mp.events.emit',
+  'mp.events.emitclient',
+  'mp.events.emitserver',
+  'mp.events.emitcef',
+  'mp.commands.add',
+  'mp.local',
+  'mp.localstorage',
   'cybermp.events.on',
   'cybermp.events.emit',
 ]);

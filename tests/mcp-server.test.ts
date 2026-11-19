@@ -148,8 +148,8 @@ describe('CyberMP MCP Server', () => {
       expect(result.isError).toBeFalsy();
       const text = (result.content as any)[0].text;
       expect(text).toContain('Server to Client RPC');
-      expect(text).toContain('events.emitClient');
-      expect(text).toContain('events.onServer');
+      expect(text).toContain('mp.events.emitClient');
+      expect(text).toContain('mp.events.onServer');
     });
 
     it('returns client to CEF browser paired bridge code', async () => {
@@ -161,8 +161,8 @@ describe('CyberMP MCP Server', () => {
       expect(result.isError).toBeFalsy();
       const text = (result.content as any)[0].text;
       expect(text).toContain('Client to Browser (CEF) Bridge');
-      expect(text).toContain('events.emitCef');
-      expect(text).toContain('cybermp.events.on');
+      expect(text).toContain('mp.events.emitCef');
+      expect(text).toContain('mp.events.on');
     });
 
     it('handles invalid server to browser direct RPC direction safely with error', async () => {

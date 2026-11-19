@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import prompts from 'prompts';
 
@@ -7,12 +8,15 @@ export interface InitOptions {
   cwd?: string;
   editors?: string[];
   copySkill?: boolean;
+  plugin?: boolean;
+  geminiConfigDir?: string;
+  isWindows?: boolean;
   force?: boolean;
   nonInteractive?: boolean;
 }
 
 /**
- * Resolves the root directory of the cybermp-mcp package containing templates and skills.
+ * Resolves the root directory of the cybermp-agent-kit package containing templates and skills.
  */
 export function getPackageRoot(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +29,22 @@ export function getPackageRoot(): string {
     dir = parent;
   }
   return process.cwd();
+}
+
+/**
+ * Resolves the command and arguments to start the CyberMP MCP server.
+ * Prefer local node_modules binary if available to avoid npx registry latency,
+ * and use npx.cmd on Windows to prevent ENOENT spawn crashes.
+ */
+export function resolveMcpServerCommand(
+  cwd: string = process.cwd(),
+  isWindows: boolean = process.platform === 'win32'
+): { command: string; args: string[] } {
+  const localCli = path.join(cwd, 'node_modules', 'cybermp-agent-kit', 'dist', 'bin', 'cli.js');
+  if (fs.existsSync(localCli)) {
+    return { command: 'node', args: ['./node_modules/cybermp-agent-kit/dist/bin/cli.js'] };
+  }
+  return { command: isWindows ? 'npx.cmd' : 'npx', args: ['-y', 'cybermp-agent-kit'] };
 }
 
 /**
@@ -76,6 +96,8 @@ function writeRuleFile(filePath: string, content: string, force: boolean): void 
  */
 export async function initProject(options: InitOptions = {}): Promise<void> {
   const cwd = options.cwd || process.cwd();
+  const isWindows = options.isWindows ?? process.platform === 'win32';
+  const mcpCmd = resolveMcpServerCommand(cwd, isWindows);
   let selectedEditors: string[] = [];
   let shouldCopySkill = options.copySkill ?? false;
 
@@ -92,7 +114,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         choices: [
           { title: 'Cursor (.cursor/rules/ & .cursor/mcp.json)', value: 'cursor', selected: true },
           { title: 'Claude (CLAUDE.md & .mcp.json)', value: 'claude', selected: true },
-          { title: 'Antigravity (.agents/rules/ & mcp_config.json)', value: 'antigravity', selected: true },
+          { title: 'Antigravity (.agents/rules/ & global mcp_config.json)', value: 'antigravity', selected: true },
           { title: 'Cline / Roo Code (.clinerules & .cline/mcp_settings.json)', value: 'cline' },
           { title: 'Windsurf (.windsurfrules & mcp_config.json)', value: 'windsurf' },
           { title: 'Zed (.zed/settings.json)', value: 'zed' },
@@ -127,10 +149,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         writeRuleFile(path.join(cwd, '.cursor/rules/cybermp.mdc'), cursorTemplate, force);
         mergeJsonConfig(path.join(cwd, '.cursor/mcp.json'), (data) => {
           data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
-          };
+          data.mcpServers.cybermp = mcpCmd;
         });
         break;
       }
@@ -140,10 +159,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         writeRuleFile(path.join(cwd, 'CLAUDE.md'), claudeTemplate, force);
         mergeJsonConfig(path.join(cwd, '.mcp.json'), (data) => {
           data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
-          };
+          data.mcpServers.cybermp = mcpCmd;
         });
         break;
       }
@@ -151,13 +167,19 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       case 'antigravity': {
         const antigravityTemplate = readTemplate('antigravity.md');
         writeRuleFile(path.join(cwd, '.agents/rules/cybermp.md'), antigravityTemplate, force);
-        mergeJsonConfig(path.join(cwd, 'mcp_config.json'), (data) => {
+
+        // Antigravity loads MCP configs globally from ~/.gemini/config/mcp_config.json,
+        // ignoring root workspace mcp_config.json
+        const geminiConfigDir = options.geminiConfigDir || path.join(os.homedir(), '.gemini', 'config');
+        const globalMcpPath = path.join(geminiConfigDir, 'mcp_config.json');
+        mergeJsonConfig(globalMcpPath, (data) => {
           data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
-          };
+          data.mcpServers.cybermp = mcpCmd;
         });
+
+        if (!options.nonInteractive) {
+          console.log(`Registered global Antigravity MCP server in ${globalMcpPath}`);
+        }
         break;
       }
 
@@ -167,8 +189,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         mergeJsonConfig(path.join(cwd, '.cline/mcp_settings.json'), (data) => {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
+            ...mcpCmd,
             disabled: false,
             autoApprove: [],
           };
@@ -181,10 +202,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         writeRuleFile(path.join(cwd, '.windsurfrules'), universalTemplate, force);
         mergeJsonConfig(path.join(cwd, 'mcp_config.json'), (data) => {
           data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
-          };
+          data.mcpServers.cybermp = mcpCmd;
         });
         break;
       }
@@ -192,10 +210,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       case 'zed': {
         mergeJsonConfig(path.join(cwd, '.zed/settings.json'), (data) => {
           data.context_servers = data.context_servers || {};
-          data.context_servers.cybermp = {
-            command: 'npx',
-            args: ['-y', 'cybermp-agent-kit'],
-          };
+          data.context_servers.cybermp = mcpCmd;
         });
         break;
       }
@@ -212,6 +227,39 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       } else {
         fs.mkdirSync(path.dirname(skillDest), { recursive: true });
         fs.cpSync(skillSrc, skillDest, { recursive: true, force: true });
+      }
+    }
+  }
+
+  // Copy Antigravity workspace plugin if requested
+  if (options.plugin) {
+    const pluginSrc = path.join(packageRoot, 'plugins/cybermp');
+    const pluginDest = path.join(cwd, '.agents/plugins/cybermp');
+    if (fs.existsSync(pluginSrc)) {
+      if (fs.existsSync(pluginDest) && !force) {
+        console.log(`Skipping existing plugin directory (use --force to overwrite)`);
+      } else {
+        fs.mkdirSync(path.dirname(pluginDest), { recursive: true });
+        fs.cpSync(pluginSrc, pluginDest, { recursive: true, force: true });
+
+        // Ensure skills and rules are bundled inside the plugin folder
+        const skillSrc = path.join(packageRoot, 'skills/cybermp-dev');
+        const skillDest = path.join(pluginDest, 'skills/cybermp-dev');
+        if (fs.existsSync(skillSrc)) {
+          fs.mkdirSync(path.dirname(skillDest), { recursive: true });
+          fs.cpSync(skillSrc, skillDest, { recursive: true, force: true });
+        }
+
+        const ruleSrc = path.join(packageRoot, 'rules/cybermp.md');
+        const ruleDest = path.join(pluginDest, 'rules/cybermp.md');
+        if (fs.existsSync(ruleSrc)) {
+          fs.mkdirSync(path.dirname(ruleDest), { recursive: true });
+          fs.copyFileSync(ruleSrc, ruleDest);
+        }
+
+        if (!options.nonInteractive) {
+          console.log(`Installed CyberMP Antigravity plugin in ${pluginDest}`);
+        }
       }
     }
   }

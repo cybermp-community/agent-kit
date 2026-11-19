@@ -112,20 +112,20 @@ When connected, `cybermp-agent-kit` provides 4 specialized MCP tools:
 
 ## Context Boundaries
 
-CyberMP operates in three distinct, isolated environments:
+CyberMP operates in three distinct, isolated environments, all calling native methods and systems via the global `mp.*` namespace:
 
 1. **Server** (`@cybermp/server-types`): Node.js environment. Authoritative game state, player sessions, vehicle management, and commands.
-   - Listen to events: `events.on(name, callback)`
-   - Listen to client RPC: `events.onClient(name, (player: MpPlayer, ...args) => ...)`
-   - Send to client: `events.emitClient(player, name, ...args)`
+   - Listen to events: `mp.events.on(name, callback)`
+   - Listen to client RPC: `mp.events.onClient(name, (player: MpPlayer, ...args) => ...)`
+   - Send to client: `mp.events.emitClient(player, name, ...args)`
 2. **Client** (`@cybermp/client-types`): In-game V8 environment inside Cyberpunk 2077. Entities, camera, sound, inputs, and REDengine game natives (`mp.game.*`).
-   - Listen to server: `events.onServer(name, callback)`
-   - Send to server: `events.emitServer(name, ...args)`
-   - Listen to CEF: `events.onCef(name, callback)`
-   - Send to CEF: `events.emitCef(name, ...args)`
+   - Listen to server: `mp.events.onServer(name, callback)`
+   - Send to server: `mp.events.emitServer(name, ...args)`
+   - Listen to CEF: `mp.events.onCef(name, callback)`
+   - Send to CEF: `mp.events.emitCef(name, ...args)`
 3. **CEF Browser** (`@cybermp/browser-types`): Chromium web runtime for HUD, menus, and custom UI.
-   - Listen to client: `cybermp.events.on(name, callback)`
-   - Send to client: `cybermp.events.emit(name, ...args)`
+   - Listen to client: `mp.events.on(name, callback)`
+   - Send to client: `mp.events.emit(name, ...args)`
 
 ---
 
@@ -135,7 +135,7 @@ CyberMP operates in three distinct, isolated environments:
 # Install dependencies
 pnpm install
 
-# Run complete Vitest suite (103 tests)
+# Run complete Vitest suite (108 tests)
 pnpm test
 
 # Rebuild static AST and markdown documentation indexes
@@ -143,6 +143,25 @@ pnpm run build:index
 
 # Build TypeScript output into dist/
 pnpm run build
+```
+
+---
+
+## Publishing to npm
+
+To publish `cybermp-agent-kit` to the public npm registry:
+
+```bash
+# Log in to npm
+npm login
+
+# Build, test, and publish
+npm publish --access public
+```
+
+Once published, users can configure their AI editors seamlessly:
+```bash
+npx cybermp-agent-kit init
 ```
 
 ---

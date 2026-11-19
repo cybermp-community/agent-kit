@@ -16,8 +16,8 @@ CyberMP code runs in three strictly isolated execution contexts:
   - CEF IPC handler: `events.onCef(eventName, (...args) => ...)`
   - Emit to CEF: `events.emitCef(eventName, ...args)`
 - **CEF**: Embedded Chromium UI (`@cybermp/browser-types`).
-  - Client IPC handler: `cybermp.events.on(eventName, (...args) => ...)`
-  - Emit to client: `cybermp.events.emit(eventName, ...args)`
+  - Client IPC handler: `mp.events.on(eventName, (...args) => ...)`
+  - Emit to client: `mp.events.emit(eventName, ...args)`
   - Important: Server and CEF have no direct connection.
 
 ## Strict Anti-Hallucination Guardrails

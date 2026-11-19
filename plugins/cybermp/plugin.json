@@ -1,21 +1,11 @@
 {
   "name": "cybermp",
   "version": "1.0.0",
-  "description": "Community CyberMP multiplayer development suite for AI agents",
+  "description": "CyberMP multiplayer development toolkit for Antigravity",
   "skills": [
     "skills/cybermp-dev"
   ],
   "rules": [
     "rules/cybermp.md"
-  ],
-  "mcp": {
-    "servers": {
-      "cybermp": {
-        "command": "node",
-        "args": [
-          "dist/bin/cli.js"
-        ]
-      }
-    }
-  }
+  ]
 }

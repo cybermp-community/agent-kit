@@ -2,22 +2,32 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getConfigSnippet } from '../src/cli/print-config.js';
-import { initProject } from '../src/cli/init.js';
+import { getConfigSnippet, getEditorSnippets } from '../src/cli/print-config.js';
+import { initProject, resolveMcpServerCommand } from '../src/cli/init.js';
 
 describe('CLI Config Generator', () => {
   it('returns valid JSON snippet for Cursor and Claude', () => {
-    const cursorConfig = getConfigSnippet('cursor');
+    const cursorConfig = getConfigSnippet('cursor', { isWindows: false });
     expect(cursorConfig).toContain('"command": "npx"');
     expect(cursorConfig).toContain('"cybermp-agent-kit"');
     const parsedCursor = JSON.parse(cursorConfig);
     expect(parsedCursor.mcpServers.cybermp).toBeDefined();
 
-    const claudeConfig = getConfigSnippet('claude');
+    const claudeConfig = getConfigSnippet('claude', { isWindows: false });
     expect(claudeConfig).toContain('"command": "npx"');
     expect(claudeConfig).toContain('"cybermp-agent-kit"');
     const parsedClaude = JSON.parse(claudeConfig);
     expect(parsedClaude.mcpServers.cybermp).toBeDefined();
+  });
+
+  it('supports Windows platform override with npx.cmd', () => {
+    const winConfig = getConfigSnippet('cursor', { isWindows: true });
+    expect(winConfig).toContain('"command": "npx.cmd"');
+    const parsed = JSON.parse(winConfig);
+    expect(parsed.mcpServers.cybermp.command).toBe('npx.cmd');
+
+    const winSnippets = getEditorSnippets(true);
+    expect((winSnippets.antigravity as any).mcpServers.cybermp.command).toBe('npx.cmd');
   });
 
   it('supports all target platforms: antigravity, cline, windsurf, zed, all', () => {
@@ -93,6 +103,36 @@ describe('Templates & Rules Files', () => {
   });
 });
 
+describe('MCP Server Command Resolution', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-resolve-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('resolves npx on Unix and npx.cmd on Windows when package is not local', () => {
+    const unixCmd = resolveMcpServerCommand(tempDir, false);
+    expect(unixCmd).toEqual({ command: 'npx', args: ['-y', 'cybermp-agent-kit'] });
+
+    const winCmd = resolveMcpServerCommand(tempDir, true);
+    expect(winCmd).toEqual({ command: 'npx.cmd', args: ['-y', 'cybermp-agent-kit'] });
+  });
+
+  it('resolves direct node execution when installed locally in node_modules', () => {
+    const localCliPath = path.join(tempDir, 'node_modules/cybermp-agent-kit/dist/bin/cli.js');
+    fs.mkdirSync(path.dirname(localCliPath), { recursive: true });
+    fs.writeFileSync(localCliPath, '#!/usr/bin/env node\n', 'utf-8');
+
+    const resolved = resolveMcpServerCommand(tempDir);
+    expect(resolved.command).toBe('node');
+    expect(resolved.args).toEqual(['./node_modules/cybermp-agent-kit/dist/bin/cli.js']);
+  });
+});
+
 describe('CLI Init Wizard', () => {
   let tempDir: string;
 
@@ -108,6 +148,7 @@ describe('CLI Init Wizard', () => {
     await initProject({
       cwd: tempDir,
       editors: ['cursor'],
+      isWindows: false,
       nonInteractive: true,
     });
 
@@ -144,6 +185,7 @@ describe('CLI Init Wizard', () => {
     await initProject({
       cwd: tempDir,
       editors: ['cursor'],
+      isWindows: false,
       nonInteractive: true,
     });
 
@@ -154,21 +196,43 @@ describe('CLI Init Wizard', () => {
     expect(updatedMcp.mcpServers.cybermp).toBeDefined();
   });
 
-  it('configures Claude, Antigravity, Cline, Windsurf, and Zed', async () => {
+  it('configures Antigravity into global config directory and writes rule to .agents/rules/', async () => {
+    const fakeGeminiConfig = path.join(tempDir, '.gemini/config');
+
     await initProject({
       cwd: tempDir,
-      editors: ['claude', 'antigravity', 'cline', 'windsurf', 'zed'],
+      editors: ['antigravity'],
+      geminiConfigDir: fakeGeminiConfig,
+      isWindows: false,
+      nonInteractive: true,
+    });
+
+    // Rule in project workspace
+    expect(fs.existsSync(path.join(tempDir, '.agents/rules/cybermp.md'))).toBe(true);
+
+    // Global MCP config updated
+    const globalMcpPath = path.join(fakeGeminiConfig, 'mcp_config.json');
+    expect(fs.existsSync(globalMcpPath)).toBe(true);
+    const globalMcp = JSON.parse(fs.readFileSync(globalMcpPath, 'utf-8'));
+    expect(globalMcp.mcpServers.cybermp).toBeDefined();
+    expect(globalMcp.mcpServers.cybermp.command).toBe('npx');
+
+    // Root mcp_config.json should NOT be created for antigravity
+    expect(fs.existsSync(path.join(tempDir, 'mcp_config.json'))).toBe(false);
+  });
+
+  it('configures Claude, Cline, Windsurf, and Zed', async () => {
+    await initProject({
+      cwd: tempDir,
+      editors: ['claude', 'cline', 'windsurf', 'zed'],
       copySkill: true,
+      isWindows: false,
       nonInteractive: true,
     });
 
     // Claude
     expect(fs.existsSync(path.join(tempDir, 'CLAUDE.md'))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, '.mcp.json'))).toBe(true);
-
-    // Antigravity
-    expect(fs.existsSync(path.join(tempDir, '.agents/rules/cybermp.md'))).toBe(true);
-    expect(fs.existsSync(path.join(tempDir, 'mcp_config.json'))).toBe(true);
 
     // Copied Skill
     const skillPath = path.join(tempDir, '.agents/skills/cybermp-dev/SKILL.md');
@@ -180,14 +244,34 @@ describe('CLI Init Wizard', () => {
     expect(fs.existsSync(path.join(tempDir, '.clinerules'))).toBe(true);
     expect(fs.existsSync(path.join(tempDir, '.cline/mcp_settings.json'))).toBe(true);
 
-    // Windsurf
+    // Windsurf (Windsurf uses project root mcp_config.json)
     expect(fs.existsSync(path.join(tempDir, '.windsurfrules'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'mcp_config.json'))).toBe(true);
 
     // Zed
     const zedSettingsPath = path.join(tempDir, '.zed/settings.json');
     expect(fs.existsSync(zedSettingsPath)).toBe(true);
     const zedSettings = JSON.parse(fs.readFileSync(zedSettingsPath, 'utf-8'));
     expect(zedSettings.context_servers.cybermp).toBeDefined();
+  });
+
+  it('installs Antigravity plugin into .agents/plugins/cybermp when --plugin is passed', async () => {
+    await initProject({
+      cwd: tempDir,
+      editors: [],
+      plugin: true,
+      nonInteractive: true,
+    });
+
+    const pluginDir = path.join(tempDir, '.agents/plugins/cybermp');
+    expect(fs.existsSync(path.join(pluginDir, 'plugin.json'))).toBe(true);
+    expect(fs.existsSync(path.join(pluginDir, 'mcp_config.json'))).toBe(true);
+    expect(fs.existsSync(path.join(pluginDir, 'skills/cybermp-dev/SKILL.md'))).toBe(true);
+    expect(fs.existsSync(path.join(pluginDir, 'rules/cybermp.md'))).toBe(true);
+
+    const pluginJson = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf-8'));
+    expect(pluginJson.name).toBe('cybermp');
+    expect(pluginJson.skills).toContain('skills/cybermp-dev');
   });
 
   it('respects force option: does not overwrite existing rule files or skills when force is false, but overwrites when force is true', async () => {

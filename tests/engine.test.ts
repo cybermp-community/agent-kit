@@ -82,25 +82,25 @@ describe('RPC Flow Engine', () => {
   it('generates exact paired RPC code between server and client', () => {
     const serverToClient = getRpcFlow('server', 'client');
     expect(serverToClient.title).toBe('Server to Client RPC');
-    expect(serverToClient.senderCode).toContain('events.emitClient');
-    expect(serverToClient.receiverCode).toContain('events.onServer');
+    expect(serverToClient.senderCode).toContain('mp.events.emitClient');
+    expect(serverToClient.receiverCode).toContain('mp.events.onServer');
 
     const clientToServer = getRpcFlow('client', 'server');
     expect(clientToServer.title).toBe('Client to Server RPC');
-    expect(clientToServer.senderCode).toContain('events.emitServer');
-    expect(clientToServer.receiverCode).toContain('events.onClient');
+    expect(clientToServer.senderCode).toContain('mp.events.emitServer');
+    expect(clientToServer.receiverCode).toContain('mp.events.onClient');
   });
 
   it('generates exact paired RPC code between client and browser (CEF)', () => {
     const clientToBrowser = getRpcFlow('client', 'browser');
     expect(clientToBrowser.title).toBe('Client to Browser (CEF) Bridge');
-    expect(clientToBrowser.senderCode).toContain('events.emitCef');
-    expect(clientToBrowser.receiverCode).toContain('cybermp.events.on');
+    expect(clientToBrowser.senderCode).toContain('mp.events.emitCef');
+    expect(clientToBrowser.receiverCode).toContain('mp.events.on');
 
     const browserToClient = getRpcFlow('browser', 'client');
     expect(browserToClient.title).toBe('Browser (CEF) to Client Bridge');
-    expect(browserToClient.senderCode).toContain('cybermp.events.emit');
-    expect(browserToClient.receiverCode).toContain('events.onCef');
+    expect(browserToClient.senderCode).toContain('mp.events.emit');
+    expect(browserToClient.receiverCode).toContain('mp.events.onCef');
   });
 
   it('throws an error for direct server to browser communication', () => {

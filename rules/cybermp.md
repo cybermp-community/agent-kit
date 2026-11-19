@@ -4,20 +4,21 @@ Authoritative guidelines and instructions for CyberMP (Cyberpunk 2077 multiplaye
 
 ## Context Boundaries
 
-CyberMP operates in three distinct, isolated environments:
+All calls to CyberMP native methods and systems run through the global `mp.*` namespace (`mp.events.*`, `mp.commands.*`, `mp.players.*`, `mp.vehicles.*`, `mp.local.*` / `mp.localStorage.*`, `mp.game.*`):
+
 1. **Server** (`@cybermp/server-types`): Node.js environment. Authoritative logic, player state, commands, and database access.
-   - Listen to engine events: `events.on(name, callback)`
-   - Listen to client RPCs: `events.onClient(name, (player: MpPlayer, ...args) => ...)`
-   - Send to client: `events.emitClient(player, name, ...args)`
-   - Register commands: `commands.add(name, (player: MpPlayer, ...args) => ...)`
+   - Listen to engine events: `mp.events.on(name, callback)`
+   - Listen to client RPCs: `mp.events.onClient(name, (player: MpPlayer, ...args) => ...)`
+   - Send to client: `mp.events.emitClient(player, name, ...args)`
+   - Register commands: `mp.commands.add(name, (player: MpPlayer, ...args) => ...)`
 2. **Client** (`@cybermp/client-types`): In-game V8 environment inside Cyberpunk 2077. Local entities, camera, sound, and input.
-   - Listen to server: `events.onServer(name, callback)`
-   - Send to server: `events.emitServer(name, ...args)`
-   - Listen to CEF: `events.onCef(name, callback)`
-   - Send to CEF: `events.emitCef(name, ...args)`
+   - Listen to server: `mp.events.onServer(name, callback)`
+   - Send to server: `mp.events.emitServer(name, ...args)`
+   - Listen to CEF: `mp.events.onCef(name, callback)`
+   - Send to CEF: `mp.events.emitCef(name, ...args)`
 3. **CEF Browser** (`@cybermp/browser-types`): Chromium web runtime for HUD, menus, and UI.
-   - Listen to client: `cybermp.events.on(name, callback)`
-   - Send to client: `cybermp.events.emit(name, ...args)`
+   - Listen to client: `mp.events.on(name, callback)`
+   - Send to client: `mp.events.emit(name, ...args)`
    - Direct connection to Server is impossible; all data must bridge through the Client.
 
 ## Anti-Hallucination & Negative Constraints

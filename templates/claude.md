@@ -10,18 +10,19 @@ CyberMP features three strictly isolated runtime environments:
 - **CEF Browser (`@cybermp/browser-types`)**: Isolated Chromium web browser runtime. User interface, HUD, and interactive web elements.
 
 ### Communication Channels
+All native calls run through the global `mp.*` namespace:
 - **Server to Client RPC**:
-  - Server emits: `events.emitClient(player, 'eventName', ...args)`
-  - Client listens: `events.onServer('eventName', (...args) => ...)`
+  - Server emits: `mp.events.emitClient(player, 'eventName', ...args)`
+  - Client listens: `mp.events.onServer('eventName', (...args) => ...)`
 - **Client to Server RPC**:
-  - Client emits: `events.emitServer('eventName', ...args)`
-  - Server listens: `events.onClient('eventName', (player: MpPlayer, ...args) => ...)`
+  - Client emits: `mp.events.emitServer('eventName', ...args)`
+  - Server listens: `mp.events.onClient('eventName', (player: MpPlayer, ...args) => ...)`
 - **Client to CEF IPC**:
-  - Client emits: `events.emitCef('eventName', ...args)`
-  - CEF listens: `cybermp.events.on('eventName', (...args) => ...)`
+  - Client emits: `mp.events.emitCef('eventName', ...args)`
+  - CEF listens: `mp.events.on('eventName', (...args) => ...)`
 - **CEF to Client IPC**:
-  - CEF emits: `cybermp.events.emit('eventName', ...args)`
-  - Client listens: `events.onCef('eventName', (...args) => ...)`
+  - CEF emits: `mp.events.emit('eventName', ...args)`
+  - Client listens: `mp.events.onCef('eventName', (...args) => ...)`
 - **Server <-> CEF Direct Communication**: IMPOSSIBLE. Every event between server and CEF browser UI must be routed through the client runtime.
 
 ## Strict Negative Constraints & Anti-Hallucination
@@ -32,7 +33,7 @@ CyberMP is not FiveM, alt:V, RAGEMP, or SA-MP. DO NOT use APIs from other multip
 - **RAGEMP Prohibited**: `mp.events.add`, `mp.events.callRemote`, `mp.events.callClient`, `mp.players.local`.
 - **SA-MP Prohibited**: `OnPlayerConnect`, `SetPlayerPos`.
 
-Always use official CyberMP events (`events.on`, `events.onClient`, `events.onServer`, `events.onCef`, `cybermp.events.on`).
+Always use official CyberMP events (`mp.events.on`, `mp.events.onClient`, `mp.events.onServer`, `mp.events.onCef`).
 
 ## CyberMP MCP Server Tools
 

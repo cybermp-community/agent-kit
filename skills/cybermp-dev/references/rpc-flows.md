@@ -23,10 +23,10 @@ CyberMP uses a three-tier architecture with strictly defined directional boundar
 
 | Direction | Sender Method | Receiver Method | Receiver Arguments | Notes |
 |---|---|---|---|---|
-| **Server $\rightarrow$ Client** | `events.emitClient(player, event, ...args)` | `events.onServer(event, (...args) => ...)` | Exact args sent by server | Target single player or iterate |
-| **Client $\rightarrow$ Server** | `events.emitServer(event, ...args)` | `events.onClient(event, (player, ...args) => ...)` | **`player: MpPlayer` is automatically injected as arg 0** | Never pass sender ID from client |
-| **Client $\rightarrow$ Browser** | `events.emitCef(event, ...args)` | `cybermp.events.on(event, (...args) => ...)` | Exact args sent by client | Delivers to Chromium DOM context |
-| **Browser $\rightarrow$ Client** | `cybermp.events.emit(event, ...args)` | `events.onCef(event, (...args) => ...)` | Exact args sent by web UI | Handles UI clicks, form inputs |
+| **Server $\rightarrow$ Client** | `mp.events.emitClient(player, event, ...args)` | `mp.events.onServer(event, (...args) => ...)` | Exact args sent by server | Target single player or iterate |
+| **Client $\rightarrow$ Server** | `mp.events.emitServer(event, ...args)` | `mp.events.onClient(event, (player, ...args) => ...)` | **`player: MpPlayer` is automatically injected as arg 0** | Never pass sender ID from client |
+| **Client $\rightarrow$ Browser** | `mp.events.emitCef(event, ...args)` | `mp.events.on(event, (...args) => ...)` | Exact args sent by client | Delivers to Chromium DOM context |
+| **Browser $\rightarrow$ Client** | `mp.events.emit(event, ...args)` | `mp.events.onCef(event, (...args) => ...)` | Exact args sent by web UI | Handles UI clicks, form inputs |
 | **Server $\leftrightarrow$ Browser** | *Route via Client* | *Route via Client* | Chained bridge | Client forwards payloads |
 
 ---
@@ -39,9 +39,9 @@ CyberMP uses a three-tier architecture with strictly defined directional boundar
 ```typescript
 import type { MpPlayer } from '@cybermp/server-types';
 
-// Emit to an individual player (events and players are global in server runtime)
+// Emit to an individual player (mp.events and mp.players are global in server runtime)
 function notifyPlayer(player: MpPlayer, message: string) {
-  events.emitClient(player, 'chat:notify', {
+  mp.events.emitClient(player, 'chat:notify', {
     type: 'info',
     text: message,
     timestamp: Date.now(),
@@ -50,8 +50,8 @@ function notifyPlayer(player: MpPlayer, message: string) {
 
 // Broadcast to all connected players
 function broadcastMessage(message: string) {
-  for (const player of players.all) {
-    events.emitClient(player, 'chat:notify', {
+  for (const player of mp.players.all) {
+    mp.events.emitClient(player, 'chat:notify', {
       type: 'broadcast',
       text: message,
       timestamp: Date.now(),
@@ -62,11 +62,11 @@ function broadcastMessage(message: string) {
 
 **Client (`src/client/index.ts`):**
 ```typescript
-// In CyberMP client scripts, `events` is a global runtime object
-events.onServer('chat:notify', (data: { type: string; text: string; timestamp: number }) => {
+// In CyberMP client scripts, `mp.events` is a global runtime object
+mp.events.onServer('chat:notify', (data: { type: string; text: string; timestamp: number }) => {
   console.log(`[Notification ${data.type}] ${data.text}`);
   // Forward to CEF HUD if active
-  events.emitCef('hud:showNotification', data);
+  mp.events.emitCef('hud:showNotification', data);
 });
 ```
 
@@ -76,9 +76,9 @@ events.onServer('chat:notify', (data: { type: string; text: string; timestamp: n
 
 **Client (`src/client/index.ts`):**
 ```typescript
-// Client requests to buy a vehicle (events is a global runtime object)
+// Client requests to buy a vehicle (mp.events is a global runtime object)
 function requestVehiclePurchase(modelId: string) {
-  events.emitServer('dealership:purchaseVehicle', modelId);
+  mp.events.emitServer('dealership:purchaseVehicle', modelId);
 }
 ```
 
@@ -87,7 +87,7 @@ function requestVehiclePurchase(modelId: string) {
 import type { MpPlayer } from '@cybermp/server-types';
 
 // Notice: player is ALWAYS prepended by the engine as the first parameter
-events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string) => {
+mp.events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string) => {
   console.log(`Purchase request from player: ${player.name} (ID: ${player.id}) for ${modelId}`);
 
   // Validate server-authoritative state (e.g., money check)
@@ -95,13 +95,13 @@ events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string
   const cost = getVehicleCost(modelId);
 
   if (playerCash < cost) {
-    events.emitClient(player, 'dealership:purchaseFailed', 'Insufficient funds in account');
+    mp.events.emitClient(player, 'dealership:purchaseFailed', 'Insufficient funds in account');
     return;
   }
 
   deductCash(player, cost);
   spawnVehicleForPlayer(player, modelId);
-  events.emitClient(player, 'dealership:purchaseSuccess', modelId);
+  mp.events.emitClient(player, 'dealership:purchaseSuccess', modelId);
 });
 ```
 
@@ -111,9 +111,9 @@ events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string
 
 **Client (`src/client/index.ts`):**
 ```typescript
-// Update player stats in web HUD (events is a global runtime object)
+// Update player stats in web HUD (mp.events is a global runtime object)
 function syncHud(health: number, armor: number, eddies: number) {
-  events.emitCef('hud:updateStats', {
+  mp.events.emitCef('hud:updateStats', {
     hp: health,
     ap: armor,
     money: eddies,
@@ -123,8 +123,8 @@ function syncHud(health: number, armor: number, eddies: number) {
 
 **CEF Browser (`src/cef/app.ts` / HTML):**
 ```javascript
-// Web UI JavaScript (window.cybermp is injected into DOM by game engine)
-cybermp.events.on('hud:updateStats', (stats) => {
+// Web UI JavaScript (window.mp.events is injected into DOM by game engine)
+mp.events.on('hud:updateStats', (stats) => {
   document.getElementById('hp-bar').style.width = `${stats.hp}%`;
   document.getElementById('ap-bar').style.width = `${stats.ap}%`;
   document.getElementById('eddies-counter').innerText = `$${stats.money.toLocaleString()}`;
@@ -142,7 +142,7 @@ document.getElementById('save-char-btn').addEventListener('click', () => {
   const selectedVoice = document.getElementById('voice-select').value;
   const hairColor = document.getElementById('hair-color-picker').value;
 
-  cybermp.events.emit('ui:saveCharacter', {
+  mp.events.emit('ui:saveCharacter', {
     voice: selectedVoice,
     hairColor: hairColor,
   });
@@ -151,11 +151,11 @@ document.getElementById('save-char-btn').addEventListener('click', () => {
 
 **Client (`src/client/index.ts`):**
 ```typescript
-// Listen for events sent from CEF web view (events is a global runtime object)
-events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string }) => {
+// Listen for events sent from CEF web view (mp.events is a global runtime object)
+mp.events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string }) => {
   console.log('Received customization from UI:', data);
   // Forward to server to persist character in database
-  events.emitServer('char:saveAppearance', data);
+  mp.events.emitServer('char:saveAppearance', data);
 });
 ```
 
@@ -167,30 +167,30 @@ When a web UI requests persistent server data (e.g., banking withdrawal):
 
 1. **CEF Browser** emits user intent:
    ```javascript
-   cybermp.events.emit('bank:withdraw', { amount: 500 });
+   mp.events.emit('bank:withdraw', { amount: 500 });
    ```
 2. **Client** catches event and forwards to server:
    ```typescript
-   events.onCef('bank:withdraw', (payload) => {
-     events.emitServer('bank:processWithdrawal', payload.amount);
+   mp.events.onCef('bank:withdraw', (payload) => {
+     mp.events.emitServer('bank:processWithdrawal', payload.amount);
    });
    ```
 3. **Server** validates authority and responds:
    ```typescript
-   events.onClient('bank:processWithdrawal', (player, amount) => {
+   mp.events.onClient('bank:processWithdrawal', (player, amount) => {
      const success = withdraw(player, amount);
-     events.emitClient(player, 'bank:withdrawalResult', { success, newBalance: getBalance(player) });
+     mp.events.emitClient(player, 'bank:withdrawalResult', { success, newBalance: getBalance(player) });
    });
    ```
 4. **Client** receives result and pushes into UI:
    ```typescript
-   events.onServer('bank:withdrawalResult', (result) => {
-     events.emitCef('bank:displayResult', result);
+   mp.events.onServer('bank:withdrawalResult', (result) => {
+     mp.events.emitCef('bank:displayResult', result);
    });
    ```
 5. **CEF Browser** renders confirmation:
    ```javascript
-   cybermp.events.on('bank:displayResult', (result) => {
+   mp.events.on('bank:displayResult', (result) => {
      alert(result.success ? 'Withdrawal successful!' : 'Transaction rejected');
    });
    ```
@@ -201,9 +201,9 @@ When a web UI requests persistent server data (e.g., banking withdrawal):
 
 | Prohibited Anti-Pattern | Correct CyberMP Pattern |
 |---|---|
-| `events.emitServer` inside Server script | Only valid on **Client**; server uses `events.emitClient(player, ...)` |
-| `events.emitClient` inside Client script | Only valid on **Server**; client uses `events.emitServer(...)` or `events.emitCef(...)` |
-| `events.onClient('foo', (arg1, arg2) => ...)` | First parameter is **always** `(player: MpPlayer, arg1, arg2)` |
-| Passing client player ID as an RPC argument: `events.emitServer('pay', playerId, 100)` | **Security vulnerability!** The server already knows the sender identity via the prepended `player` object |
-| Calling CEF from Server directly | Route through Client script using `events.emitClient` $\rightarrow$ `events.emitCef` |
+| `mp.events.emitServer` inside Server script | Only valid on **Client**; server uses `mp.events.emitClient(player, ...)` |
+| `mp.events.emitClient` inside Client script | Only valid on **Server**; client uses `mp.events.emitServer(...)` or `mp.events.emitCef(...)` |
+| `mp.events.onClient('foo', (arg1, arg2) => ...)` | First parameter is **always** `(player: MpPlayer, arg1, arg2)` |
+| Passing client player ID as an RPC argument: `mp.events.emitServer('pay', playerId, 100)` | **Security vulnerability!** The server already knows the sender identity via the prepended `player` object |
+| Calling CEF from Server directly | Route through Client script using `mp.events.emitClient` $\rightarrow$ `mp.events.emitCef` |
 | Passing complex class instances or functions over RPC | Only pass JSON-serializable primitives, arrays, and plain objects |

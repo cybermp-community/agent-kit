@@ -44,8 +44,8 @@ describe('Agent Skills & Plugins', () => {
 
       // CEF bridge
       expect(content).toMatch(/CEF|Web UI/i);
-      expect(content).toContain('events.emitCef');
-      expect(content).toContain('cybermp.events.on');
+      expect(content).toContain('mp.events.emitCef');
+      expect(content).toContain('mp.events.on');
 
       // MCP tool call instructions
       expect(content).toContain('cybermp_get_event');
@@ -86,11 +86,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content.length).toBeGreaterThan(100);
 
       // Listener signatures and environments
-      expect(content).toContain('events.on');
-      expect(content).toContain('events.onClient');
-      expect(content).toContain('events.onServer');
-      expect(content).toContain('events.onCef');
-      expect(content).toContain('cybermp.events.on');
+      expect(content).toContain('mp.events.on');
+      expect(content).toContain('mp.events.onClient');
+      expect(content).toContain('mp.events.onServer');
+      expect(content).toContain('mp.events.onCef');
 
       // Sample core events
       expect(content).toContain('playerConnected');
@@ -108,14 +107,14 @@ describe('Agent Skills & Plugins', () => {
       expect(content.length).toBeGreaterThan(100);
 
       // RPC pairs
-      expect(content).toContain('events.emitClient');
-      expect(content).toContain('events.onServer');
-      expect(content).toContain('events.emitServer');
-      expect(content).toContain('events.onClient');
-      expect(content).toContain('events.emitCef');
-      expect(content).toContain('cybermp.events.on');
-      expect(content).toContain('cybermp.events.emit');
-      expect(content).toContain('events.onCef');
+      expect(content).toContain('mp.events.emitClient');
+      expect(content).toContain('mp.events.onServer');
+      expect(content).toContain('mp.events.emitServer');
+      expect(content).toContain('mp.events.onClient');
+      expect(content).toContain('mp.events.emitCef');
+      expect(content).toContain('mp.events.on');
+      expect(content).toContain('mp.events.emit');
+      expect(content).toContain('mp.events.onCef');
 
       // Ensure events global is not imported as a value from type packages
       expect(content).not.toMatch(/import\s+\{[^}]*events[^}]*\}\s+from\s+['"]@cybermp\//);
@@ -266,16 +265,20 @@ describe('Agent Skills & Plugins', () => {
   });
 
   describe('Antigravity Plugin Manifest', () => {
-    it('has valid Antigravity plugin.json', () => {
+    it('has valid Antigravity plugin.json and mcp_config.json', () => {
       expect(fs.existsSync(pluginJsonPath)).toBe(true);
       const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
       expect(pluginJson.name).toBe('cybermp');
       expect(pluginJson.version).toBe('1.0.0');
       expect(pluginJson.description).toBeDefined();
       expect(pluginJson.skills).toContain('skills/cybermp-dev');
-      expect(pluginJson.mcp).toBeDefined();
-      expect(pluginJson.mcp.servers).toBeDefined();
-      expect(pluginJson.mcp.servers.cybermp).toBeDefined();
+      expect(pluginJson.rules).toContain('rules/cybermp.md');
+
+      const pluginMcpPath = path.join(rootDir, 'plugins/cybermp/mcp_config.json');
+      expect(fs.existsSync(pluginMcpPath)).toBe(true);
+      const mcpJson = JSON.parse(fs.readFileSync(pluginMcpPath, 'utf-8'));
+      expect(mcpJson.mcpServers.cybermp).toBeDefined();
+      expect(mcpJson.mcpServers.cybermp.command).toBe('cybermp-agent-kit');
     });
   });
 });
