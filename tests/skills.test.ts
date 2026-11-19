@@ -115,6 +115,8 @@ describe('Agent Skills & Plugins', () => {
 
       expect(content).toContain('package.json');
       expect(content).toContain('tsconfig.json');
+      expect(content).toContain('resource.toml');
+      expect(content).toContain('server.toml');
       expect(content).toContain('@cybermp/server-types');
       expect(content).toContain('@cybermp/client-types');
     });

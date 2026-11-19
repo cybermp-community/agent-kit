@@ -74,36 +74,47 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 
 Follow this checklist whenever creating or scaffolding a new CyberMP resource:
 
-### Step 1: Scaffolding Directory Structure
-Create a dedicated resource directory in your server's resources folder:
+### Step 1: Resource Directory Structure
+In CyberMP, resources live in the server's `resources/` folder. Every resource requires a `resource.toml` manifest:
 ```
-my-resource/
-├── package.json
-├── tsconfig.json
-├── tsconfig.server.json
-├── tsconfig.client.json
-├── src/
-│   ├── server/index.ts
-│   ├── client/index.ts
-│   └── cef/
-│       ├── index.html
-│       └── app.ts
-└── dist/
+resources/
+└── my-resource/
+    ├── resource.toml           # Official CyberMP resource manifest (REQUIRED)
+    ├── server.js               # Server-side script (Node.js)
+    ├── client.js               # Client-side script (V8 game client)
+    └── browser/                # CEF Web UI files
+        ├── index.html
+        ├── style.css
+        └── app.js
 ```
 
-### Step 2: Initialize `package.json`
-Install the official TypeScript type packages:
-```bash
-npm install -D @cybermp/server-types @cybermp/client-types @cybermp/browser-types typescript esbuild
+### Step 2: Configure `resource.toml`
+Create `resource.toml` in your resource folder:
+```toml
+#:schema https://schemas.cyber.mp/resource/schema.json
+
+server_script = ["./server.js"]
+client_script = ["./client.js"]
+file = ["./browser/**/*"]
+cef_url = "./browser/index.html"
+use_game_natives = true
+hotreload = true
+
+author = "YourName"
+description = "My CyberMP Resource"
+version = "1.0.0"
 ```
 
-### Step 3: Configure `tsconfig.json` Files
-- Base `tsconfig.json`: Target ES2022, NodeNext module resolution.
-- `tsconfig.server.json`: Include `@cybermp/server-types`, outDir `dist/server`.
-- `tsconfig.client.json`: Include `@cybermp/client-types`, outDir `dist/client`.
+### Step 3: Register in `server.toml`
+Add your resource name to the `resources` array in the server root `server.toml`:
+```toml
+resources = [
+  "my-resource"
+]
+```
 
 ### Step 4: Write Core Scripts
-1. **Server (`src/server/index.ts`)**:
+1. **Server (`server.js` or compiled TypeScript)**:
    ```typescript
    import type { MpPlayer } from '@cybermp/server-types';
 
@@ -116,7 +127,7 @@ npm install -D @cybermp/server-types @cybermp/client-types @cybermp/browser-type
    });
    ```
 
-2. **Client (`src/client/index.ts`)**:
+2. **Client (`client.js` or compiled TypeScript)**:
    ```typescript
    events.onServer('pong', (serverTime: number) => {
      console.log('Pong received from server at:', serverTime);
@@ -124,12 +135,6 @@ npm install -D @cybermp/server-types @cybermp/client-types @cybermp/browser-type
 
    events.emitServer('ping');
    ```
-
-### Step 5: Bundle and Register
-Build scripts with `esbuild` or `tsc`. Register the resource in `server.toml`:
-```toml
-resources = ["my-resource"]
-```
 
 ---
 

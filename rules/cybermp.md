@@ -39,17 +39,31 @@ Consult the CyberMP MCP server whenever needed:
 
 ## Resource Architecture
 
-Standard CyberMP resource layout:
+In CyberMP, resources reside in the server's `resources/` folder. Every resource MUST contain a `resource.toml` manifest, and be listed in the root `server.toml`:
+
+```toml
+# server.toml (in server root)
+resources = ["my-resource"]
 ```
-my-resource/
-├── package.json
-├── tsconfig.server.json
-├── tsconfig.client.json
-├── src/
-│   ├── server/index.ts
-│   ├── client/index.ts
-│   └── cef/
-│       ├── index.html
-│       └── app.ts
-└── dist/
+
+```toml
+# resources/my-resource/resource.toml
+#:schema https://schemas.cyber.mp/resource/schema.json
+
+server_script = ["./server.js"]
+client_script = ["./client.js"]
+file = ["./browser/**/*"]
+cef_url = "./browser/index.html"
+use_game_natives = true
+hotreload = true
+```
+
+Folder layout:
+```
+resources/my-resource/
+├── resource.toml           # Official manifest (REQUIRED)
+├── server.js               # Node.js server script
+├── client.js               # V8 in-game client script
+└── browser/                # CEF Web UI files (HTML/CSS/JS)
+    └── index.html
 ```

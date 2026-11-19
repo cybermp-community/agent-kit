@@ -1,175 +1,159 @@
-# CyberMP Resource Structure & Toolchain Reference
+# CyberMP Server & Resource Structure Reference
 
-This guide details the standard layout, TypeScript configurations, dependencies, and build pipelines for developing multiplayer resources for CyberMP.
+This guide details the official server architecture, resource layout, and configuration files (`server.toml` and `resource.toml`) for CyberMP servers.
 
 ---
 
-## 1. Standard Resource Directory Layout
+## 1. CyberMP Server Root Layout
 
-CyberMP resources isolate execution scopes into dedicated directories:
+A CyberMP server directory is structured around `server.toml` and the `resources/` directory:
 
 ```
-my-resource/
-├── package.json
-├── tsconfig.json
-├── tsconfig.server.json
-├── tsconfig.client.json
-├── build.js                      # (Optional) esbuild or tsc bundler script
-├── src/
-│   ├── server/                   # Node.js server scripts
-│   │   ├── index.ts
-│   │   ├── commands.ts
-│   │   └── database.ts
-│   ├── client/                   # V8 client scripts running inside game
-│   │   ├── index.ts
-│   │   ├── hud.ts
-│   │   └── vehicle-streamer.ts
-│   └── cef/                      # Web UI (HTML / CSS / TS / React)
-│       ├── index.html
-│       ├── style.css
-│       └── app.ts
-└── dist/                         # Compiled runtime files loaded by CyberMP
-    ├── server/
-    │   └── index.js
-    ├── client/
-    │   └── index.js
-    └── cef/
-        ├── index.html
-        ├── style.css
-        └── app.js
+cybermp-server/
+├── server.toml                     # Root server configuration and active resource list
+└── resources/                      # All installed server resources
+    ├── gangwar/                    # Individual resource directory
+    │   ├── resource.toml           # Official resource manifest (REQUIRED)
+    │   ├── server.js               # Server-side entrypoint script (Node.js)
+    │   ├── client.js               # Client-side entrypoint script (V8 game client)
+    │   └── browser/                # CEF Web UI assets
+    │       ├── index.html          # Web UI entrypoint (HTML/CSS/JS)
+    │       ├── style.css
+    │       └── app.js
+    └── hotreload/
+        ├── resource.toml
+        └── server.js
 ```
 
 ---
 
-## 2. Standard `package.json` Configuration
+## 2. Root Server Configuration: `server.toml`
 
-A standard resource package file defines scripts for building server, client, and CEF bundles, alongside the official CyberMP type packages:
+The `server.toml` file resides in the root directory of the CyberMP server. It defines networking, active resources, core archives, and gameplay overrides.
 
-```json
-{
-  "name": "my-resource",
-  "version": "1.0.0",
-  "description": "CyberMP Multiplayer Resource",
-  "type": "module",
-  "scripts": {
-    "build:server": "tsc -p tsconfig.server.json",
-    "build:client": "node build-client.js",
-    "build:cef": "vite build --outDir dist/cef",
-    "build": "npm run build:server && npm run build:client && npm run build:cef",
-    "watch": "node watch.js"
-  },
-  "devDependencies": {
-    "@cybermp/server-types": "^3.2.8",
-    "@cybermp/client-types": "^2.7.1",
-    "@cybermp/browser-types": "^2.0.1",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.3"
-  }
-}
+```toml
+#:schema https://schemas.cyber.mp/server/schema.json
+
+tcp_host = "0.0.0.0:2077"
+udp_host = "0.0.0.0:2077"
+
+max_players = 2500
+disable_voice = false
+ep2_dlc_enabled = false
+cef_debug = false
+
+# Active resources loaded from the resources/ folder:
+resources = [
+  "hotreload",
+  "gangwar",
+  "mira_utils"
+]
+
+[core]
+nametags = true
+disable_switch_seats = true
+delete_map_objects = true
+default_gameplay_restrictions = true
+disable_drop_points = true
+disable_location_dependent_quests = true
+disable_garage = true
+
+# Archive and script files sent to connecting clients:
+files = [
+  "final.redscript",
+  "new_gamedef.archive",
+  "basegame_no_intro_videos.archive",
+  "CyberMP_PlayerModel.archive"
+]
+
+[core.overrides]
+change_player_on_death_logic = true
+disable_side_quests_notifications = true
+change_vehicles_logic = true
+disable_player_inventory_encumbrance = true
+player_extended_customization = true
+disable_time_skip = true
+disable_turrets = true
+disable_surveillance_cameras = true
+disable_vending_machines = true
+disable_generic_devices = true
+disable_no_combat = true
 ```
 
 ---
 
-## 3. TypeScript Configurations
+## 3. Resource Manifest: `resource.toml`
 
-Because Server and Client execute in distinct JavaScript runtimes with different globals, splitting `tsconfig` prevents global symbol contamination.
+Every resource inside `resources/<resource_name>/` must have a **`resource.toml`** file. This is the only manifest format supported by CyberMP.
 
-### Unified Base `tsconfig.json`
+```toml
+#:schema https://schemas.cyber.mp/resource/schema.json
+
+# Server script entrypoints (array or single string path):
+server_script = ["./server.js"]
+
+# Client script entrypoints (array or single string path):
+client_script = ["./client.js"]
+
+# Files and static assets sent to client (e.g. CEF browser UI):
+file = ["./browser/**/*"]
+
+# URL or local relative path to CEF HTML entrypoint:
+cef_url = "./browser/index.html"
+# Alternatively during UI development:
+# ui_page = "http://localhost:5173"
+
+# Allow client script to invoke game natives (mp.game.*):
+use_game_natives = true
+
+# Enable hot reloading for this resource:
+hotreload = true
+
+# Resource metadata (optional):
+author = "YourName"
+description = "My CyberMP Gamemode"
+version = "1.0.0"
+```
+
+### Key `resource.toml` Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `server_script` | `string[]` or `string` | Relative path(s) to server-side script(s) executed in Node.js. |
+| `client_script` | `string[]` or `string` | Relative path(s) to client-side script(s) executed inside the game V8 client. |
+| `file` | `string[]` or `string` | Glob patterns or paths for files served to clients (CEF UI HTML/CSS/JS, textures, fonts). |
+| `cef_url` | `string` | Path to the local HTML file loaded in the CEF browser (e.g. `"./browser/index.html"`). |
+| `ui_page` | `string` | Remote or local dev server URL for CEF UI (e.g. `"http://localhost:5173"`). |
+| `use_game_natives`| `boolean` | Set to `true` to enable access to native game functions (`mp.game.*`) on the client. |
+| `hotreload` | `boolean` | Set to `true` to reload scripts live without restarting the server process. |
+| `author` / `version` | `string` | Metadata identifying author and semantic version. |
+
+---
+
+## 4. TypeScript Support & Development Packages
+
+To enable autocompletion, type safety, and IDE validation, developer projects can configure `package.json` and `tsconfig.json` referencing the official CyberMP packages:
+- `@cybermp/server-types` — Types for Node.js server scripts.
+- `@cybermp/client-types` — Types for in-game V8 client scripts.
+- `@cybermp/browser-types` — Types for Chromium CEF UI scripts.
+
+Example `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "sourceMap": true
+    "types": ["@cybermp/server-types", "@cybermp/client-types"]
   }
 }
 ```
 
-### Server Configuration (`tsconfig.server.json`)
-```json
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "outDir": "./dist/server",
-    "rootDir": "./src/server",
-    "types": ["node", "@cybermp/server-types"]
-  },
-  "include": ["src/server/**/*"]
-}
-```
-
-### Client Configuration (`tsconfig.client.json`)
-```json
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "outDir": "./dist/client",
-    "rootDir": "./src/client",
-    "types": ["@cybermp/client-types"]
-  },
-  "include": ["src/client/**/*"]
-}
-```
-
 ---
 
-## 4. Bundling Client & CEF Scripts with esbuild
+## 5. Common Anti-Patterns & Mistakes
 
-Game clients require bundled JavaScript without runtime Node module resolution. An `esbuild` build script provides instant compilation (<50ms):
-
-```javascript
-// build.js
-import esbuild from 'esbuild';
-
-// 1. Build Server (Node.js ESM)
-await esbuild.build({
-  entryPoints: ['src/server/index.ts'],
-  outfile: 'dist/server/index.js',
-  bundle: true,
-  platform: 'node',
-  format: 'esm',
-  target: 'node20',
-  external: ['@cybermp/server-types'],
-  sourcemap: true,
-});
-
-// 2. Build Client (In-game V8 ESM bundle)
-await esbuild.build({
-  entryPoints: ['src/client/index.ts'],
-  outfile: 'dist/client/index.js',
-  bundle: true,
-  platform: 'browser',
-  format: 'esm',
-  target: 'es2022',
-  external: ['@cybermp/client-types'],
-  sourcemap: true,
-});
-
-console.log('✅ Resource built successfully!');
-```
-
----
-
-## 5. Server Resource Manifest (`server.toml`)
-
-In CyberMP, resources are registered in the main `server.toml` under the `resources` array:
-
-```toml
-[server]
-tcp_host = "0.0.0.0"
-udp_host = "0.0.0.0"
-connection_host_addr = "127.0.0.1"
-max_players = 32
-resources = ["my-resource"]
-
-[core]
-nametags = true
-files = ["dist/client/index.js"]
-```
+- **❌ DO NOT create `fxmanifest.lua` or `__resource.lua`**: These belong to FiveM. CyberMP will ignore them.
+- **❌ DO NOT rely on `package.json` for resource loading**: CyberMP ignores `package.json` at runtime; the server exclusively reads `resource.toml`.
+- **❌ DO NOT forget to register the resource in `server.toml`**: Placing a folder in `resources/` is not enough; its directory name must be listed in `resources = [...]` inside `server.toml`.
+- **❌ DO NOT omit `use_game_natives = true` if calling `mp.game.*`**: Calling native game functions on the client without this flag will result in runtime errors.

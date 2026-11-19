@@ -52,3 +52,34 @@ When `cybermp-mcp` is available, query these tools rather than hallucinating sig
   ```
 - Use separate `tsconfig.server.json` and `tsconfig.client.json` files.
 - Bundle client and CEF code using `esbuild` or modern bundlers with ESM or IIFE output formats.
+
+## Resource Architecture & Configuration
+
+In CyberMP, resources reside in the server's `resources/` folder. Every resource MUST contain a `resource.toml` manifest, and be listed in the root `server.toml`:
+
+```toml
+# server.toml (in server root)
+resources = ["my-resource"]
+```
+
+```toml
+# resources/my-resource/resource.toml
+#:schema https://schemas.cyber.mp/resource/schema.json
+
+server_script = ["./server.js"]
+client_script = ["./client.js"]
+file = ["./browser/**/*"]
+cef_url = "./browser/index.html"
+use_game_natives = true
+hotreload = true
+```
+
+Folder layout:
+```
+resources/my-resource/
+├── resource.toml           # Official manifest (REQUIRED)
+├── server.js               # Node.js server script
+├── client.js               # V8 in-game client script
+└── browser/                # CEF Web UI files (HTML/CSS/JS)
+    └── index.html
+```
