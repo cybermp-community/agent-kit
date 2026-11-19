@@ -12,7 +12,7 @@ A CyberMP server directory is structured around `server.toml` and the `resources
 cybermp-server/
 ├── server.toml                     # Root server configuration and active resource list
 └── resources/                      # All installed server resources
-    ├── gangwar/                    # Individual resource directory
+    ├── my_resource/                # Individual resource directory
     │   ├── resource.toml           # Official resource manifest (REQUIRED)
     │   ├── server.js               # Server-side entrypoint script (Node.js)
     │   ├── client.js               # Client-side entrypoint script (V8 game client)
@@ -45,8 +45,7 @@ cef_debug = false
 # Active resources loaded from the resources/ folder:
 resources = [
   "hotreload",
-  "gangwar",
-  "mira_utils"
+  "my_resource"
 ]
 
 [core]
@@ -58,12 +57,17 @@ disable_drop_points = true
 disable_location_dependent_quests = true
 disable_garage = true
 
-# Archive and script files sent to connecting clients:
+# Mandatory core files required for clients:
 files = [
   "final.redscript",
   "new_gamedef.archive",
   "basegame_no_intro_videos.archive",
-  "CyberMP_PlayerModel.archive"
+  "CyberMP_PlayerModel.archive",
+  "flatline2dlods.archive",
+  "ReducedLoot.archive",
+  "ReducedLoot.archive.xl",
+  "GenderAbuseWorld.archive",
+  "ArchiveXL",
 ]
 
 [core.overrides]
