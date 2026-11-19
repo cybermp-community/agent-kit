@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
+import type { Project } from 'ts-morph';
 import {
+  createAstProject,
   parseEventsFromAst,
   parseTypesFromAst,
   parseGuides,
@@ -9,15 +11,21 @@ import {
 } from '../scripts/build-index';
 
 describe('AST Type Indexer', () => {
+  let project: Project;
+
+  beforeAll(() => {
+    project = createAstProject();
+  });
+
   it('extracts server damage events and types correctly', () => {
-    const events = parseEventsFromAst();
+    const events = parseEventsFromAst({ project });
     expect(events.length).toBeGreaterThan(0);
     const damageEvent = events.find((e) => e.name === 'playerDamage' || e.name === 'damage');
     expect(damageEvent).toBeDefined();
     expect(damageEvent?.env).toBe('server');
     expect(damageEvent?.parameters.length).toBeGreaterThan(0);
 
-    const types = parseTypesFromAst();
+    const types = parseTypesFromAst({ project });
     const playerType = types.find((t) => t.name === 'MpPlayer');
     expect(playerType).toBeDefined();
     expect(playerType?.methods.some((m) => m.name === 'kick')).toBe(true);
@@ -26,7 +34,7 @@ describe('AST Type Indexer', () => {
   });
 
   it('extracts client events including CEF and stream events', () => {
-    const events = parseEventsFromAst();
+    const events = parseEventsFromAst({ project });
     const clientEvents = events.filter((e) => e.env === 'client');
     expect(clientEvents.length).toBeGreaterThan(0);
 
@@ -40,7 +48,7 @@ describe('AST Type Indexer', () => {
   });
 
   it('extracts browser events from MpEvents', () => {
-    const events = parseEventsFromAst();
+    const events = parseEventsFromAst({ project });
     const browserEvents = events.filter((e) => e.env === 'browser');
     expect(browserEvents.length).toBeGreaterThan(0);
     expect(browserEvents.some((e) => e.name === 'on')).toBe(true);
@@ -48,7 +56,7 @@ describe('AST Type Indexer', () => {
   });
 
   it('extracts server entities, enums, and types', () => {
-    const types = parseTypesFromAst();
+    const types = parseTypesFromAst({ project });
     const entityTypeEnum = types.find((t) => t.name === 'EntityType');
     expect(entityTypeEnum).toBeDefined();
     expect(entityTypeEnum?.kind).toBe('enum');
@@ -60,6 +68,20 @@ describe('AST Type Indexer', () => {
     const entityType = types.find((t) => t.name === 'MpEntity');
     expect(entityType).toBeDefined();
     expect(entityType?.methods.some((m) => m.name === 'setMeta')).toBe(true);
+  });
+
+  it('extracts exported classes from client types', () => {
+    const types = parseTypesFromAst({ project });
+    const mpSystem = types.find((t) => t.name === 'MultiplayerSystem');
+    expect(mpSystem).toBeDefined();
+    expect(mpSystem?.kind).toBe('class');
+    expect(mpSystem?.env).toBe('client');
+    expect(mpSystem?.methods.some((m) => m.name === 'SetDefaultSpawnPosition')).toBe(true);
+
+    const loadingSystem = types.find((t) => t.name === 'LoadingScreenSystem');
+    expect(loadingSystem).toBeDefined();
+    expect(loadingSystem?.kind).toBe('class');
+    expect(loadingSystem?.methods.some((m) => m.name === 'GetLoadingScreenState')).toBe(true);
   });
 
   it('parses guides with code snippets and metadata', () => {
@@ -75,7 +97,7 @@ describe('AST Type Indexer', () => {
   });
 
   it('buildIndex generates valid JSON files under src/data/', async () => {
-    const result = await buildIndex();
+    const result = await buildIndex({ project });
     expect(result.eventsCount).toBeGreaterThan(0);
     expect(result.typesCount).toBeGreaterThan(0);
     expect(result.guidesCount).toBeGreaterThan(0);
@@ -105,6 +127,6 @@ describe('AST Type Indexer', () => {
       fs.statSync(eventsPath).size +
       fs.statSync(typesPath).size +
       fs.statSync(guidesPath).size;
-    expect(totalSize).toBeLessThan(350 * 1024);
+    expect(totalSize).toBeLessThan(300 * 1024);
   });
 });

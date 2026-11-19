@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   Project,
   InterfaceDeclaration,
+  ClassDeclaration,
   TypeAliasDeclaration,
   EnumDeclaration,
   Node,
@@ -114,7 +115,7 @@ export function extractCodeSnippets(markdown: string): string[] {
   return snippets;
 }
 
-function createAstProject(projectRoot: string = PROJECT_ROOT): Project {
+export function createAstProject(projectRoot: string = PROJECT_ROOT): Project {
   const project = new Project({
     skipAddingFilesFromTsConfig: true,
   });
@@ -367,7 +368,7 @@ export function parseTypesFromAst(options?: { project?: Project; projectRoot?: s
   const types: TypeRecord[] = [];
   const seen = new Set<string>();
 
-  function extractTypeMembers(decl: InterfaceDeclaration) {
+  function extractTypeMembers(decl: InterfaceDeclaration | ClassDeclaration) {
     const methods: MethodRecord[] = [];
     const properties: PropertyRecord[] = [];
     const methodNames = new Set<string>();
@@ -595,6 +596,37 @@ export function parseTypesFromAst(options?: { project?: Project; projectRoot?: s
         enumMembers,
       });
     }
+
+    // 4. Classes
+    for (const cls of sf.getClasses()) {
+      const name = cls.getName();
+      if (!name) continue;
+      const key = `${env}:${name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const description = getJsDocDescription(cls);
+      const category = getJsDocCategory(cls) || baseName.replace(/\.(d\.ts|ts)$/, '');
+      const typeParams = cls.getTypeParameters().map((tp) => tp.getText());
+      const extendsList: string[] = [];
+      const baseClass = cls.getBaseClass();
+      if (baseClass) {
+        extendsList.push(cleanType(baseClass.getName() || ''));
+      }
+      const { methods, properties } = extractTypeMembers(cls);
+
+      types.push({
+        name,
+        kind: 'class',
+        env,
+        category,
+        ...(description ? { description } : {}),
+        properties,
+        methods,
+        ...(typeParams.length > 0 ? { typeParameters: typeParams } : {}),
+        ...(extendsList.length > 0 ? { extends: extendsList } : {}),
+      });
+    }
   }
 
   // Also include browser types from index.d.ts
@@ -675,16 +707,18 @@ export async function buildIndex(options?: {
   outDir?: string;
   docsDir?: string;
   projectRoot?: string;
+  project?: Project;
 }): Promise<BuildIndexResult> {
   const projectRoot = options?.projectRoot || PROJECT_ROOT;
+  const project = options?.project || createAstProject(projectRoot);
   const outDir = path.resolve(options?.outDir || path.join(projectRoot, 'src/data'));
   const docsDir = path.resolve(options?.docsDir || path.join(projectRoot, 'tmp/docs'));
 
   fs.mkdirSync(outDir, { recursive: true });
 
   console.log('Building index from AST and documentation...');
-  const events = parseEventsFromAst({ projectRoot });
-  const types = parseTypesFromAst({ projectRoot });
+  const events = parseEventsFromAst({ project, projectRoot });
+  const types = parseTypesFromAst({ project, projectRoot });
   const guides = parseGuides(docsDir);
 
   const eventsPath = path.join(outDir, 'events.json');
