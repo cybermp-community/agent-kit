@@ -112,7 +112,6 @@ export async function syncDocs(options?: SyncDocsOptions): Promise<string[]> {
   const potentialLocalDirs = [
     options?.sourceDir,
     process.env.CYBERMP_DOCS_DIR,
-    path.resolve(process.cwd(), '../CyberMP-Docs/src/content/docs/guides'),
   ].filter((p): p is string => Boolean(p));
 
   let localSourceDir: string | null = null;
@@ -162,7 +161,7 @@ export async function syncDocs(options?: SyncDocsOptions): Promise<string[]> {
         fs.writeFileSync(targetFilePath, cleaned, 'utf-8');
         syncedFiles.push(targetRelPath);
       }
-      console.log(`Docs synced via shallow clone into ${targetDir} (${syncedFiles.length} files)`);
+      console.log(`Docs synced via shallow clone from ${repoUrl} into ${targetDir} (${syncedFiles.length} files)`);
       return syncedFiles;
     }
   } catch (err) {
@@ -208,5 +207,14 @@ const isDirectExecution = Boolean(
 );
 
 if (isDirectExecution) {
-  syncDocs().catch(console.error);
+  const args = process.argv.slice(2);
+  const localFlagIndex = args.findIndex((arg) => arg === '--local' || arg === '-l');
+  let sourceDir: string | undefined;
+  if (localFlagIndex !== -1) {
+    sourceDir =
+      args[localFlagIndex + 1] && !args[localFlagIndex + 1].startsWith('-')
+        ? path.resolve(process.cwd(), args[localFlagIndex + 1])
+        : path.resolve(process.cwd(), '../CyberMP-Docs/src/content/docs/guides');
+  }
+  syncDocs({ sourceDir }).catch(console.error);
 }
