@@ -880,3 +880,280 @@ export class NoclipController {
   }
 }
 ```
+
+---
+
+## 9. Discord Rich Presence & OAuth2 (`mp.discord`)
+
+CyberMP exposes the client-side Discord Game SDK integration via `mp.discord`. This allows resources to dynamically update the player's Discord profile activity and execute seamless OAuth2 client authentication without opening an external browser.
+
+### API Reference (`MpDiscord`)
+
+| Method | Parameters | Return Type | Description |
+|---|---|---|---|
+| `mp.discord.updateRichPresence` | `state?: string`, `details?: string` | `void` | Updates the active Discord Rich Presence text on the player's desktop client. |
+| `mp.discord.getOAuth2Token` | `discordAppId: string`, `scopes: string` | `string` | Requests a secure authorization code payload via Discord's local authorization flow. |
+| `mp.discord.getCodeAuthorization` | `discordAppId: string`, `scopes: string` | `string` | *(Deprecated)* Legacy alias for `getOAuth2Token`. |
+
+### Dynamic Rich Presence Manager
+
+Update the player's Discord status to reflect in-game activity, current vehicle, and location:
+
+```typescript
+import type { MpPlayer } from '@cybermp/client-types';
+
+export class DiscordActivityManager {
+  private lastUpdate = 0;
+  private updateIntervalMs = 15000; // Throttle Discord RPC updates (15s rate limit)
+
+  /**
+   * Updates Discord Rich Presence based on the player's current status.
+   */
+  public updateStatus(details: string, state: string): void {
+    const now = Date.now();
+    if (now - this.lastUpdate < this.updateIntervalMs) {
+      return;
+    }
+    this.lastUpdate = now;
+
+    // Direct client SDK call
+    mp.discord.updateRichPresence(state, details);
+  }
+
+  /**
+   * Sets vehicle driving status in Discord.
+   * @param vehicleModel Name or model of the current vehicle
+   * @param district District name (e.g. "Watson, Little China")
+   */
+  public setDrivingStatus(vehicleModel: string, district: string): void {
+    this.updateStatus(`Cruising in ${vehicleModel}`, `Exploring ${district}`);
+  }
+
+  /**
+   * Sets on-foot activity in Discord.
+   */
+  public setOnFootStatus(district: string, inCombat: boolean): void {
+    const state = inCombat ? 'Engaged in Combat' : 'Free Roaming';
+    this.updateStatus(`Location: ${district}`, state);
+  }
+}
+
+// Example usage:
+const discord = new DiscordActivityManager();
+discord.setOnFootStatus('Night City Center', false);
+```
+
+### Discord OAuth2 Client Authentication Flow
+
+To authenticate players against a Discord bot or guild whitelist, request an authorization code on the client and pass it to the server for token exchange:
+
+```typescript
+// --- Client-side script ---
+/**
+ * Prompts the local player for Discord authorization and forwards the code to the server.
+ * @param appId Registered Discord Application Client ID
+ */
+export function requestDiscordAuth(appId: string): void {
+  try {
+    // Request authorization code for user identity and guild membership verification
+    const authCode = mp.discord.getOAuth2Token(appId, 'identify guilds');
+
+    if (authCode && authCode.length > 0) {
+      console.log('[Discord] Authorization code retrieved successfully');
+      // Transmit code to authoritative server for secure token exchange
+      events.emitServer('auth:verifyDiscordCode', authCode);
+    } else {
+      console.warn('[Discord] Empty authorization code received');
+      events.emitCef('auth:status', { success: false, reason: 'Discord auth declined' });
+    }
+  } catch (err) {
+    console.error('[Discord] Failed to obtain OAuth2 code:', err);
+  }
+}
+```
+
+---
+
+## 10. Client Local Storage (`mp.storage`)
+
+The `mp.storage` subsystem (`MpLocalStorage`) provides client-side persistent key-value storage. Data saved here persists across game restarts and server reconnections, making it ideal for saving user UI preferences, keybind configurations, audio volumes, and client cache.
+
+### API Reference (`MpLocalStorage`)
+
+| Method | Parameters | Return Type | Description |
+|---|---|---|---|
+| `mp.storage.set` | `key: string`, `value: string` | `void` | Associates a plaintext string value with a unique key. Overwrites existing keys. |
+| `mp.storage.get` | `key: string` | `string` | Retrieves the string value for the given key. Returns empty string if not found. |
+| `mp.storage.delete` | `key: string` | `void` | Permanently deletes a specific key-value entry from storage. |
+| `mp.storage.deleteAll` | *none* | `void` | Clears all stored key-value pairs for the current resource. |
+| `mp.storage.save` | *none* | `void` | Flushes the in-memory cache to physical disk to protect against unexpected crashes. |
+
+### Type-Safe JSON Storage Wrapper
+
+Because `mp.storage` operates exclusively on string values, wrapping it in a typed JSON helper with automatic disk flushing ensures safety and crash resilience:
+
+```typescript
+export class LocalSettingsStorage {
+  /**
+   * Stores a typed object into persistent client storage.
+   * Flushes immediately to disk via mp.storage.save().
+   */
+  public static set<T>(key: string, value: T): void {
+    try {
+      const serialized = JSON.stringify(value);
+      mp.storage.set(key, serialized);
+      mp.storage.save(); // Ensure data is flushed to physical storage immediately
+    } catch (err) {
+      console.error(`[Storage] Failed to serialize key "${key}":`, err);
+    }
+  }
+
+  /**
+   * Retrieves and parses a typed object from persistent client storage.
+   * Returns fallback value if key does not exist or JSON parsing fails.
+   */
+  public static get<T>(key: string, defaultValue: T): T {
+    try {
+      const raw = mp.storage.get(key);
+      if (!raw || raw.trim().length === 0) {
+        return defaultValue;
+      }
+      return JSON.parse(raw) as T;
+    } catch (err) {
+      console.warn(`[Storage] Failed to parse key "${key}", using default:`, err);
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Deletes a setting and flushes to disk.
+   */
+  public static remove(key: string): void {
+    mp.storage.delete(key);
+    mp.storage.save();
+  }
+
+  /**
+   * Clears all client settings for this resource.
+   */
+  public static clearAll(): void {
+    mp.storage.deleteAll();
+    mp.storage.save();
+  }
+}
+
+// Example usage: HUD and Audio settings persistence
+interface UserPreferences {
+  hudOpacity: number;
+  speedometerUnit: 'kmh' | 'mph';
+  masterVolume: number;
+  customFov: number;
+}
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+  hudOpacity: 1.0,
+  speedometerUnit: 'kmh',
+  masterVolume: 0.8,
+  customFov: 80,
+};
+
+// Save preferences
+LocalSettingsStorage.set('user_prefs', {
+  ...DEFAULT_PREFERENCES,
+  customFov: 90,
+});
+
+// Load preferences on startup
+const userPrefs = LocalSettingsStorage.get<UserPreferences>('user_prefs', DEFAULT_PREFERENCES);
+console.log(`Loaded custom FOV: ${userPrefs.customFov}`);
+```
+
+---
+
+## 11. Client Commands (`mp.commands`)
+
+CyberMP client scripts can register client-side console and chat commands using `mp.commands` (`MpCommands`). These commands execute locally within the client's internal V8 runtime without sending an RPC to the server unless explicitly forwarded.
+
+### API Reference (`MpCommands`)
+
+| Method | Parameters | Return Type | Description |
+|---|---|---|---|
+| `mp.commands.add` | `commandName: string`, `callback: (id: number, args: string[]) => void` | `void` | Registers a client command handler (without leading `/`). |
+| `mp.commands.remove` | `commandName: string` | `void` | Unregisters an existing client command handler. |
+
+### Client vs. Server Commands Comparison
+
+| Feature | Client Commands (`mp.commands.add`) | Server Commands (`commands.add`) |
+|---|---|---|
+| **Execution Environment** | Client V8 Engine (in-game process) | Server Node.js Dedicated Runtime |
+| **Primary Use Cases** | Client FOV/camera tweaks, HUD toggles, debug overlays, client audio | Moderation, inventory, economy, vehicle spawning, teleportation |
+| **Callback Arguments** | `(id: number, args: string[])` where `id` is local entity ID | `(player: MpPlayer, ...args: string[])` |
+| **Network Overhead** | Zero (processed entirely client-side) | Network RPC packet sent from client to server |
+
+### Practical Client Commands Implementation
+
+Registering debug and client camera commands with clean unregister on resource cleanup:
+
+```typescript
+const registeredClientCommands = new Set<string>();
+
+/**
+ * Registers a client-side command and tracks it for clean resource unloading.
+ */
+export function registerClientCommand(
+  name: string,
+  handler: (id: number, args: string[]) => void,
+): void {
+  mp.commands.add(name, handler);
+  registeredClientCommands.add(name);
+}
+
+/**
+ * Unregisters all client commands registered by this resource.
+ */
+export function unregisterAllClientCommands(): void {
+  for (const cmd of registeredClientCommands) {
+    mp.commands.remove(cmd);
+  }
+  registeredClientCommands.clear();
+}
+
+// 1. /fov [value] - Adjust local camera FOV
+registerClientCommand('fov', (localPlayerId, args) => {
+  if (args.length === 0) {
+    console.log('[Command] Usage: /fov <degrees 60-120>');
+    return;
+  }
+
+  const fovVal = parseFloat(args[0]);
+  if (isNaN(fovVal) || fovVal < 60 || fovVal > 120) {
+    console.log('[Command] FOV must be a number between 60 and 120.');
+    return;
+  }
+
+  const player = mp.game.GetPlayer();
+  const fppCam = player?.GetFPPCameraComponent();
+  if (fppCam) {
+    fppCam.SetFOV(fovVal);
+    console.log(`[Command] First-person FOV set to ${fovVal}°`);
+  }
+});
+
+// 2. /hud - Toggle CEF HUD visibility
+let hudVisible = true;
+registerClientCommand('hud', (localPlayerId) => {
+  hudVisible = !hudVisible;
+  events.emitCef('hud:setVisible', hudVisible);
+  console.log(`[Command] HUD visibility: ${hudVisible ? 'Visible' : 'Hidden'}`);
+});
+
+// 3. /coords - Copy current world coordinates to console
+registerClientCommand('coords', (localPlayerId) => {
+  const player = mp.game.GetPlayer();
+  if (!player) return;
+
+  const pos = player.GetWorldPosition();
+  const yaw = player.GetWorldYaw();
+  console.log(`[Coordinates] X: ${pos.x.toFixed(3)}, Y: ${pos.y.toFixed(3)}, Z: ${pos.z.toFixed(3)}, Yaw: ${yaw.toFixed(2)}°`);
+});
+```

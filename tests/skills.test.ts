@@ -152,6 +152,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetMappinSystem');
       expect(content).toContain('GetFxSystem');
       expect(content).toContain('mp.local.spawnObject');
+      expect(content).toContain('mp.local.spawnPed');
       expect(content).toContain('GetTargetingSystem');
       expect(content).toContain('GetLookAtObject');
       expect(content).toContain('GetMultiplayerSystem');
@@ -216,6 +217,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.events.onCef');
       expect(content).toContain('inkTextWidget');
       expect(content).toContain('inkHUDLayer');
+      expect(content).toContain('mp.discord.updateRichPresence');
+      expect(content).toContain('mp.storage.set');
+      expect(content).toContain('mp.commands.add');
     });
 
     it('provides comprehensive server-mechanics reference', () => {
@@ -237,6 +241,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.pickups.create');
       expect(content).toContain('mp.isServer');
       expect(content).toContain('PlayerDeathEventData');
+      expect(content).toContain('vehicle.seats.driver');
+      expect(content).toContain('player.mute');
+      expect(content).toContain('entity.owner');
     });
   });
 

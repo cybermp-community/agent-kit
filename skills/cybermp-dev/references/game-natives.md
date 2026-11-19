@@ -979,3 +979,104 @@ export function createVector2(x: number, y: number): mp.game.Vector2 {
 | `AddBlipForCoord(x, y, z)` | `GetMappinSystem().RegisterMappin(data, pos)` |
 | `CreateObject(model, x, y, z)` | `mp.local.spawnObject(...)` or server `mp.objects.create(...)` |
 | `GetEntityForwardVector(ped)` | `ScriptGameInstance.GetCameraSystem().GetActiveCameraForward()` |
+
+---
+
+## 18. Client-Side Entity Spawning (`mp.local`)
+
+In CyberMP, client scripts can instantiate client-only, un-synchronized entities via `mp.local` (`MpLocal`). These entities exist exclusively inside the local player's REDengine instance, generate zero network traffic, and are completely invisible to other connected players.
+
+### When to Use Client Entities vs. Server Entities
+
+| Feature | Client-Side Entities (`mp.local`) | Server-Side Entities (`mp.*` / Dedicated Server) |
+|---|---|---|
+| **Synchronization** | Local only (un-synchronized, invisible to others) | Synchronized across all streaming clients in dimension |
+| **Network Overhead** | Zero bytes transmitted | Replicated through periodic sync packets |
+| **Common Use Cases** | Dealership preview showrooms, cinematic cutscenes, local NPC vendors, tutorial guides, visual deco | Shared multiplayer vehicles, global world loot props, multiplayer sync peds |
+| **Lifecycle** | Destroyed on game restart, resource reload, or explicit despawn | Managed authoritatively by server across player sessions |
+
+### API Reference (`MpLocal`)
+
+| Method | Parameters | Return Type | Description |
+|---|---|---|---|
+| `mp.local.spawnPed` | `skinHash`, `appHash`, `x`, `y`, `z`, `yaw`, `streaming` | `number` | Instantiates a local ped entity. Returns entity handle ID. |
+| `mp.local.despawnPed` | `hash: number` | `void` | De-allocates and deletes an isolated local ped entity. |
+| `mp.local.spawnVehicle` | `skinHash`, `appHash`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `streaming` | `number` | Instantiates a local vehicle entity. Returns entity handle ID. |
+| `mp.local.despawnVehicle` | `hash: number` | `void` | De-allocates and deletes an isolated local vehicle entity. |
+| `mp.local.spawnObject` | `skinHash`, `appHash`, `x`, `y`, `z`, `roll`, `pitch`, `yaw`, `streaming` | `number` | Instantiates a local static prop or object. Returns entity handle ID. |
+| `mp.local.despawnObject` | `hash: number` | `void` | De-allocates and deletes an isolated local object. |
+| `mp.local.spawnPlayer` | `x`, `y`, `z`, `yaw` | `boolean` | Initializes local player spawn sequence. |
+
+### Practical Implementation: Local Dealership Preview Showroom
+
+This recipe spawns a local preview vehicle with rotation and a companion showroom NPC. When the player exits the showroom UI, both entities are cleanly despawned:
+
+```typescript
+export interface ShowroomConfig {
+  vehicleModelHash: bigint | number;
+  vehicleAppearanceHash: bigint | number;
+  pedModelHash: bigint | number;
+  pedAppearanceHash: bigint | number;
+  previewCoords: { x: number; y: number; z: number };
+}
+
+export class ShowroomPreviewController {
+  private localVehicleHandle: number | null = null;
+  private localPedHandle: number | null = null;
+
+  /**
+   * Spawns client-only preview entities inside the dealership showroom.
+   */
+  public openShowroom(config: ShowroomConfig): void {
+    // Clean up any previously active showroom entities
+    this.closeShowroom();
+
+    const { x, y, z } = config.previewCoords;
+
+    // 1. Spawn local vehicle (roll=0, pitch=0, yaw=45, streaming=false to keep loaded)
+    this.localVehicleHandle = mp.local.spawnVehicle(
+      config.vehicleModelHash,
+      config.vehicleAppearanceHash,
+      x,
+      y,
+      z,
+      0, // roll
+      0, // pitch
+      45.0, // yaw
+      false, // streaming virtualization disabled for persistent preview
+    );
+
+    // 2. Spawn companion sales NPC next to vehicle
+    this.localPedHandle = mp.local.spawnPed(
+      config.pedModelHash,
+      config.pedAppearanceHash,
+      x + 2.5,
+      y + 1.0,
+      z,
+      225.0, // Face toward the preview vehicle
+      false, // streaming virtualization disabled
+    );
+
+    console.log(
+      `[Showroom] Spawned local preview vehicle (${this.localVehicleHandle}) and vendor ped (${this.localPedHandle})`,
+    );
+  }
+
+  /**
+   * Cleans up all client-side showroom entities when exiting the UI.
+   */
+  public closeShowroom(): void {
+    if (this.localVehicleHandle !== null) {
+      mp.local.despawnVehicle(this.localVehicleHandle);
+      console.log(`[Showroom] Despawned local vehicle handle ${this.localVehicleHandle}`);
+      this.localVehicleHandle = null;
+    }
+
+    if (this.localPedHandle !== null) {
+      mp.local.despawnPed(this.localPedHandle);
+      console.log(`[Showroom] Despawned local ped handle ${this.localPedHandle}`);
+      this.localPedHandle = null;
+    }
+  }
+}
+```

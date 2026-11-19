@@ -1199,3 +1199,239 @@ export function getServerConfig() {
   };
 }
 ```
+
+---
+
+## 14. Vehicle Seats & Occupants (`vehicle.seats`)
+
+CyberMP provides full tracking of vehicle seating layouts, current occupants, and historic occupants through `vehicle.seats` and `vehicle.lastSeats` on `MpVehicle` instances.
+
+### API Reference (`MpVehicle` Seating)
+
+| Property / Method | Return Type | Description |
+|---|---|---|
+| `vehicle.seats.driver` | `MpPlayer \| null` | The player currently seated in the driver's seat. |
+| `vehicle.seats.passenger` | `MpPlayer \| null` | The player currently seated in the front passenger seat. |
+| `vehicle.seats.rearLeft` | `MpPlayer \| null` | The player currently seated in the rear-left seat. |
+| `vehicle.seats.rearRight` | `MpPlayer \| null` | The player currently seated in the rear-right seat. |
+| `vehicle.lastSeats.driver` | `MpPlayer \| null` | The last player who occupied the driver's seat. |
+| `vehicle.lastSeats.passenger` | `MpPlayer \| null` | The last player who occupied the front passenger seat. |
+| `vehicle.lastSeats.rearLeft` | `MpPlayer \| null` | The last player who occupied the rear-left seat. |
+| `vehicle.lastSeats.rearRight` | `MpPlayer \| null` | The last player who occupied the rear-right seat. |
+| `vehicle.getPlayerInSeat(seat)` | `MpPlayer \| null` | Retrieves occupant by `VehicleSeat` enum (`Driver = 0`, `Passenger = 1`, `RearLeft = 2`, `RearRight = 3`). |
+| `vehicle.getLastPlayerInSeat(seat)` | `MpPlayer \| null` | Retrieves historic occupant by `VehicleSeat` enum. |
+
+### Vehicle Occupant Inspection & Abandonment Tracking
+
+```typescript
+import type { MpVehicle, MpPlayer } from '@cybermp/server-types';
+import { VehicleSeat } from '@cybermp/server-types';
+
+/**
+ * Returns all players currently seated in a vehicle.
+ */
+export function getAllOccupants(vehicle: MpVehicle): MpPlayer[] {
+  const occupants: MpPlayer[] = [];
+  const seats = [
+    vehicle.seats.driver,
+    vehicle.seats.passenger,
+    vehicle.seats.rearLeft,
+    vehicle.seats.rearRight,
+  ];
+
+  for (const player of seats) {
+    if (player && player.exist) {
+      occupants.push(player);
+    }
+  }
+  return occupants;
+}
+
+/**
+ * Identifies the last driver of a vehicle (e.g., for impounding abandoned vehicles).
+ */
+export function identifyLastDriver(vehicle: MpVehicle): MpPlayer | null {
+  // Check active driver first
+  if (vehicle.seats.driver) {
+    return vehicle.seats.driver;
+  }
+  // Fall back to historical last occupant
+  const lastDriver = vehicle.lastSeats.driver ?? vehicle.getLastPlayerInSeat(VehicleSeat.Driver);
+  return lastDriver && lastDriver.exist ? lastDriver : null;
+}
+
+/**
+ * Ejects all passengers from a vehicle, keeping the driver.
+ */
+export function ejectPassengers(vehicle: MpVehicle): void {
+  const passengerSeats = [VehicleSeat.Passenger, VehicleSeat.RearLeft, VehicleSeat.RearRight];
+  for (const seat of passengerSeats) {
+    const occupant = vehicle.getPlayerInSeat(seat);
+    if (occupant) {
+      occupant.emit('vehicle:eject');
+      console.log(`[Vehicles] Ejected passenger ${occupant.nickname} from seat ${seat}`);
+    }
+  }
+}
+```
+
+---
+
+## 15. Player Voice, Moderation & Physics State
+
+The `MpPlayer` interface provides authoritative controls for voice chat moderation, disconnect handling, physical velocity telemetry, and direct targeted event emission.
+
+### API Reference (`MpPlayer` Voice, Moderation & Physics)
+
+| Member | Signature / Type | Description |
+|---|---|---|
+| `player.mute()` | `(): void` | Mutes the player's proximity voice chat on the server. |
+| `player.kick(reason?)` | `(reason?: string) => void` | Authoritatively disconnects the player instance from the server. |
+| `mp.players.kick(target, reason?)` | `(player: MpPlayer \| number, reason?: string) => void` | Global pool helper to kick a player by numeric ID or reference. |
+| `player.velocity` | `readonly Vector3` | Current physics velocity vector `[x, y, z]` in meters/second. |
+| `player.lastVehicle` | `readonly MpVehicle \| null` | Reference to the vehicle the player most recently occupied. |
+| `player.emit(event, ...args)` | `(eventName: string, ...args: any[]) => void` | Emits a client event directly to this player (instance method). |
+
+### Administration & Moderation Recipes
+
+```typescript
+import type { MpPlayer } from '@cybermp/server-types';
+
+/**
+ * Mutes a player's in-game voice chat and notifies them.
+ */
+export function mutePlayerVoice(admin: MpPlayer, targetId: number): boolean {
+  if (!mp.players.exists(targetId)) {
+    admin.emit('chat:system', `Player ID ${targetId} not found.`);
+    return false;
+  }
+
+  const target = mp.players.at(targetId);
+  target.mute(); // Authoritative voice mute
+  target.emit('chat:system', 'You have been muted by an administrator.');
+  admin.emit('chat:system', `Muted ${target.nickname} (ID: ${targetId}).`);
+  console.log(`[Admin] ${admin.nickname} muted ${target.nickname} (${targetId})`);
+  return true;
+}
+
+/**
+ * Kicks a disruptive player using either instance kick or pool kick.
+ */
+export function kickDisruptivePlayer(targetId: number, reason: string): void {
+  if (mp.players.exists(targetId)) {
+    const target = mp.players.at(targetId);
+    console.log(`[Admin] Kicking ${target.nickname} (${targetId}): ${reason}`);
+    // Instance method:
+    target.kick(reason);
+    // Or equivalently via pool helper:
+    // mp.players.kick(targetId, reason);
+  }
+}
+
+/**
+ * Checks player physical velocity for movement anomalies (anti-speedhack / teleports).
+ */
+export function checkPlayerVelocity(player: MpPlayer, maxAllowedSpeed = 120.0): boolean {
+  const [vx, vy, vz] = player.velocity;
+  const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+
+  if (speed > maxAllowedSpeed && !player.vehicle) {
+    console.warn(`[AntiCheat] On-foot velocity anomaly: ${player.nickname} speed=${speed.toFixed(2)} m/s`);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Recalls the player's last occupied vehicle back to their current position.
+ */
+export function recallLastVehicle(player: MpPlayer): boolean {
+  const lastVeh = player.lastVehicle;
+  if (!lastVeh || !lastVeh.exist) {
+    player.emit('chat:system', 'You do not have an active recent vehicle.');
+    return false;
+  }
+
+  // Teleport vehicle to player position
+  console.log(`[Vehicles] Recalling vehicle ${lastVeh.id} to player ${player.nickname}`);
+  player.emit('chat:system', `Vehicle ${lastVeh.id} recalled.`);
+  return true;
+}
+```
+
+---
+
+## 16. Entity Physics Ownership & Synchronization
+
+In CyberMP's multiplayer network topology, physics calculations for dynamic objects and vehicles are host-synchronized: the server designates a connected client as the **physics owner** (sync host) who computes local simulation and streams transformation frames to peers.
+
+### API Reference (`MpEntity` Synchronization)
+
+| Property | Type | Description |
+|---|---|---|
+| `entity.owner` | `MpPlayer` | Current client authoritative for simulating and streaming physics for this entity. |
+| `entity.streamingRadius` | `number` | Distance (in meters) within which clients receive network replication updates. |
+| `entity.exist` | `readonly boolean` | `true` if entity instance is valid and alive in the world; `false` once destroyed. |
+| `options.dynamic` | `boolean` (optional) | Passed to `mp.objects.create`. Enables physics gravity/collisions when `true`. |
+
+### Physics Host Allocation & Dynamic Object Spawning
+
+```typescript
+import type { MpPlayer, MpVehicle, MpObject, Vector3 } from '@cybermp/server-types';
+
+/**
+ * Spawns a physical dynamic object (reacts to collisions, gravity, impulses).
+ * Dynamic objects must have their sync ownership managed when clients join/leave.
+ */
+export function spawnDynamicProp(
+  modelHash: bigint,
+  position: Vector3,
+  dimension = 0,
+): MpObject {
+  const obj = mp.objects.create({
+    model: modelHash,
+    position,
+    yaw: 0,
+    dynamic: true, // Rigid-body physics enabled
+    dimension,
+  });
+
+  // Tune streaming radius for dynamic physics objects (e.g. 100 meters)
+  obj.streamingRadius = 100;
+  return obj;
+}
+
+/**
+ * Reassigns sync ownership of an entity to the closest available player.
+ * Ensures smooth physics simulation when the previous host moves away or disconnects.
+ */
+export function migrateSyncOwnership(entity: MpVehicle | MpObject): boolean {
+  if (!entity.exist) {
+    return false;
+  }
+
+  const [ex, ey, ez] = entity.position;
+  let closestPlayer: MpPlayer | null = null;
+  let minDistanceSq = Infinity;
+
+  for (const player of mp.players.toArray()) {
+    if (player.dimension !== entity.dimension) continue;
+
+    const [px, py, pz] = player.position;
+    const distSq = (px - ex) ** 2 + (py - ey) ** 2 + (pz - ez) ** 2;
+
+    if (distSq < minDistanceSq) {
+      minDistanceSq = distSq;
+      closestPlayer = player;
+    }
+  }
+
+  if (closestPlayer) {
+    entity.owner = closestPlayer; // Assign sync host
+    console.log(`[Sync] Assigned entity ${entity.id} sync ownership to ${closestPlayer.nickname}`);
+    return true;
+  }
+
+  return false;
+}
+```
