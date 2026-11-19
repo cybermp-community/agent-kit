@@ -96,6 +96,14 @@ describe('AST Type Indexer', () => {
     expect(rpcGuide?.plainText.length).toBeGreaterThan(0);
   });
 
+  it('indexes skills/cybermp-dev/references markdown guides alongside external docs', () => {
+    const guides = parseGuides();
+    const refGuides = guides.filter((g) => g.slug.startsWith('references/'));
+    expect(refGuides.length).toBeGreaterThanOrEqual(8);
+    expect(refGuides.some((g) => g.title.includes('Vehicles & Physics'))).toBe(true);
+    expect(refGuides.some((g) => g.title.includes('Player Mechanics'))).toBe(true);
+  });
+
   it('buildIndex generates valid JSON files under src/data/', async () => {
     const result = await buildIndex({ project });
     expect(result.eventsCount).toBeGreaterThan(0);
@@ -122,11 +130,11 @@ describe('AST Type Indexer', () => {
     expect(typesJson.length).toBe(result.typesCount);
     expect(guidesJson.length).toBe(result.guidesCount);
 
-    // Verify total size < 300 KB
+    // Verify total size < 500 KB
     const totalSize =
       fs.statSync(eventsPath).size +
       fs.statSync(typesPath).size +
       fs.statSync(guidesPath).size;
-    expect(totalSize).toBeLessThan(300 * 1024);
+    expect(totalSize).toBeLessThan(500 * 1024);
   });
 });

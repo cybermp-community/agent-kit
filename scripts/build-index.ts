@@ -657,8 +657,8 @@ export function parseTypesFromAst(options?: { project?: Project; projectRoot?: s
   return types;
 }
 
-export function parseGuides(docsDir?: string): GuideRecord[] {
-  const targetDir = path.resolve(docsDir || path.join(PROJECT_ROOT, 'tmp/docs'));
+export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT): GuideRecord[] {
+  const targetDir = path.resolve(docsDir || path.join(projectRoot, 'tmp/docs'));
   if (!fs.existsSync(targetDir)) {
     throw new Error(`Docs directory does not exist: ${targetDir}. Run sync:docs first.`);
   }
@@ -699,6 +699,34 @@ export function parseGuides(docsDir?: string): GuideRecord[] {
     });
   }
 
+  // Scan skills/cybermp-dev/references/*.md
+  const referencesDir = path.resolve(projectRoot, 'skills/cybermp-dev/references');
+  if (fs.existsSync(referencesDir)) {
+    const refFiles = fs.readdirSync(referencesDir).filter((f) => f.endsWith('.md'));
+    for (const file of refFiles) {
+      const fullPath = path.join(referencesDir, file);
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      const slug = `references/${file.replace(/\.md$/, '')}`;
+      const url = `skills/cybermp-dev/references/${file}`;
+      let { title, description } = extractDocMetadata(content);
+      if (!title || title === 'Untitled') {
+        const h1Match = content.match(/^#\s+(.+)$/m);
+        title = h1Match ? h1Match[1].trim() : file.replace(/\.md$/, '');
+      }
+      const codeSnippets = extractCodeSnippets(content);
+      const plainText = extractPlainText(content);
+
+      guides.push({
+        title: title || file.replace(/\.md$/, ''),
+        description: description || `Offline reference guide for ${file}`,
+        slug,
+        url,
+        codeSnippets,
+        plainText,
+      });
+    }
+  }
+
   guides.sort((a, b) => a.slug.localeCompare(b.slug));
   return guides;
 }
@@ -719,7 +747,7 @@ export async function buildIndex(options?: {
   console.log('Building index from AST and documentation...');
   const events = parseEventsFromAst({ project, projectRoot });
   const types = parseTypesFromAst({ project, projectRoot });
-  const guides = parseGuides(docsDir);
+  const guides = parseGuides(docsDir, projectRoot);
 
   const eventsPath = path.join(outDir, 'events.json');
   const typesPath = path.join(outDir, 'types.json');

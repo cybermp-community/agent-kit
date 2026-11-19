@@ -257,8 +257,17 @@ describe('Docs Search Engine', () => {
     expect(results.length).toBeGreaterThan(0);
     const rpcGuide = results.find((r) => r.slug.includes('rpc') || r.title.toLowerCase().includes('rpc'));
     expect(rpcGuide).toBeDefined();
-    expect(rpcGuide?.url).toContain('https://docs.cyber.mp/guides/');
+    expect(rpcGuide?.url).toMatch(/https:\/\/docs\.cyber\.mp\/guides\/|skills\/cybermp-dev\/references\//);
     expect(formattedText).toContain(rpcGuide?.title);
+  });
+
+  it('searches docs and retrieves offline reference guides from skills/cybermp-dev/references', () => {
+    const { results, formattedText } = searchDocs('vehicles physics');
+    expect(results.length).toBeGreaterThan(0);
+    const refGuide = results.find((r) => r.slug.startsWith('references/vehicles'));
+    expect(refGuide).toBeDefined();
+    expect(refGuide?.url).toBe('skills/cybermp-dev/references/vehicles-physics.md');
+    expect(formattedText).toContain('Vehicles & Physics Reference');
   });
 
   it('searches docs for cef and returns UI guides', () => {
