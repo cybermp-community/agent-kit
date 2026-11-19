@@ -66,7 +66,7 @@ export interface GuideRecord {
   title: string;
   guideTitle?: string;
   sectionTitle?: string;
-  description: string;
+  description?: string;
   slug: string;
   url: string;
   codeSnippets: string[];

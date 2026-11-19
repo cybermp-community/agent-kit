@@ -692,19 +692,22 @@ export function parseMarkdownSections(
       if (!headingMatch) {
         const introPlainText = extractPlainText(chunk);
         const rawSnippets = extractCodeSnippets(chunk);
-        const introSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 500 ? s.slice(0, 500) : s));
+        const introSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 1500 ? s.slice(0, 1500) : s));
         const fallbackSnippet = allCodeSnippets[0]
-          ? [allCodeSnippets[0].length > 500 ? allCodeSnippets[0].slice(0, 500) : allCodeSnippets[0]]
+          ? [allCodeSnippets[0].length > 1500 ? allCodeSnippets[0].slice(0, 1500) : allCodeSnippets[0]]
           : [];
 
         if (introPlainText.length > 0 || introSnippets.length > 0 || rawChunks.length === 1) {
           records.push({
             title: docTitle,
+            guideTitle: docTitle,
             description: docDescription,
             slug: baseSlug,
             url: baseUrl,
             codeSnippets: introSnippets.length > 0 ? introSnippets : fallbackSnippet,
-            plainText: introPlainText.length > 0 ? introPlainText.slice(0, 300) : allPlainText.slice(0, 300),
+            plainText: introPlainText.length > 0
+              ? (introPlainText.length > 500 ? introPlainText.slice(0, 500) : introPlainText)
+              : (docDescription || (allPlainText.length > 500 ? allPlainText.slice(0, 500) : allPlainText)),
           });
         }
         continue;
@@ -731,32 +734,33 @@ export function parseMarkdownSections(
     const sectionSlug = `${baseSlug}#${anchor}`;
     const sectionUrl = `${baseUrl}#${anchor}`;
     const rawSnippets = extractCodeSnippets(chunk);
-    const codeSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 500 ? s.slice(0, 500) : s));
+    const codeSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 1500 ? s.slice(0, 1500) : s));
     const plainText = extractPlainText(chunk);
 
     records.push({
       title: docTitle,
+      guideTitle: docTitle,
       sectionTitle,
-      description: '',
       slug: sectionSlug,
       url: sectionUrl,
       codeSnippets,
-      plainText: plainText.length > 300 ? plainText.slice(0, 300) : plainText,
+      plainText: plainText.length > 500 ? plainText.slice(0, 500) : plainText,
     });
   }
 
   // Fallback if no records created
   if (records.length === 0) {
     const fallbackSnippet = allCodeSnippets[0]
-      ? [allCodeSnippets[0].length > 500 ? allCodeSnippets[0].slice(0, 500) : allCodeSnippets[0]]
+      ? [allCodeSnippets[0].length > 1500 ? allCodeSnippets[0].slice(0, 1500) : allCodeSnippets[0]]
       : [];
     records.push({
       title: docTitle,
+      guideTitle: docTitle,
       description: docDescription,
       slug: baseSlug,
       url: baseUrl,
       codeSnippets: fallbackSnippet,
-      plainText: allPlainText.slice(0, 300),
+      plainText: allPlainText.length > 500 ? allPlainText.slice(0, 500) : allPlainText,
     });
   }
 

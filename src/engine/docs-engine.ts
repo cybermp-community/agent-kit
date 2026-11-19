@@ -16,7 +16,7 @@ const miniSearch = new MiniSearch<GuideRecord>({
   storeFields: ['slug'],
   idField: 'slug',
   searchOptions: {
-    boost: { sectionTitle: 3, title: 2, description: 1, plainText: 1 },
+    boost: { sectionTitle: 5, title: 2, description: 1, plainText: 1 },
     fuzzy: 0.2,
     prefix: true,
   },
@@ -72,7 +72,7 @@ export function searchDocs(query: string, limit: number = 3): SearchDocsResult {
           if (
             (guide.sectionTitle && guide.sectionTitle.toLowerCase().includes(qLower)) ||
             guide.title.toLowerCase().includes(qLower) ||
-            guide.description.toLowerCase().includes(qLower) ||
+            (guide.description && guide.description.toLowerCase().includes(qLower)) ||
             guide.plainText.toLowerCase().includes(qLower)
           ) {
             seen.add(guide.slug);

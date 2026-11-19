@@ -7,6 +7,11 @@ describe('Granular Docs Search Engine', () => {
     expect(result.results.length).toBeGreaterThan(0);
     const burningMatch = result.results.find((r) => r.slug.includes('player-mechanics') || r.plainText.includes('Burning'));
     expect(burningMatch).toBeDefined();
+    expect(burningMatch?.slug).toContain('#combat-status-effects');
+    expect(burningMatch?.guideTitle).toBe('Player Mechanics & Inventory Reference');
+    expect(burningMatch?.sectionTitle).toBe('Combat Status Effects & Damage-over-Time (DoT)');
+    expect(burningMatch?.codeSnippets).toBeDefined();
+    expect(burningMatch?.codeSnippets[0]).toContain('ApplyStatusEffect');
     // Must NOT contain createVector3 as the primary snippet for burning
     if (burningMatch?.codeSnippets && burningMatch.codeSnippets.length > 0) {
       expect(burningMatch.codeSnippets[0]).not.toContain('createVector3');
