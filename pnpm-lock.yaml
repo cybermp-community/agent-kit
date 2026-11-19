@@ -20,6 +20,9 @@ importers:
       prompts:
         specifier: ^2.4.2
         version: 2.4.2
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@cybermp/browser-types':
         specifier: ^2.0.1
