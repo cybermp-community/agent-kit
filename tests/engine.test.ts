@@ -114,6 +114,8 @@ describe('MCP Argument Normalization', () => {
     expect(parseRpcFlowArgs({ flow: 'server-client' })).toEqual({ from: 'server', to: 'client' });
     expect(parseRpcFlowArgs({ flow: 'client->browser' })).toEqual({ from: 'client', to: 'browser' });
     expect(parseRpcFlowArgs({ flow: 'cef_server' })).toEqual({ from: 'browser', to: 'server' });
+    expect(parseRpcFlowArgs({ flow: 'cef_to_server' })).toEqual({ from: 'browser', to: 'server' });
+    expect(parseRpcFlowArgs({ flow: 'server to client' })).toEqual({ from: 'server', to: 'client' });
   });
 
   it('parses source and target synonyms', () => {

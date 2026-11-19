@@ -19,7 +19,7 @@ export function parseRpcFlowArgs(args: Record<string, any>): { from: string; to:
   let to = args.to || args.target;
 
   if (typeof args.flow === 'string' && args.flow.trim()) {
-    const parts = args.flow.toLowerCase().split(/[-_>:]+/).filter(Boolean);
+    const parts = args.flow.toLowerCase().split(/[-_>:\s]+/).filter((p) => Boolean(p) && p !== 'to');
     if (parts.length >= 2) {
       from = from || parts[0];
       to = to || parts[1];
