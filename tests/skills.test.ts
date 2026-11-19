@@ -176,6 +176,18 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.cef.setFocus');
       expect(content).toContain('mp.events.onCef');
     });
+
+    it('provides comprehensive server-mechanics reference', () => {
+      const serverMechPath = path.join(rootDir, 'skills/cybermp-dev/references/server-mechanics.md');
+      expect(fs.existsSync(serverMechPath)).toBe(true);
+      const content = fs.readFileSync(serverMechPath, 'utf-8');
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain('mp.objects.create');
+      expect(content).toContain('player.dimension');
+      expect(content).toContain('player.setMeta');
+      expect(content).toContain('isPointInPolygon2D');
+      expect(content).toContain('Safezone');
+    });
   });
 
   describe('Starter Examples', () => {
