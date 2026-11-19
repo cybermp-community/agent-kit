@@ -14,6 +14,14 @@ export interface GetTypeInfoResult {
   formattedText: string;
 }
 
+export function resolveTypeName(args: Record<string, any>): string {
+  const raw = args.name ?? args.type_name ?? args.typeName ?? args.type;
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error("Missing required argument: 'name' or 'type_name' must be provided.");
+  }
+  return raw.trim();
+}
+
 const allTypes = typesData as TypeRecord[];
 
 function formatPropertiesTable(properties: PropertyRecord[]): string {

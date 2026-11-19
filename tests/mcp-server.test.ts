@@ -48,12 +48,14 @@ describe('CyberMP MCP Server', () => {
 
       const getType = tools.get('cybermp_get_type');
       expect(getType?.description).toBeDefined();
-      expect(getType?.inputSchema.required).toContain('name');
+      expect(getType?.inputSchema.properties).toHaveProperty('name');
+      expect(getType?.inputSchema.properties).toHaveProperty('type_name');
 
       const getRpc = tools.get('cybermp_get_rpc_flow');
       expect(getRpc?.description).toBeDefined();
-      expect(getRpc?.inputSchema.required).toContain('from');
-      expect(getRpc?.inputSchema.required).toContain('to');
+      expect(getRpc?.inputSchema.properties).toHaveProperty('flow');
+      expect(getRpc?.inputSchema.properties).toHaveProperty('from');
+      expect(getRpc?.inputSchema.properties).toHaveProperty('to');
 
       const searchDocs = tools.get('cybermp_search_docs');
       expect(searchDocs?.description).toBeDefined();
@@ -136,6 +138,28 @@ describe('CyberMP MCP Server', () => {
       expect(text).toContain('alt:V');
       expect(text).toContain('MpPlayer');
     });
+
+    it('retrieves type using type_name alias', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_get_type',
+        arguments: { type_name: 'MpPlayer' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('MpPlayer');
+    });
+
+    it('returns error when type name is missing or empty', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_get_type',
+        arguments: {},
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('Missing required argument');
+    });
   });
 
   describe('Tool Invocation: cybermp_get_rpc_flow', () => {
@@ -150,6 +174,40 @@ describe('CyberMP MCP Server', () => {
       expect(text).toContain('Server to Client RPC');
       expect(text).toContain('mp.events.emitClient');
       expect(text).toContain('mp.events.onServer');
+    });
+
+    it('returns server to client paired RPC flow code with flow alias', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_get_rpc_flow',
+        arguments: { flow: 'server-client' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('Server to Client RPC');
+      expect(text).toContain('mp.events.emitClient');
+    });
+
+    it('returns client to CEF browser paired bridge code with source and target aliases', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_get_rpc_flow',
+        arguments: { source: 'client', target: 'cef' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('Client to Browser (CEF) Bridge');
+    });
+
+    it('handles malformed flow string safely with error', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_get_rpc_flow',
+        arguments: { flow: 'invalid' },
+      });
+
+      expect(result.isError).toBe(true);
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('Cannot determine RPC endpoints');
     });
 
     it('returns client to CEF browser paired bridge code', async () => {

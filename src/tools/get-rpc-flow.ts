@@ -1,14 +1,13 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getRpcFlow } from '../engine/index.js';
+import { getRpcFlow, parseRpcFlowArgs, type RpcRuntime } from '../engine/index.js';
 
 export const getRpcFlowSchema = {
-  from: z
-    .enum(['server', 'client', 'browser'])
-    .describe('Source execution runtime (server, client, or browser)'),
-  to: z
-    .enum(['server', 'client', 'browser'])
-    .describe('Target execution runtime (server, client, or browser)'),
+  flow: z.string().optional().describe('Combined flow string (e.g. "server-client", "client->browser", "cef_to_server")'),
+  from: z.string().optional().describe('Source execution runtime (server, client, browser, or cef)'),
+  source: z.string().optional().describe('Alias for source execution runtime'),
+  to: z.string().optional().describe('Target execution runtime (server, client, browser, or cef)'),
+  target: z.string().optional().describe('Alias for target execution runtime'),
 };
 
 export function registerGetRpcFlowTool(server: McpServer): void {
@@ -16,9 +15,10 @@ export function registerGetRpcFlowTool(server: McpServer): void {
     'cybermp_get_rpc_flow',
     'Generate verified paired RPC communication code and listener patterns between CyberMP runtimes (Server, Client, CEF Browser).',
     getRpcFlowSchema,
-    async ({ from, to }) => {
+    async (args) => {
       try {
-        const flow = getRpcFlow(from, to);
+        const { from, to } = parseRpcFlowArgs(args);
+        const flow = getRpcFlow(from as RpcRuntime, to as RpcRuntime);
         const lines: string[] = [
           `## ${flow.title}`,
           '',

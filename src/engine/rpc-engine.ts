@@ -7,6 +7,37 @@ export interface RpcFlowResult {
   notes?: string;
 }
 
+export function normalizeEndpoint(val: unknown): string {
+  if (typeof val !== 'string') return '';
+  const clean = val.trim().toLowerCase();
+  if (clean === 'cef') return 'browser';
+  return clean;
+}
+
+export function parseRpcFlowArgs(args: Record<string, any>): { from: string; to: string } {
+  let from = args.from || args.source;
+  let to = args.to || args.target;
+
+  if (typeof args.flow === 'string' && args.flow.trim()) {
+    const parts = args.flow.toLowerCase().split(/[-_>:]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      from = from || parts[0];
+      to = to || parts[1];
+    } else {
+      throw new Error(`Cannot determine RPC endpoints from flow: "${args.flow}". Expected format: "server-client" or "client->browser".`);
+    }
+  }
+
+  from = normalizeEndpoint(from);
+  to = normalizeEndpoint(to);
+
+  if (!from || !to) {
+    throw new Error('Missing source and target endpoints for RPC flow. Specify "flow", or "source"/"from" and "target"/"to".');
+  }
+
+  return { from, to };
+}
+
 /**
  * Returns exact verified paired RPC code snippets and guidance between
  * CyberMP execution environments (Server, Client, CEF Browser).

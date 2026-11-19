@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { checkForeignApi } from '../src/engine/anti-hallucination';
-import { getRpcFlow } from '../src/engine/rpc-engine';
+import { getRpcFlow, parseRpcFlowArgs } from '../src/engine/rpc-engine';
 import { getEventInfo } from '../src/engine/events-engine';
-import { getTypeInfo } from '../src/engine/types-engine';
+import { getTypeInfo, resolveTypeName } from '../src/engine/types-engine';
 import { searchDocs } from '../src/engine/docs-engine';
 
 describe('Anti-Hallucination Guard', () => {
@@ -106,6 +106,36 @@ describe('RPC Flow Engine', () => {
   it('throws an error for direct server to browser communication', () => {
     expect(() => getRpcFlow('server', 'browser')).toThrow(/Invalid RPC direction/);
     expect(() => getRpcFlow('browser', 'server')).toThrow(/Invalid RPC direction/);
+  });
+});
+
+describe('MCP Argument Normalization', () => {
+  it('parses flow string formatted as server-client, client->browser, cef_server', () => {
+    expect(parseRpcFlowArgs({ flow: 'server-client' })).toEqual({ from: 'server', to: 'client' });
+    expect(parseRpcFlowArgs({ flow: 'client->browser' })).toEqual({ from: 'client', to: 'browser' });
+    expect(parseRpcFlowArgs({ flow: 'cef_server' })).toEqual({ from: 'browser', to: 'server' });
+  });
+
+  it('parses source and target synonyms', () => {
+    expect(parseRpcFlowArgs({ source: 'server', target: 'client' })).toEqual({ from: 'server', to: 'client' });
+    expect(parseRpcFlowArgs({ from: 'client', target: 'cef' })).toEqual({ from: 'client', to: 'browser' });
+  });
+
+  it('throws on invalid or unresolvable flow args', () => {
+    expect(() => parseRpcFlowArgs({ flow: 'invalid' })).toThrow(/Cannot determine RPC endpoints/);
+    expect(() => parseRpcFlowArgs({})).toThrow(/Missing source and target/);
+  });
+
+  it('resolves typeName from aliases type_name, typeName, type, and name', () => {
+    expect(resolveTypeName({ type_name: 'MpPlayer' })).toBe('MpPlayer');
+    expect(resolveTypeName({ typeName: 'MpVehicle' })).toBe('MpVehicle');
+    expect(resolveTypeName({ type: 'EntityType' })).toBe('EntityType');
+    expect(resolveTypeName({ name: 'Vector3' })).toBe('Vector3');
+  });
+
+  it('throws when no type name alias is supplied', () => {
+    expect(() => resolveTypeName({})).toThrow(/Missing required argument/);
+    expect(() => resolveTypeName({ type_name: '   ' })).toThrow(/Missing required argument/);
   });
 });
 
