@@ -70,7 +70,10 @@ jobs:
           if [ -n "$NODE_AUTH_TOKEN" ]; then
             pnpm publish --no-git-checks --tag ${{ inputs.tag || 'latest' }} --access public
           else
-            sed -i '/_authToken/d' ~/.npmrc 2>/dev/null || true
+            npm install -g npm@latest
+            rm -f "$NPM_CONFIG_USERCONFIG" ~/.npmrc 2>/dev/null || true
+            unset NPM_CONFIG_USERCONFIG
+            unset NODE_AUTH_TOKEN
             pnpm publish --no-git-checks --tag ${{ inputs.tag || 'latest' }} --access public --provenance
           fi
         env:
