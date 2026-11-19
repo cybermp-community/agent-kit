@@ -71,6 +71,11 @@ describe('Anti-Hallucination Guard', () => {
     expect(checkForeignApi('playerDamage')).toBeNull();
     expect(checkForeignApi('events.emitCef')).toBeNull();
   });
+
+  it('does not falsely trigger on substring matches or valid queries like vehicle bonnet', () => {
+    expect(checkForeignApi('vehicle bonnet')).toBeNull();
+    expect(checkForeignApi('CreateVehicleOptions')).toBeNull();
+  });
 });
 
 describe('RPC Flow Engine', () => {
@@ -119,6 +124,13 @@ describe('Events Engine', () => {
     const result = getEventInfo({ name: 'playerDamage' });
     expect(result.exactMatch).toBeDefined();
     expect(result.exactMatch?.name).toBe('damage');
+  });
+
+  it('strictly respects env filter and does not inject server alias into client events', () => {
+    const result = getEventInfo({ name: 'playerDamage', env: 'client' });
+    expect(result.exactMatch).toBeUndefined();
+    expect(result.matches.some((m) => m.name === 'damage')).toBe(false);
+    expect(result.matches.every((m) => m.env === 'client')).toBe(true);
   });
 
   it('retrieves partial search matches for vehicle events', () => {
@@ -173,6 +185,14 @@ describe('Types Engine', () => {
     expect(result.type?.enumMembers?.some((m) => m.name === 'Vehicle')).toBe(true);
     expect(result.formattedText).toContain('Player');
     expect(result.formattedText).toContain('Vehicle');
+  });
+
+  it('retrieves CreateVehicleOptions without false-positive anti-hallucination warning', () => {
+    const result = getTypeInfo('CreateVehicleOptions');
+    expect(result.type).toBeDefined();
+    expect(result.type?.name).toBe('CreateVehicleOptions');
+    expect(result.formattedText).not.toContain('⚠️ Warning');
+    expect(result.formattedText).not.toContain('SA-MP');
   });
 
   it('includes anti-hallucination warning when foreign type queried', () => {

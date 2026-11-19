@@ -1,3 +1,7 @@
+import eventsData from '../data/events.json' with { type: 'json' };
+import typesData from '../data/types.json' with { type: 'json' };
+import type { EventRecord, TypeRecord } from '../types/index.js';
+
 export interface ForeignApiInfo {
   platform: string;
   cybermpAlternative: string;
@@ -141,17 +145,55 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   },
 };
 
+// Known official CyberMP types, events, and API prefixes that must never trigger warnings
+const OFFICIAL_CYBERMP_SYMBOLS = new Set<string>([
+  ...(eventsData as EventRecord[]).map((e) => e.name.toLowerCase()),
+  ...(typesData as TypeRecord[]).map((t) => t.name.toLowerCase()),
+  'events.on',
+  'events.once',
+  'events.off',
+  'events.onclient',
+  'events.onserver',
+  'events.oncef',
+  'events.emit',
+  'events.emitclient',
+  'events.emitserver',
+  'events.emitcef',
+  'cybermp.events.on',
+  'cybermp.events.emit',
+]);
+
+// Sort keys by length descending to match most specific symbols first (e.g. alt.onclient before alt.on)
+const SORTED_FOREIGN_KEYS = Object.keys(FOREIGN_MAP).sort(
+  (a, b) => b.length - a.length
+);
+
+function matchesTokenBoundary(query: string, key: string): boolean {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(^|[^a-zA-Z0-9_])${escaped}([^a-zA-Z0-9_]|$)`, 'i');
+  return regex.test(query);
+}
+
 /**
  * Checks whether a query contains APIs or patterns from foreign multiplayer
  * platforms (FiveM, alt:V, RAGEMP, SA-MP) and returns a helpful warning
  * pointing to the official CyberMP equivalent.
+ *
+ * Employs identifier token boundary matching and official symbol allowlisting
+ * to prevent false positives on valid CyberMP symbols (e.g. CreateVehicleOptions, vehicle bonnet).
  */
 export function checkForeignApi(query: string): string | null {
   if (!query || typeof query !== 'string') return null;
   const normalized = query.toLowerCase().trim();
 
-  for (const [key, info] of Object.entries(FOREIGN_MAP)) {
-    if (normalized.includes(key)) {
+  // If query is directly an official CyberMP type, event, or API, do not warn
+  if (OFFICIAL_CYBERMP_SYMBOLS.has(normalized)) {
+    return null;
+  }
+
+  for (const key of SORTED_FOREIGN_KEYS) {
+    if (matchesTokenBoundary(query, key)) {
+      const info = FOREIGN_MAP[key];
       return `⚠️ Warning: '${query}' is from ${info.platform}. In CyberMP, use '${info.cybermpAlternative}'.`;
     }
   }

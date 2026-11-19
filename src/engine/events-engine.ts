@@ -88,9 +88,10 @@ export function getEventInfo(options: GetEventInfoOptions = {}): GetEventInfoRes
     // 2. Known alias match (e.g. playerDamage -> damage)
     if (!exactMatch && EVENT_ALIASES[q]) {
       const aliasTarget = EVENT_ALIASES[q];
-      exactMatch =
-        filtered.find((e) => e.name.toLowerCase() === aliasTarget) ||
-        allEvents.find((e) => e.name.toLowerCase() === aliasTarget);
+      exactMatch = filtered.find((e) => e.name.toLowerCase() === aliasTarget);
+      if (!exactMatch && !options.env) {
+        exactMatch = allEvents.find((e) => e.name.toLowerCase() === aliasTarget);
+      }
     }
 
     // 3. Partial matches
@@ -101,7 +102,7 @@ export function getEventInfo(options: GetEventInfoOptions = {}): GetEventInfoRes
     );
 
     // If exact match exists, ensure it is the first in matches
-    if (exactMatch) {
+    if (exactMatch && (!options.env || exactMatch.env === options.env)) {
       matches = [exactMatch, ...matches.filter((m) => m !== exactMatch)];
     }
   } else {
