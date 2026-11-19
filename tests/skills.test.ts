@@ -268,8 +268,9 @@ describe('Agent Skills & Plugins', () => {
     it('has valid Antigravity plugin.json and mcp_config.json', () => {
       expect(fs.existsSync(pluginJsonPath)).toBe(true);
       const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf-8'));
+      const pkgJson = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8'));
       expect(pluginJson.name).toBe('cybermp');
-      expect(pluginJson.version).toBe('1.0.0');
+      expect(pluginJson.version).toBe(pkgJson.version);
       expect(pluginJson.description).toBeDefined();
       expect(pluginJson.skills).toContain('skills/cybermp-dev');
       expect(pluginJson.rules).toContain('rules/cybermp.md');
