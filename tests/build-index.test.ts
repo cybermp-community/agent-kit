@@ -104,6 +104,21 @@ describe('AST Type Indexer', () => {
     expect(refGuides.some((g) => g.title.includes('Player Mechanics'))).toBe(true);
   });
 
+  it('gracefully indexes skills references when docsDir does not exist', () => {
+    const nonexistentDocsDir = path.resolve('tmp/nonexistent-docs-dir-xyz');
+    const guides = parseGuides(nonexistentDocsDir);
+    expect(guides.length).toBeGreaterThanOrEqual(8);
+    expect(guides.every((g) => g.slug.startsWith('references/'))).toBe(true);
+  });
+
+  it('throws an error if both docsDir and referencesDir do not exist', () => {
+    const nonexistentDocsDir = path.resolve('tmp/nonexistent-docs-dir-xyz');
+    const nonexistentProjectRoot = path.resolve('tmp/nonexistent-project-root-xyz');
+    expect(() => parseGuides(nonexistentDocsDir, nonexistentProjectRoot)).toThrow(
+      /Docs directory does not exist/,
+    );
+  });
+
   it('buildIndex generates valid JSON files under src/data/', async () => {
     const result = await buildIndex({ project });
     expect(result.eventsCount).toBeGreaterThan(0);

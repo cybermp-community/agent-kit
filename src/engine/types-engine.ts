@@ -199,9 +199,7 @@ export function parseRedengineType(name: string, visited = new Set<string>()): T
   };
 
   parsedRedengineCache.set(matchedName.toLowerCase(), record);
-  if (matchedName.toLowerCase() === cacheKey) {
-    parsedRedengineCache.set(cacheKey, record);
-  }
+  parsedRedengineCache.set(cacheKey, record);
 
   return record;
 }

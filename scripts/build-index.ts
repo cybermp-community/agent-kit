@@ -659,7 +659,12 @@ export function parseTypesFromAst(options?: { project?: Project; projectRoot?: s
 
 export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT): GuideRecord[] {
   const targetDir = path.resolve(docsDir || path.join(projectRoot, 'tmp/docs'));
-  if (!fs.existsSync(targetDir)) {
+  const referencesDir = path.resolve(projectRoot, 'skills/cybermp-dev/references');
+
+  const hasDocs = fs.existsSync(targetDir);
+  const hasReferences = fs.existsSync(referencesDir);
+
+  if (!hasDocs && !hasReferences) {
     throw new Error(`Docs directory does not exist: ${targetDir}. Run sync:docs first.`);
   }
 
@@ -678,7 +683,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
     return files;
   }
 
-  const docFiles = findDocFiles(targetDir);
+  const docFiles = hasDocs ? findDocFiles(targetDir) : [];
   const guides: GuideRecord[] = [];
 
   for (const doc of docFiles) {
@@ -700,8 +705,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
   }
 
   // Scan skills/cybermp-dev/references/*.md
-  const referencesDir = path.resolve(projectRoot, 'skills/cybermp-dev/references');
-  if (fs.existsSync(referencesDir)) {
+  if (hasReferences) {
     const refFiles = fs.readdirSync(referencesDir).filter((f) => f.endsWith('.md'));
     for (const file of refFiles) {
       const fullPath = path.join(referencesDir, file);

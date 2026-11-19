@@ -974,35 +974,35 @@ export function requestDiscordAuth(appId: string): void {
 
 ---
 
-## 10. Client Local Storage (`mp.storage`)
+## 10. Client Local Storage (`mp.localStorage`)
 
-The `mp.storage` subsystem (`MpLocalStorage`) provides client-side persistent key-value storage. Data saved here persists across game restarts and server reconnections, making it ideal for saving user UI preferences, keybind configurations, audio volumes, and client cache.
+The `mp.localStorage` subsystem (`MpLocalStorage`) provides client-side persistent key-value storage. Data saved here persists across game restarts and server reconnections, making it ideal for saving user UI preferences, keybind configurations, audio volumes, and client cache.
 
 ### API Reference (`MpLocalStorage`)
 
 | Method | Parameters | Return Type | Description |
 |---|---|---|---|
-| `mp.storage.set` | `key: string`, `value: string` | `void` | Associates a plaintext string value with a unique key. Overwrites existing keys. |
-| `mp.storage.get` | `key: string` | `string` | Retrieves the string value for the given key. Returns empty string if not found. |
-| `mp.storage.delete` | `key: string` | `void` | Permanently deletes a specific key-value entry from storage. |
-| `mp.storage.deleteAll` | *none* | `void` | Clears all stored key-value pairs for the current resource. |
-| `mp.storage.save` | *none* | `void` | Flushes the in-memory cache to physical disk to protect against unexpected crashes. |
+| `mp.localStorage.set` | `key: string`, `value: string` | `void` | Associates a plaintext string value with a unique key. Overwrites existing keys. |
+| `mp.localStorage.get` | `key: string` | `string` | Retrieves the string value for the given key. Returns empty string if not found. |
+| `mp.localStorage.delete` | `key: string` | `void` | Permanently deletes a specific key-value entry from storage. |
+| `mp.localStorage.deleteAll` | *none* | `void` | Clears all stored key-value pairs for the current resource. |
+| `mp.localStorage.save` | *none* | `void` | Flushes the in-memory cache to physical disk to protect against unexpected crashes. |
 
 ### Type-Safe JSON Storage Wrapper
 
-Because `mp.storage` operates exclusively on string values, wrapping it in a typed JSON helper with automatic disk flushing ensures safety and crash resilience:
+Because `mp.localStorage` operates exclusively on string values, wrapping it in a typed JSON helper with automatic disk flushing ensures safety and crash resilience:
 
 ```typescript
 export class LocalSettingsStorage {
   /**
    * Stores a typed object into persistent client storage.
-   * Flushes immediately to disk via mp.storage.save().
+   * Flushes immediately to disk via mp.localStorage.save().
    */
   public static set<T>(key: string, value: T): void {
     try {
       const serialized = JSON.stringify(value);
-      mp.storage.set(key, serialized);
-      mp.storage.save(); // Ensure data is flushed to physical storage immediately
+      mp.localStorage.set(key, serialized);
+      mp.localStorage.save(); // Ensure data is flushed to physical storage immediately
     } catch (err) {
       console.error(`[Storage] Failed to serialize key "${key}":`, err);
     }
@@ -1014,7 +1014,7 @@ export class LocalSettingsStorage {
    */
   public static get<T>(key: string, defaultValue: T): T {
     try {
-      const raw = mp.storage.get(key);
+      const raw = mp.localStorage.get(key);
       if (!raw || raw.trim().length === 0) {
         return defaultValue;
       }
@@ -1029,16 +1029,16 @@ export class LocalSettingsStorage {
    * Deletes a setting and flushes to disk.
    */
   public static remove(key: string): void {
-    mp.storage.delete(key);
-    mp.storage.save();
+    mp.localStorage.delete(key);
+    mp.localStorage.save();
   }
 
   /**
    * Clears all client settings for this resource.
    */
   public static clearAll(): void {
-    mp.storage.deleteAll();
-    mp.storage.save();
+    mp.localStorage.deleteAll();
+    mp.localStorage.save();
   }
 }
 

@@ -231,6 +231,19 @@ describe('Types Engine', () => {
     expect(result.type?.methods.some((m) => m.name === 'Mount')).toBe(true);
   });
 
+  it('caches REDengine classes under both prefix-matched name and original query key', () => {
+    const res1 = getTypeInfo('MountingFacility');
+    expect(res1.type).toBeDefined();
+
+    // Second call should return instantly from in-memory cache
+    const start = performance.now();
+    const res2 = getTypeInfo('MountingFacility');
+    const elapsed = performance.now() - start;
+
+    expect(res2.type).toBe(res1.type);
+    expect(elapsed).toBeLessThan(5);
+  });
+
   it('does not hijack generic Player query with REDengine class and matches MpPlayer', () => {
     const result = getTypeInfo('Player');
     expect(result.type).toBeUndefined();

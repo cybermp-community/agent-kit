@@ -218,7 +218,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('inkTextWidget');
       expect(content).toContain('inkHUDLayer');
       expect(content).toContain('mp.discord.updateRichPresence');
-      expect(content).toContain('mp.storage.set');
+      expect(content).toContain('mp.localStorage.set');
       expect(content).toContain('mp.commands.add');
     });
 
