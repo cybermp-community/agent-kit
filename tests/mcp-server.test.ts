@@ -25,15 +25,16 @@ describe('CyberMP MCP Server', () => {
   });
 
   describe('Tool Registration', () => {
-    it('registers all 4 core CyberMP tools', async () => {
+    it('registers all 5 core CyberMP tools', async () => {
       const response = await client.listTools();
       const toolNames = response.tools.map((t) => t.name);
 
-      expect(toolNames).toHaveLength(4);
+      expect(toolNames).toHaveLength(5);
       expect(toolNames).toContain('cybermp_get_event');
       expect(toolNames).toContain('cybermp_get_type');
       expect(toolNames).toContain('cybermp_get_rpc_flow');
       expect(toolNames).toContain('cybermp_search_docs');
+      expect(toolNames).toContain('cybermp_lookup_tweakdb');
     });
 
     it('defines accurate schemas and descriptions for all tools', async () => {
@@ -60,6 +61,12 @@ describe('CyberMP MCP Server', () => {
       const searchDocs = tools.get('cybermp_search_docs');
       expect(searchDocs?.description).toBeDefined();
       expect(searchDocs?.inputSchema.required).toContain('query');
+
+      const lookupTweakDb = tools.get('cybermp_lookup_tweakdb');
+      expect(lookupTweakDb?.description).toBeDefined();
+      expect(lookupTweakDb?.inputSchema.properties).toHaveProperty('query');
+      expect(lookupTweakDb?.inputSchema.properties).toHaveProperty('category');
+      expect(lookupTweakDb?.inputSchema.properties).toHaveProperty('limit');
     });
   });
 
@@ -259,6 +266,31 @@ describe('CyberMP MCP Server', () => {
       expect(text).toContain('⚠️ Warning');
       expect(text).toContain('FiveM');
       expect(text).toContain('events.emitClient');
+    });
+  });
+
+  describe('Tool Invocation: cybermp_lookup_tweakdb', () => {
+    it('retrieves TweakDB records for status effects via MCP tool', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_lookup_tweakdb',
+        arguments: { query: 'burning', category: 'status_effects' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('BaseStatusEffect.Burning');
+      expect(text).toContain('thermal damage');
+    });
+
+    it('returns empty message when no records match', async () => {
+      const result = await client.callTool({
+        name: 'cybermp_lookup_tweakdb',
+        arguments: { query: 'non_existent_xyz_123' },
+      });
+
+      expect(result.isError).toBeFalsy();
+      const text = (result.content as any)[0].text;
+      expect(text).toContain('No TweakDB records found');
     });
   });
 });

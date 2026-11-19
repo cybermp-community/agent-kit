@@ -1,0 +1,272 @@
+[
+  {
+    "id": "BaseStatusEffect.Burning",
+    "category": "status_effects",
+    "name": "Burning",
+    "description": "Applies thermal damage over time, prevents health regeneration, and triggers panic/flailing reactions on affected targets."
+  },
+  {
+    "id": "BaseStatusEffect.Electrocuted",
+    "category": "status_effects",
+    "name": "Electrocuted",
+    "description": "Deals electrical shock damage over time, interrupts actions, and temporarily disables cyberware functionality."
+  },
+  {
+    "id": "BaseStatusEffect.Poisoned",
+    "category": "status_effects",
+    "name": "Poisoned",
+    "description": "Inflicts chemical damage over time and slows movement and attack speed."
+  },
+  {
+    "id": "BaseStatusEffect.Bleeding",
+    "category": "status_effects",
+    "name": "Bleeding",
+    "description": "Causes physical hemorrhage damage over time and reduces stamina recovery."
+  },
+  {
+    "id": "BaseStatusEffect.CyberwareMalfunction",
+    "category": "status_effects",
+    "name": "Cyberware Malfunction",
+    "description": "Jams target cyberware implants, shutting down active abilities and slowing movement."
+  },
+  {
+    "id": "BaseStatusEffect.Blind",
+    "category": "status_effects",
+    "name": "Blind",
+    "description": "Blinds visual optics sensors, drastically reducing target detection range and combat accuracy."
+  },
+  {
+    "id": "BaseStatusEffect.Stun",
+    "category": "status_effects",
+    "name": "Stun",
+    "description": "Stuns the target, leaving them completely incapacitated and unable to move or attack for a brief duration."
+  },
+  {
+    "id": "BaseStatusEffect.Emp",
+    "category": "status_effects",
+    "name": "EMP Disruption",
+    "description": "Disables cyberware, interrupts active hacks, and deals heavy damage to automated drones and mechs."
+  },
+  {
+    "id": "BaseStatusEffect.MemoryWipe",
+    "category": "status_effects",
+    "name": "Memory Wipe",
+    "description": "Forces enemies out of combat state and clears their current alert and detection meter."
+  },
+  {
+    "id": "BaseStatusEffect.Knockdown",
+    "category": "status_effects",
+    "name": "Knockdown",
+    "description": "Knocks the target off their feet onto the ground, requiring time to recover and stand up."
+  },
+  {
+    "id": "BaseStatusEffect.Defeated",
+    "category": "status_effects",
+    "name": "Defeated",
+    "description": "Sets the target into an unconscious or downed non-lethal state."
+  },
+  {
+    "id": "Vehicle.v_sport1_quadra_turbo_r_player",
+    "category": "vehicles",
+    "name": "Quadra Turbo-R V-Tech",
+    "description": "Iconic high-performance muscle sports car favored by street mercenaries in Night City."
+  },
+  {
+    "id": "Vehicle.v_sport2_mizutani_shion_nomad_player",
+    "category": "vehicles",
+    "name": "Mizutani Shion \"Coyote\"",
+    "description": "Nomad-modified sports coupe reinforced for off-road Badlands driving with reinforced suspension."
+  },
+  {
+    "id": "Vehicle.v_utility4_militech_hellhound_player",
+    "category": "vehicles",
+    "name": "Militech Hellhound",
+    "description": "Heavy combat-armored military APC vehicle equipped with mounted dual machine guns and missile launchers."
+  },
+  {
+    "id": "Vehicle.v_sport1_rayfield_caliburn_player",
+    "category": "vehicles",
+    "name": "Rayfield Caliburn",
+    "description": "Ultra-luxury aerodynamic hypercar, the fastest street-legal production vehicle in Night City."
+  },
+  {
+    "id": "Vehicle.v_standard25_thorton_colby_pickup_player",
+    "category": "vehicles",
+    "name": "Thorton Colby \"Little Mule\"",
+    "description": "Durable workhorse pickup truck commonly modified by Nomads for cargo hauling and rough terrain."
+  },
+  {
+    "id": "Vehicle.v_sport2_porsche_911_turbo_player",
+    "category": "vehicles",
+    "name": "Porsche 911 Turbo (930)",
+    "description": "Johnny Silverhand's classic 1977 sports coupe, customized with Samurai liveries."
+  },
+  {
+    "id": "Vehicle.v_sport1_herrera_outlaw_player",
+    "category": "vehicles",
+    "name": "Herrera Outlaw GTS",
+    "description": "Sleek executive luxury limousine blending top-tier speed with armor plating."
+  },
+  {
+    "id": "Vehicle.v_sportbike1_yaiba_kusanagi_player",
+    "category": "vehicles",
+    "name": "Yaiba Kusanagi CT-3X",
+    "description": "Aerodynamic sport motorcycle built for extreme speeds, inspired by classic anime aesthetics."
+  },
+  {
+    "id": "Vehicle.v_sportbike2_arch_player",
+    "category": "vehicles",
+    "name": "ARCH Nazare",
+    "description": "Custom cruiser motorcycle built by ARCH Motorcycle, renowned for raw torque and distinct exhaust sound."
+  },
+  {
+    "id": "Items.Preset_Silverhand_3516",
+    "category": "weapons",
+    "name": "Malorian Arms 3516 (Johnny's Pistol)",
+    "description": "Custom heavy power pistol designed specifically for Johnny Silverhand, featuring explosive punch and flamethrower melee."
+  },
+  {
+    "id": "Items.Preset_Katana_Default",
+    "category": "weapons",
+    "name": "Katana (Arasaka Standard)",
+    "description": "Standard high-frequency blade designed for rapid strikes, parrying, and high crit damage."
+  },
+  {
+    "id": "Items.Preset_Omaha_Default",
+    "category": "weapons",
+    "name": "Techtronika RT-46 Omaha",
+    "description": "Tech pistol firing a 3-round burst that can be charged to penetrate cover and heavy armor."
+  },
+  {
+    "id": "Items.Preset_Nekomata_Default",
+    "category": "weapons",
+    "name": "Tsunami Nekomata",
+    "description": "Tech sniper rifle firing high-velocity rail projectiles capable of shooting through walls and obstacles."
+  },
+  {
+    "id": "Items.Preset_Carnage_Default",
+    "category": "weapons",
+    "name": "Budget Arms Carnage",
+    "description": "Heavy pump-action power shotgun delivering devastating close-range kinetic force."
+  },
+  {
+    "id": "Items.Preset_Lexington_Default",
+    "category": "weapons",
+    "name": "Militech M-10AF Lexington",
+    "description": "Reliable full-auto power handgun widely deployed across Night City security forces."
+  },
+  {
+    "id": "Items.Preset_Copperhead_Default",
+    "category": "weapons",
+    "name": "Nokota D5 Copperhead",
+    "description": "Workhorse power assault rifle offering balanced recoil, rate of fire, and mid-range precision."
+  },
+  {
+    "id": "Items.Preset_MantisBlades_Default",
+    "category": "weapons",
+    "name": "Mantis Blades",
+    "description": "Lethal arm cyberware blades extending from forearms for swift dismemberment and leaping attacks."
+  },
+  {
+    "id": "Items.SuicideLvl4Program",
+    "category": "quickhacks",
+    "name": "Suicide (Tier 4 / Iconic)",
+    "description": "Ultimate quickhack forcing the target to turn their weapon on themselves."
+  },
+  {
+    "id": "Items.OverheatLvl4Program",
+    "category": "quickhacks",
+    "name": "Overheat (Tier 4 / Iconic)",
+    "description": "Combat quickhack overheating the target's neural circuitry to apply continuous thermal damage."
+  },
+  {
+    "id": "Items.CyberwareMalfunctionLvl4Program",
+    "category": "quickhacks",
+    "name": "Cyberware Malfunction (Tier 4 / Iconic)",
+    "description": "Covert quickhack disabling target cyberware and detonating cyberware upon stacking multiple times."
+  },
+  {
+    "id": "Items.SystemCollapseLvl4Program",
+    "category": "quickhacks",
+    "name": "System Collapse (Tier 4 / Iconic)",
+    "description": "Ultimate covert quickhack quietly knocking out target's consciousness without raising alarms."
+  },
+  {
+    "id": "Items.ShortCircuitLvl4Program",
+    "category": "quickhacks",
+    "name": "Short Circuit (Tier 4 / Iconic)",
+    "description": "Combat quickhack sending high-voltage electrical charge to fry electronic systems and organic nerves."
+  },
+  {
+    "id": "Items.ContagionLvl4Program",
+    "category": "quickhacks",
+    "name": "Contagion (Tier 4 / Iconic)",
+    "description": "Stealth quickhack spreading chemical poison virus between closely clustered targets."
+  },
+  {
+    "id": "Workspot.SitChair",
+    "category": "workspots",
+    "name": "Sit in Chair",
+    "description": "Workspot node animation sequence for sitting comfortably in standard chairs, dining stools, or office seats."
+  },
+  {
+    "id": "Workspot.LeanWall",
+    "category": "workspots",
+    "name": "Lean Against Wall",
+    "description": "Workspot node animation sequence for leaning back against vertical walls or barriers."
+  },
+  {
+    "id": "Workspot.SmokeCigarette",
+    "category": "workspots",
+    "name": "Smoke Cigarette",
+    "description": "Workspot node animation sequence for lighting, puffing, and holding a cigarette."
+  },
+  {
+    "id": "Workspot.DrinkBar",
+    "category": "workspots",
+    "name": "Drink at Bar",
+    "description": "Workspot node animation sequence for holding drink glasses, taking sips, and idling at a bar counter."
+  },
+  {
+    "id": "Workspot.DanceClub",
+    "category": "workspots",
+    "name": "Dance in Club",
+    "description": "Workspot node animation sequence for rhythmic club dancing and crowd party gestures."
+  },
+  {
+    "id": "Workspot.TypeComputer",
+    "category": "workspots",
+    "name": "Type on Computer",
+    "description": "Workspot node animation sequence for operating terminals, typing on keyboards, and monitoring screens."
+  },
+  {
+    "id": "Items.Coat_01_basic_01",
+    "category": "clothing",
+    "name": "Basic Trench Coat",
+    "description": "Standard weather-resistant long coat providing wind and rain protection with inner pockets."
+  },
+  {
+    "id": "Items.Pants_01_basic_01",
+    "category": "clothing",
+    "name": "Basic Cargo Pants",
+    "description": "Durable cotton-kevlar utility pants equipped with multiple reinforced gear pouches."
+  },
+  {
+    "id": "Items.Shoes_01_basic_01",
+    "category": "clothing",
+    "name": "Basic High-Top Sneakers",
+    "description": "Streetwear rubber-soled high-top sneakers popular across Night City districts."
+  },
+  {
+    "id": "Items.TShirt_01_basic_01",
+    "category": "clothing",
+    "name": "Basic Crewneck T-Shirt",
+    "description": "Simple cotton crewneck tee worn casually across all social classes."
+  },
+  {
+    "id": "Items.Vest_01_basic_01",
+    "category": "clothing",
+    "name": "Tactical Armored Vest",
+    "description": "Ballistic armor vest offering torso protection against pistol and intermediate rifle fire."
+  }
+]

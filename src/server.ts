@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { registerAllTools } from './tools/index.js';
 
 /**
- * Creates and initializes the CyberMP MCP Server with all 4 core tools registered.
+ * Creates and initializes the CyberMP MCP Server with all 5 core tools registered.
  */
 export function createCyberMpServer(): McpServer {
   const server = new McpServer({
