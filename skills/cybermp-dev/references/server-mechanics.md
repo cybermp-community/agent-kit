@@ -456,7 +456,8 @@ export function banPlayer(
 }
 
 /**
- * Validates connecting players against the active ban list.
+ * Validates connecting players against the active ban list using their IP.
+ * Called in `playerConnected` where the `player.ip` property is available.
  */
 export function checkPlayerBan(ip: string): { banned: boolean; reason?: string } {
   const record = ActiveBans.get(ip);
@@ -480,39 +481,43 @@ import type { MpPlayer } from '@cybermp/server-types';
 
 /**
  * Registers administrative server chat commands.
+ * Commands registered via mp.commands.add receive (player: MpPlayer | null, args: string[]).
  */
 export function registerAdminCommands(): void {
   // /kick <playerId> <reason...>
-  mp.commands.add('kick', (player: MpPlayer, targetIdStr?: string, ...reasonParts: string[]) => {
+  mp.commands.add('kick', (player: MpPlayer | null, args: string[]) => {
+    if (!player) return;
     if (!hasAdminLevel(player, 1)) {
       player.emit('chat:notify', 'Permission denied.');
       return;
     }
 
+    const [targetIdStr, ...reasonParts] = args;
     if (!targetIdStr) {
       player.emit('chat:notify', 'Usage: /kick <playerId> <reason>');
       return;
     }
 
     const targetId = parseInt(targetIdStr, 10);
-    const target = mp.players.toArray().find((p) => p.id === targetId);
-    if (!target) {
+    if (!mp.players.exists(targetId)) {
       player.emit('chat:notify', `Player ${targetId} not found.`);
       return;
     }
+    const target = mp.players.at(targetId);
 
     const reason = reasonParts.join(' ') || 'Kicked by admin';
     kickPlayer(target, reason);
   });
 
   // /dimension <dim>
-  mp.commands.add('dimension', (player: MpPlayer, dimStr?: string) => {
+  mp.commands.add('dimension', (player: MpPlayer | null, args: string[]) => {
+    if (!player) return;
     if (!hasAdminLevel(player, 2)) {
       player.emit('chat:notify', 'Permission denied.');
       return;
     }
 
-    const dim = dimStr ? parseInt(dimStr, 10) : 0;
+    const dim = args[0] ? parseInt(args[0], 10) : 0;
     player.dimension = dim;
     player.emit('chat:notify', `Switched dimension to ${dim}`);
   });
@@ -799,20 +804,22 @@ import type { DamageEventData } from '@cybermp/server-types';
 
 /**
  * Registers authoritative server-side combat protection for safezones.
+ * The damage callback receives (offenderId: number, data: DamageEventData),
+ * where offenderId is the attacker and data.victimId is the targeted victim.
  */
 export function registerSafezoneCombatProtection(manager: SafezoneManager): void {
-  mp.events.on('damage', (victimId: number, data: DamageEventData) => {
-    const victim = mp.players.toArray().find((p) => p.id === victimId);
-    const killer = data.killerId ? mp.players.toArray().find((p) => p.id === data.killerId) : null;
+  mp.events.on('damage', (offenderId: number, data: DamageEventData) => {
+    const offender = mp.players.exists(offenderId) ? mp.players.at(offenderId) : null;
+    const victim = data.victimId && mp.players.exists(data.victimId) ? mp.players.at(data.victimId) : null;
 
-    // Check if either victim or attacker is protected
+    // Check if either victim or attacker is protected inside a safezone
     const victimInZone = victim ? manager.isPlayerInAnySafezone(victim) : false;
-    const attackerInZone = killer ? manager.isPlayerInAnySafezone(killer) : false;
+    const attackerInZone = offender ? manager.isPlayerInAnySafezone(offender) : false;
 
     if (victimInZone || attackerInZone) {
       // mp.cancelEvent() cancels the native damage event on the server
       mp.cancelEvent();
-      console.log(`[Safezone] Blocked combat damage between ${data.killerId} and ${victimId}`);
+      console.log(`[Safezone] Blocked combat damage between offender ${offenderId} and victim ${data.victimId}`);
     }
   });
 }
@@ -885,21 +892,28 @@ registerSafezoneCombatProtection(safezones);
 registerAdminCommands();
 
 // 4. Connection & Lifecycle Guards
-mp.events.on('playerConnecting', (tempId: string, ip: string) => {
-  const banStatus = checkPlayerBan(ip);
-  if (banStatus.banned) {
-    console.log(`[Security] Rejected banned connection from ${ip} (${banStatus.reason})`);
-    // CyberMP rejects unauthorized clients during negotiation
-  }
+// playerConnecting provides (tempId: number, name: string)
+mp.events.on('playerConnecting', (tempId: number, name: string) => {
+  console.log(`[Server] Player connecting: ${name} (tempId: ${tempId})`);
 });
 
+// playerConnected provides (playerId: number, tempId: string)
+// Player IP address (player.ip) is available once the player entity is instantiated
 mp.events.on('playerConnected', (playerId: number, tempId: string) => {
-  const player = mp.players.toArray().find((p) => p.id === playerId);
-  if (!player) return;
+  if (!mp.players.exists(playerId)) return;
+  const player = mp.players.at(playerId);
+
+  // Validate player IP against ban list upon connection
+  const banStatus = checkPlayerBan(player.ip);
+  if (banStatus.banned) {
+    console.log(`[Security] Kicking banned IP ${player.ip} (${banStatus.reason})`);
+    player.kick(`Your IP address is permanently banned: ${banStatus.reason}`);
+    return;
+  }
 
   player.dimension = 0;
   player.setMeta('account:joinedAt', Date.now(), false);
-  console.log(`[Server] Player ${playerId} initialized in default dimension`);
+  console.log(`[Server] Player ${player.nickname} (${playerId}) initialized in default dimension`);
 });
 
 // 5. Clean Resource Shutdown
