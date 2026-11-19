@@ -742,7 +742,42 @@ export function setEngineDefaultSpawn(x: number, y: number, z: number, heading =
 
 ---
 
-## 15. Anti-Patterns & Negative Constraints
+## 15. Client Streamed Entity Pools (`mp.network.getStreamedPool`)
+
+In client-side scripts, `mp.network.getStreamedPool` retrieves arrays of numeric REDengine entity hashes currently loaded in the local streaming memory:
+
+```typescript
+export type StreamedPoolType = 'CVehicle' | 'CPed' | 'CObject' | 'CPickup';
+
+/**
+ * Retrieves all currently streamed vehicle hashes and converts them to entity objects.
+ */
+export function getStreamedVehicles(): mp.game.vehicleBaseObject[] {
+  const vehicleHashes = mp.network.getStreamedPool('CVehicle');
+  const vehicles: mp.game.vehicleBaseObject[] = [];
+
+  for (const hash of vehicleHashes) {
+    const entityId = Object.assign(new mp.game.entEntityID(), { hash });
+    const entity = mp.game.ScriptGameInstance.FindEntityByID(entityId);
+    if (entity) {
+      vehicles.push(entity as mp.game.vehicleBaseObject);
+    }
+  }
+
+  return vehicles;
+}
+
+/**
+ * Retrieves all currently streamed network players.
+ */
+export function getStreamedPlayerGameIds(): number[] {
+  return mp.network.getStreamedPlayers();
+}
+```
+
+---
+
+## 16. Anti-Patterns & Negative Constraints
 
 | Prohibited Pattern (Hallucinated / FiveM) | Approved CyberMP Pattern |
 | :--- | :--- |

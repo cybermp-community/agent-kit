@@ -447,3 +447,67 @@ export function stopSpeedometerSync(): void {
   }
 }
 ```
+
+---
+
+## 5. Dynamic Camera FOV on Nitro (`mp.game.LerpF`)
+
+When activating a nitro boost, smooth camera FOV enlargement enhances speed sensation. REDengine provides native linear float interpolation via `mp.game.LerpF`:
+
+```typescript
+import type { vehicleTPPCameraComponent } from '@cybermp/client-types/game';
+
+let activeTppCam: vehicleTPPCameraComponent | null = null;
+let baseFov = 75;
+let currentFov = 75;
+const BOOST_FOV_INCREASE = 15;
+const LERP_RATE = 0.1;
+
+/**
+ * Finds the active third-person vehicle camera component on the player.
+ */
+export function getVehicleTppCamera(): vehicleTPPCameraComponent | null {
+  const components = mp.game.GetPlayer().GetComponents();
+  for (const comp of components) {
+    if (comp.IsA('vehicleTPPCameraComponent')) {
+      return comp as vehicleTPPCameraComponent;
+    }
+  }
+  return null;
+}
+
+/**
+ * Smoothly interpolates vehicle camera FOV using REDengine native LerpF.
+ *
+ * @param boosting True while nitro key is pressed; false when released.
+ */
+export function updateNitroCameraFov(boosting: boolean): void {
+  if (!activeTppCam) {
+    activeTppCam = getVehicleTppCamera();
+    if (activeTppCam) {
+      baseFov = activeTppCam.GetFOV();
+      currentFov = baseFov;
+    }
+  }
+  if (!activeTppCam) return;
+
+  const targetFov = boosting ? baseFov + BOOST_FOV_INCREASE : baseFov;
+  currentFov = Number(mp.game.LerpF(LERP_RATE, currentFov, targetFov).toFixed(4));
+  activeTppCam.SetFOV(currentFov);
+}
+```
+
+---
+
+## 6. Nitro Tuning Presets Table
+
+Verified physics impulse presets from `cybermp-freeroam`:
+
+| Preset Name | Force | Capacity per Use | Max Speed (km/h) | Regen Rate | Ground Check | Description |
+|---|---|---|---|---|---|---|
+| `default` | 3.25 | 2.25 | 350 | 1.75 | `true` | Balanced freeroam street racing |
+| `free` | 3.25 | 0 | 350 | 1.75 | `true` | Unlimited nitro with ground lock |
+| `glide` | 5.0 | 0 | 350 | 1.75 | `false` | Airborne air-glide impulse |
+| `explosion`| 50.0 | 25.0 | 450 | 1.75 | `true` | Drag strip rocket boost |
+| `boom` | 200.0 | 100.0 | 900 | 1.0 | `true` | Extreme supersonic launch |
+

@@ -948,6 +948,18 @@ export function cleanupDimensionVehicles(dimension: number): void {
     veh.destroy();
   }
 }
+
+/**
+ * Returns total count of all active entities on the dedicated server.
+ */
+export function getServerEntityCounts(): { players: number; vehicles: number; peds: number; objects: number } {
+  return {
+    players: mp.players.toArray().length,
+    vehicles: mp.vehicles.toArray().length,
+    peds: mp.peds.toArray().length,
+    objects: mp.objects.toArray().length,
+  };
+}
 ```
 
 ---

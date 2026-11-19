@@ -149,6 +149,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetTargetingSystem');
       expect(content).toContain('GetLookAtObject');
       expect(content).toContain('GetMultiplayerSystem');
+      expect(content).toContain('getStreamedPool');
     });
 
     it('provides comprehensive vehicles-physics reference', () => {
@@ -163,6 +164,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('entAnimationControllerComponent');
       expect(content).toContain('AddLinelyVelocity');
       expect(content).toContain('GetValueFromCurve');
+      expect(content).toContain('IsOnGround');
+      expect(content).toContain('mp.game.LerpF');
+      expect(content).toContain('speed_to_multiplier');
     });
 
     it('provides comprehensive player-mechanics reference', () => {
@@ -183,6 +187,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('gameDrawItemRequest');
       expect(content).toContain('RequestUnequipItem');
       expect(content).toContain('AnimFeature_SwimmingData');
+      expect(content).toContain('GameplayRestriction.VehicleCombatBlockExit');
     });
 
     it('provides comprehensive cameras-input-cef reference', () => {
@@ -213,6 +218,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.cancelEvent');
       expect(content).toContain('mp.players.toArray');
       expect(content).toContain('mp.hashes.tweakdbid');
+      expect(content).toContain('mp.peds.toArray');
     });
   });
 

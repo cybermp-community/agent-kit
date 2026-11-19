@@ -350,6 +350,8 @@ export function initPermanentRestrictions(): void {
 | `GameplayRestriction.NoPhotoMode` | Disables photo mode shortcut (prevents pausing engine) | Mandatory in all multiplayer servers |
 | `GameplayRestriction.NoScanning` | Disables scanner HUD overlay | Competitive PvP anti-wallhack |
 | `GameplayRestriction.InfiniteAmmo` | Unlimited ammo in loaded magazine | Freeroam arenas, deathmatch |
+| `GameplayRestriction.VehicleCombatBlockExit` | Prevents player from exiting vehicle | Vehicle combat, derby, races |
+| `GameplayRestriction.VehicleFPP` | Locks vehicle camera perspective to first-person | Cockpit-only racing, hardcore mode |
 | `BaseStatusEffect.Invulnerable` | Complete immunity to all physical/thermal damage | God mode, spawn protection |
 
 ---
