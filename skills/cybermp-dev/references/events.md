@@ -128,6 +128,8 @@ cybermp.events.off('updateHealth', handler);
 | `resourceStop` | `(name: string): void` | Triggered when this resource stops. |
 | `anyResourceStart` | `(name: string): void` | Any resource in the server started. |
 | `anyResourceStop` | `(name: string): void` | Any resource in the server stopped. |
+| `anyServerResourceStart` | `(resourceName: string): void` | Dedicated server resource started (useful for dev watchers / hotreload). |
+| `anyServerResourceStop` | `(resourceName: string): void` | Dedicated server resource stopped. |
 | `resourcesRefresh` | `(): void` | Resource system refreshed. |
 
 ---

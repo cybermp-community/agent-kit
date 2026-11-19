@@ -95,6 +95,7 @@ describe('Agent Skills & Plugins', () => {
       // Sample core events
       expect(content).toContain('playerConnected');
       expect(content).toContain('damage');
+      expect(content).toContain('anyServerResourceStart');
     });
 
     it('provides full RPC flows matrix in rpc-flows.md', () => {
@@ -128,6 +129,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('server.toml');
       expect(content).toContain('@cybermp/server-types');
       expect(content).toContain('@cybermp/client-types');
+      expect(content).toContain('in_world_navigation.archive');
     });
 
     it('provides comprehensive game-natives reference', () => {
@@ -219,6 +221,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.players.toArray');
       expect(content).toContain('mp.hashes.tweakdbid');
       expect(content).toContain('mp.peds.toArray');
+      expect(content).toContain('mp.resources.restart');
+      expect(content).toContain('mp.exports');
+      expect(content).toContain('mp.pickups.create');
+      expect(content).toContain('mp.isServer');
     });
   });
 

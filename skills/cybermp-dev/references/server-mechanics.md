@@ -1065,3 +1065,118 @@ export function getPlayerPing(player: MpPlayer): number {
   return player.ping;
 }
 ```
+
+---
+
+## 10. Resource Management & Live Hotreloading (`mp.resources`)
+
+The CyberMP server provides programmatic resource management via `mp.resources`:
+
+```typescript
+import { ResourceState } from '@cybermp/server-types';
+
+/**
+ * Programmatically restarts a resource without stopping the dedicated server.
+ * Used by hotreload watchers and admin commands.
+ */
+export function restartResource(resourceName: string): void {
+  console.log(`[Resources] Restarting resource: ${resourceName}`);
+  mp.resources.restart(resourceName);
+}
+
+/**
+ * Checks whether a given resource is currently running.
+ */
+export function isResourceRunning(resourceName: string): boolean {
+  return mp.resources.getState(resourceName) === ResourceState.Running;
+}
+
+/**
+ * Safely reads a configuration file from another resource.
+ */
+export function readResourceConfig(resourceName: string, relativePath: string): string {
+  return mp.resources.loadFile(resourceName, relativePath);
+}
+```
+
+---
+
+## 11. Cross-Resource Exports Pipeline (`mp.exports`)
+
+CyberMP supports sharing functions across resources without circular imports or bundling dependencies:
+
+```typescript
+// 1. In provider resource (e.g. 'auth'):
+mp.exports('isPlayerAdmin', (playerId: number): boolean => {
+  const player = mp.players.at(playerId);
+  return player?.getMeta('admin') === true;
+});
+
+// 2. In consumer resource (e.g. 'freeroam'):
+export function checkRemoteAdmin(playerId: number): boolean {
+  // Access exported function through mp.exports.<resourceName>.<functionName>
+  return mp.exports.auth.isPlayerAdmin(playerId);
+}
+```
+
+---
+
+## 12. In-World Loot Pickups (`mp.pickups`)
+
+The dedicated server can spawn physical weapon and clothing pickups in the world:
+
+```typescript
+import { PickupType } from '@cybermp/server-types';
+import type { MpPickup, Vector3 } from '@cybermp/server-types';
+
+/**
+ * Spawns a loot pickup in the world.
+ *
+ * @param modelHash REDengine mesh hash
+ * @param type Weapon, Clothes, or Other
+ * @param position [x, y, z] coordinates
+ */
+export function spawnLootPickup(
+  modelHash: bigint,
+  type: PickupType = PickupType.Weapon,
+  position: Vector3,
+  dimension = 0,
+): MpPickup {
+  return mp.pickups.create({
+    model: modelHash,
+    type,
+    position,
+    yaw: 0,
+    dimension,
+  });
+}
+```
+
+---
+
+## 13. Server Config & Runtime Environment (`mp.config` & `mp.isServer`)
+
+Inspect active server runtime parameters from code:
+
+```typescript
+/**
+ * Validates that current script is executing in the Node.js server context.
+ */
+export function assertServerRuntime(): void {
+  if (!mp.isServer()) {
+    throw new Error('This module can only run on the CyberMP dedicated server.');
+  }
+}
+
+/**
+ * Returns server configuration loaded from server.toml.
+ */
+export function getServerConfig() {
+  return {
+    maxPlayers: mp.config.max_players,
+    tcpHost: mp.config.tcp_host,
+    udpHost: mp.config.udp_host,
+    activeResources: mp.config.resources,
+  };
+}
+```

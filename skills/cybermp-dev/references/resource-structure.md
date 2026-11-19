@@ -99,8 +99,13 @@ server_script = ["./server.js"]
 # Client script entrypoints (array or single string path):
 client_script = ["./client.js"]
 
-# Files and static assets sent to client (e.g. CEF browser UI):
-file = ["./browser/**/*"]
+# Files and static assets sent to client (e.g. CEF browser UI and ArchiveXL archives):
+file = [
+  "./browser/**/*",
+  "./assets/in_world_navigation.archive",
+  "./assets/**/*.archive",
+  "./assets/**/*.xl"
+]
 
 # URL or local relative path to CEF HTML entrypoint:
 cef_url = "./browser/index.html"
