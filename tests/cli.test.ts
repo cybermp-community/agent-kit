@@ -189,4 +189,39 @@ describe('CLI Init Wizard', () => {
     const zedSettings = JSON.parse(fs.readFileSync(zedSettingsPath, 'utf-8'));
     expect(zedSettings.context_servers.cybermp).toBeDefined();
   });
+
+  it('respects force option: does not overwrite existing rule files or skills when force is false, but overwrites when force is true', async () => {
+    const claudePath = path.join(tempDir, 'CLAUDE.md');
+    fs.writeFileSync(claudePath, '# User Custom Guidelines', 'utf-8');
+
+    const skillDir = path.join(tempDir, '.agents/skills/cybermp-dev');
+    fs.mkdirSync(skillDir, { recursive: true });
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), '# Custom User Skill', 'utf-8');
+
+    // Run without force (force: false)
+    await initProject({
+      cwd: tempDir,
+      editors: ['claude'],
+      copySkill: true,
+      force: false,
+      nonInteractive: true,
+    });
+
+    expect(fs.readFileSync(claudePath, 'utf-8')).toBe('# User Custom Guidelines');
+    expect(fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8')).toBe('# Custom User Skill');
+
+    // Run with force (force: true)
+    await initProject({
+      cwd: tempDir,
+      editors: ['claude'],
+      copySkill: true,
+      force: true,
+      nonInteractive: true,
+    });
+
+    expect(fs.readFileSync(claudePath, 'utf-8')).not.toBe('# User Custom Guidelines');
+    expect(fs.readFileSync(claudePath, 'utf-8')).toContain('CyberMP');
+    expect(fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8')).not.toBe('# Custom User Skill');
+    expect(fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8')).toContain('name: cybermp-dev');
+  });
 });

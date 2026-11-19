@@ -65,7 +65,8 @@ function mergeJsonConfig(filePath: string, updater: (data: Record<string, any>) 
 function writeRuleFile(filePath: string, content: string, force: boolean): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   if (fs.existsSync(filePath) && !force) {
-    // If not forced and file exists, still write rule template for initialization
+    console.log(`Skipping existing ${path.basename(filePath)} (use --force to overwrite)`);
+    return;
   }
   fs.writeFileSync(filePath, content, 'utf-8');
 }
@@ -206,8 +207,12 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     const skillSrc = path.join(packageRoot, 'skills/cybermp-dev');
     const skillDest = path.join(cwd, '.agents/skills/cybermp-dev');
     if (fs.existsSync(skillSrc)) {
-      fs.mkdirSync(path.dirname(skillDest), { recursive: true });
-      fs.cpSync(skillSrc, skillDest, { recursive: true, force: true });
+      if (fs.existsSync(skillDest) && !force) {
+        console.log(`Skipping existing skill directory (use --force to overwrite)`);
+      } else {
+        fs.mkdirSync(path.dirname(skillDest), { recursive: true });
+        fs.cpSync(skillSrc, skillDest, { recursive: true, force: true });
+      }
     }
   }
 
