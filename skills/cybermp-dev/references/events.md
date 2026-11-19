@@ -81,9 +81,9 @@ cybermp.events.off('updateHealth', handler);
 | `playerSpawn` | `(playerId: number): void` | Triggered when a player's character spawns into the world. |
 | `playerRespawn` | `(playerId: number): void` | Triggered when a player respawns after death. |
 | `playerDespawn` | `(playerId: number): void` | Triggered when a player entity is despawned from the world. |
-| `playerDeath` | `(playerId: number, killerId: number, reason: number): void` | Triggered when a player character dies. |
-| `playerDisconnected` | `(playerId: number, reason: number): void` | Triggered when a player disconnects from the server. |
-| `playerAppearanceChange` | `(playerId: number): void` | Triggered when player clothing/morph attributes update. |
+| `playerDeath` | `(playerId: number, data: PlayerDeathEventData): void` | Triggered when a player character dies (`data.killerId?: number`). |
+| `playerDisconnected` | `(playerId: number, reason: string): void` | Triggered when a player disconnects from the server. |
+| `playerAppearanceChange` | `(playerId: number, data: PlayerAppearanceChangeEventData): void \| boolean` | Triggered when player clothing/morph attributes update. |
 
 ### Combat & Actions
 | Event | Signature | Description |
@@ -103,23 +103,42 @@ cybermp.events.off('updateHealth', handler);
 | `playerExitVehicle` | `(playerId: number, vehicleId: number, seatIndex: number): void` | Player exits vehicle. |
 | `vehicleSpawn` | `(vehicleId: number): void` | Server creates a vehicle entity. |
 | `vehicleDespawn` | `(vehicleId: number): void` | Server removes a vehicle entity. |
-| `vehicleWeaponShoot` | `(vehicleId: number, weaponIndex: number): void` | Vehicle-mounted weaponry is discharged. |
-| `vehicleHittedByPlayer` | `(vehicleId: number, playerId: number): void` | Player collides with or damages a vehicle. |
-| `vehicleCustomizationChange` | `(vehicleId: number, data: any): void` | Vehicle visual/performance parts altered. |
-| `vehicleDestructionChange` | `(vehicleId: number, state: any): void` | Vehicle body deformation or blowout updated. |
+| `vehicleWeaponShoot` | `(vehicleId: number, data: VehicleWeaponShootEventData): void \| boolean` | Vehicle-mounted weaponry is discharged. |
+| `vehicleHittedByPlayer` | `(vehicleId: number, data: VehicleHittedByPlayerEventData): void \| boolean` | Player collides with or damages a vehicle. |
+| `vehicleCustomizationChange` | `(playerId: number, data: VehicleCustomizationChangeEventData): void` | CrystalCoat or vehicle appearance altered. |
+| `vehicleDestructionChange` | `(playerId: number, data: VehicleDestructionChangeEventData): void` | Vehicle body deformation or blowout updated. |
 
-### World & Entities
+### In-World Pickups & Loot
+| Event | Signature | Description |
+|---|---|---|
+| `pickupSpawn` | `(pickupId: number): void` | In-world loot pickup spawned. |
+| `pickupDespawn` | `(pickupId: number): void` | In-world loot pickup removed. |
+| `pickupRaise` | `(playerId: number, data: PickupDespawnEventData): void \| boolean` | Player picks up loot item. |
+| `pickupDrop` | `(playerId: number, data: PickupCreateEventData): void \| boolean` | Player drops item onto the ground. |
+| `pickupChange` | `(playerId: number, data: PickupChangeEventData): void \| boolean` | State of pickup altered. |
+
+### Peds & Static Entities
+| Event | Signature | Description |
+|---|---|---|
+| `pedSpawn` | `(pedId: number): void` | Synced NPC ped spawned. |
+| `pedDespawn` | `(pedId: number): void` | Synced NPC ped despawned. |
+| `objectSpawn` | `(objectId: number): void` | Synced static object spawned. |
+| `objectDespawn` | `(objectId: number): void` | Synced static object despawned. |
+| `gameObjectSpawn` | `(gameObjectId: number): void` | Synced game object spawned. |
+| `gameObjectDespawn` | `(gameObjectId: number): void` | Synced game object despawned. |
+
+### World & Metadata
 | Event | Signature | Description |
 |---|---|---|
 | `entitySpawn` | `(entityId: number, entityType: EntityType): void` | Any generic entity spawns. |
 | `entityDespawn` | `(entityId: number, entityType: EntityType): void` | Any generic entity despawns. |
-| `entityMetaChange` | `(entityId: number, key: string, value: any): void` | Synced metadata updated on an entity. |
-| `globalMetaChange` | `(key: string, value: any): void` | Server-wide shared metadata updated. |
-| `playerMetaChange` | `(playerId: number, key: string, value: any): void` | Player-specific metadata altered. |
-| `doorStateChange` | `(doorId: number, open: boolean): void` | World doors opened or locked. |
-| `liftStateChange` | `(liftId: number, floor: number): void` | Elevators/lifts moving between floors. |
-| `fire` | `(x: number, y: number, z: number): void` | Environmental fire ignited. |
-| `explosion` | `(x: number, y: number, z: number, expType: number): void` | Explosion triggered in world coordinates. |
+| `entityMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Synced metadata updated on an entity. |
+| `globalMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Server-wide shared metadata updated. |
+| `playerMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Player-specific metadata altered. |
+| `doorStateChange` | `(playerId: number, data: DoorStateChangeEventData): void \| boolean` | World doors opened or locked. |
+| `liftStateChange` | `(playerId: number, data: LiftStateChangeEventData): void \| boolean` | Elevators/lifts moving between floors. |
+| `fire` | `(playerId: number, data: FireEventData): void \| boolean` | Environmental fire ignited. |
+| `explosion` | `(playerId: number, data: ExplosionEventData): void \| boolean` | Explosion triggered in world coordinates. |
 
 ### Resource Management
 | Event | Signature | Description |

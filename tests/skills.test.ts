@@ -96,6 +96,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('playerConnected');
       expect(content).toContain('damage');
       expect(content).toContain('anyServerResourceStart');
+      expect(content).toContain('PlayerDeathEventData');
+      expect(content).toContain('pickupRaise');
+      expect(content).toContain('vehicleCustomizationChange');
+      expect(content).toContain('pedSpawn');
     });
 
     it('provides full RPC flows matrix in rpc-flows.md', () => {
@@ -152,6 +156,12 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetLookAtObject');
       expect(content).toContain('GetMultiplayerSystem');
       expect(content).toContain('getStreamedPool');
+      expect(content).toContain('GetBlackboardSystem');
+      expect(content).toContain('GetAllBlackboardDefs');
+      expect(content).toContain('VehicleSummonData');
+      expect(content).toContain('IsVisibleTarget');
+      expect(content).toContain('GetSlotTransform');
+      expect(content).toContain('SetWarningMessage');
     });
 
     it('provides comprehensive vehicles-physics reference', () => {
@@ -190,6 +200,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('RequestUnequipItem');
       expect(content).toContain('AnimFeature_SwimmingData');
       expect(content).toContain('GameplayRestriction.VehicleCombatBlockExit');
+      expect(content).toContain('gamedataEquipmentArea.ArmsCW');
     });
 
     it('provides comprehensive cameras-input-cef reference', () => {
@@ -225,6 +236,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('mp.exports');
       expect(content).toContain('mp.pickups.create');
       expect(content).toContain('mp.isServer');
+      expect(content).toContain('PlayerDeathEventData');
     });
   });
 

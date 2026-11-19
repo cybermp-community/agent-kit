@@ -937,6 +937,41 @@ export function equipCyberware(cyberwareTdbId: string): void {
   );
   eqSystem.EquipCyberwareByTDBID(player, cyberwareTdbId);
 }
+
+/**
+ * Arms Cyberware Death Mesh Fix:
+ * When dying with Arms Cyberware equipped (Gorilla Arms, Mantis Blades, Monowire, Launcher),
+ * REDengine can corrupt or hide arm meshes upon respawn.
+ * Unequip ArmsCW on death and re-equip 500ms after revival to preserve mesh integrity.
+ */
+export class ArmsCyberwareMeshGuard {
+  private savedArmsCyberwareId: string | null = null;
+
+  handleDeath(): void {
+    const playerObj = mp.game.GetPlayerObject();
+    if (!playerObj) return;
+
+    const eqSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('EquipmentSystem');
+    const activeArms = eqSystem.GetActiveItem(playerObj, gamedataEquipmentArea.ArmsCW);
+    if (activeArms?.id) {
+      this.savedArmsCyberwareId = activeArms.id;
+      mp.game.EquipmentSystem.RequestUnequipItem(playerObj, gamedataEquipmentArea.ArmsCW, 0);
+    }
+  }
+
+  handleRevive(): void {
+    if (!this.savedArmsCyberwareId) return;
+    const armsId = this.savedArmsCyberwareId;
+    this.savedArmsCyberwareId = null;
+
+    setTimeout(() => {
+      const player = mp.game.GetPlayer();
+      if (!player) return;
+      const eqSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('EquipmentSystem');
+      eqSystem.EquipCyberwareByTDBID(player, armsId);
+    }, 500);
+  }
+}
 ```
 
 ---

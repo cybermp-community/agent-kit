@@ -1066,6 +1066,25 @@ export function getPlayerPing(player: MpPlayer): number {
 }
 ```
 
+### Killfeed & Player Death Tracking (`playerDeath`)
+
+In CyberMP, `playerDeath` triggers on the server with a structured `PlayerDeathEventData` payload:
+
+```typescript
+import type { PlayerDeathEventData } from '@cybermp/server-types';
+
+mp.events.on('playerDeath', (victimId: number, { killerId }: PlayerDeathEventData) => {
+  const victim = mp.players.at(victimId);
+  const killer = killerId !== undefined ? mp.players.at(killerId) : undefined;
+
+  if (killer) {
+    console.log(`[Killfeed] ${killer.nickname} (${killerId}) killed ${victim?.nickname} (${victimId})`);
+  } else {
+    console.log(`[Killfeed] ${victim?.nickname} (${victimId}) died of natural causes or suicide`);
+  }
+});
+```
+
 ---
 
 ## 10. Resource Management & Live Hotreloading (`mp.resources`)

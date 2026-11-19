@@ -777,7 +777,100 @@ export function getStreamedPlayerGameIds(): number[] {
 
 ---
 
-## 16. Anti-Patterns & Negative Constraints
+## 16. Blackboard System, Bone Slots & Targeting Visibility
+
+### Native Blackboards (`GetBlackboardSystem` & `GetAllBlackboardDefs`)
+
+CyberMP resources interact with REDengine's blackboard system to disable singleplayer mechanics that conflict with multiplayer state, such as calling vehicles from the garage or switching seats:
+
+```typescript
+/**
+ * Configures engine blackboards for multiplayer session rules.
+ */
+export function configureEngineBlackboards(): void {
+  const blackboardDefs = mp.game.GetAllBlackboardDefs();
+  const blackboardSystem = mp.game.ScriptGameInstance.GetBlackboardSystem();
+
+  // 1. Disable garage summoning (prevents spawning vehicles through phone/menu)
+  blackboardSystem
+    .Get(blackboardDefs.VehicleSummonData)
+    .SetBool(blackboardDefs.VehicleSummonData.GarageState, false);
+
+  // 2. Block switching seats inside vehicles
+  blackboardSystem
+    .Get(blackboardDefs.DebugData)
+    .SetBool(blackboardDefs.DebugData.Vehicle_BlockSwitchSeats, true);
+}
+```
+
+### Line-of-Sight Visibility Checks (`IsVisibleTarget`)
+
+To check whether a target entity is unobstructed by geometry or walls from the local player's perspective:
+
+```typescript
+import type { gameObject } from '@cybermp/client-types/game';
+
+/**
+ * Checks if a target entity is directly visible to the local player.
+ */
+export function isEntityVisibleToPlayer(targetEntity: gameObject): boolean {
+  const targetingSystem = mp.game.ScriptGameInstance.GetTargetingSystem();
+  const localPlayer = mp.game.GetPlayerObject();
+
+  return targetingSystem.IsVisibleTarget(localPlayer, targetEntity);
+}
+```
+
+### Exact Bone & Head Transforms (`GetSlotTransform` & `WorldPosition.ToVector4`)
+
+For nametag placement, headshots, or bone attachments, query the entity's `slotComponent`:
+
+```typescript
+import type { entEntity, Vector4 } from '@cybermp/client-types/game';
+
+/**
+ * Retrieves the precise world position of an entity's head bone.
+ */
+export function getEntityHeadPosition(entity: entEntity): Vector4 {
+  const slotComp = entity.FindComponentByName('Item_Attachment_Slot');
+  if (slotComp) {
+    const [, transform] = slotComp.GetSlotTransform('Head');
+    if (transform?.Position) {
+      return mp.game.WorldPosition.ToVector4(transform.Position);
+    }
+  }
+
+  return entity.GetWorldPosition();
+}
+```
+
+### In-Game Warning Alerts & Drop Point Control
+
+```typescript
+/**
+ * Displays a native Cyberpunk warning banner across the HUD.
+ */
+export function showEngineWarning(message: string): void {
+  mp.game.GetPlayer().SetWarningMessage(message);
+}
+
+/**
+ * Disables physical drop point stash terminals across the game world.
+ */
+export function disableDropPoints(): void {
+  const req = Object.assign(new mp.game.ToggleDropPointSystemRequest(), {
+    isEnabled: false,
+    reason: 'MultiplayerCore',
+  });
+
+  const dropPointSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('DropPointSystem');
+  dropPointSystem.OnToggleDropPointSystemRequest(req);
+}
+```
+
+---
+
+## 17. Anti-Patterns & Negative Constraints
 
 | Prohibited Pattern (Hallucinated / FiveM) | Approved CyberMP Pattern |
 | :--- | :--- |
