@@ -201,6 +201,35 @@ describe('Types Engine', () => {
     expect(result.formattedText).toContain('alt:V');
     expect(result.formattedText).toContain('MpPlayer');
   });
+
+  it('resolves native REDengine classes from game.d.ts on demand', () => {
+    const result = getTypeInfo('TeleportationFacility');
+    expect(result.type).toBeDefined();
+    expect(result.type?.name).toBe('TeleportationFacility');
+    expect(result.type?.env).toBe('client');
+    expect(result.type?.source).toBe('REDengine');
+    expect(result.formattedText).toContain('gameTeleportationFacility');
+  });
+
+  it('extracts methods and static functions from ScriptGameInstance', () => {
+    const result = getTypeInfo('ScriptGameInstance');
+    expect(result.type).toBeDefined();
+    expect(result.type?.methods.length).toBeGreaterThan(50);
+    expect(result.formattedText).toContain('GetTeleportationFacility');
+  });
+
+  it('resolves gameTeleportationFacility directly', () => {
+    const result = getTypeInfo('gameTeleportationFacility');
+    expect(result.type).toBeDefined();
+    expect(result.type?.name).toBe('gameTeleportationFacility');
+    expect(result.type?.methods.length).toBeGreaterThan(0);
+  });
+
+  it('resolves MountingFacility', () => {
+    const result = getTypeInfo('MountingFacility');
+    expect(result.type).toBeDefined();
+    expect(result.type?.methods.some((m) => m.name === 'Mount')).toBe(true);
+  });
 });
 
 describe('Docs Search Engine', () => {

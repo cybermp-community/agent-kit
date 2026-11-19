@@ -52,6 +52,7 @@ export interface TypeRecord {
   kind: 'interface' | 'class' | 'enum' | 'type';
   env: 'server' | 'client' | 'browser' | 'shared';
   category?: string;
+  source?: string;
   description?: string;
   properties: PropertyRecord[];
   methods: MethodRecord[];

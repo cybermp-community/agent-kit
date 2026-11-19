@@ -1,6 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import typesData from '../data/types.json' with { type: 'json' };
 import type { TypeRecord, PropertyRecord, MethodRecord, EnumMemberRecord } from '../types/index.js';
 import { checkForeignApi } from './anti-hallucination.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface GetTypeInfoResult {
   type?: TypeRecord;
@@ -64,6 +70,136 @@ function formatEnumMembersTable(members: EnumMemberRecord[]): string {
   ].join('\n');
 }
 
+let cachedGameDts: string | null = null;
+const parsedRedengineCache = new Map<string, TypeRecord | null>();
+
+function getGameDtsContent(): string | null {
+  if (cachedGameDts !== null) return cachedGameDts;
+  try {
+    const candidatePaths = [
+      path.resolve(__dirname, '../../node_modules/@cybermp/client-types/out/game.d.ts'),
+      path.resolve(__dirname, '../../../node_modules/@cybermp/client-types/out/game.d.ts'),
+      path.resolve(process.cwd(), 'node_modules/@cybermp/client-types/out/game.d.ts'),
+    ];
+
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        cachedGameDts = fs.readFileSync(p, 'utf-8');
+        break;
+      }
+    }
+  } catch {
+    cachedGameDts = null;
+  }
+  return cachedGameDts;
+}
+
+export function parseRedengineType(name: string, visited = new Set<string>()): TypeRecord | null {
+  const q = name ? name.trim() : '';
+  if (!q) return null;
+
+  const cacheKey = q.toLowerCase();
+  if (parsedRedengineCache.has(cacheKey)) {
+    return parsedRedengineCache.get(cacheKey) || null;
+  }
+  if (visited.has(cacheKey)) return null;
+  visited.add(cacheKey);
+
+  const content = getGameDtsContent();
+  if (!content) return null;
+
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`export\\s+(class|interface)\\s+(${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
+  let match = content.match(regex);
+
+  if (!match) {
+    const fallbackRegex = new RegExp(`export\\s+(class|interface)\\s+(\\w*${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
+    match = content.match(fallbackRegex);
+  }
+
+  if (!match) {
+    parsedRedengineCache.set(cacheKey, null);
+    return null;
+  }
+
+  const kind = match[1] as 'class' | 'interface';
+  const matchedName = match[2];
+  const extendsClause = match[3] ? match[3].trim().split(/\s*,\s*/) : [];
+  const body = match[4];
+
+  const methods: MethodRecord[] = [];
+  const properties: PropertyRecord[] = [];
+
+  for (const line of body.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const methodMatch = trimmed.match(/^(?:(static)\s+)?(?:"([^"]+)"|([a-zA-Z0-9_]+))\s*\(([^)]*)\)\s*:\s*([^;]+);/);
+    if (methodMatch) {
+      const isStatic = !!methodMatch[1];
+      const methodName = methodMatch[2] || methodMatch[3];
+      const rawParams = methodMatch[4];
+      const returnType = methodMatch[5].trim();
+      const params = rawParams
+        ? rawParams.split(',').map((p) => {
+            const colonIdx = p.indexOf(':');
+            if (colonIdx !== -1) {
+              const pName = p.slice(0, colonIdx).trim();
+              const pType = p.slice(colonIdx + 1).trim();
+              return { name: pName || 'param', type: pType || 'any' };
+            }
+            return { name: p.trim() || 'param', type: 'any' };
+          })
+        : [];
+
+      methods.push({
+        name: methodName,
+        signature: `${isStatic ? 'static ' : ''}${methodName}(${rawParams}): ${returnType}`,
+        parameters: params,
+        returnType,
+      });
+      continue;
+    }
+
+    const propMatch = trimmed.match(/^(?:"([^"]+)"|([a-zA-Z0-9_]+))(\?)?\s*:\s*([^;]+);/);
+    if (propMatch) {
+      properties.push({
+        name: propMatch[1] || propMatch[2],
+        optional: !!propMatch[3],
+        type: propMatch[4].trim(),
+      });
+    }
+  }
+
+  // If class has no own methods but extends a base class, also inspect base class
+  if (methods.length === 0 && extendsClause.length > 0) {
+    const baseType = parseRedengineType(extendsClause[0], visited);
+    if (baseType) {
+      methods.push(...baseType.methods);
+      properties.push(...baseType.properties);
+    }
+  }
+
+  const record: TypeRecord = {
+    name: matchedName,
+    kind,
+    env: 'client',
+    source: 'REDengine',
+    category: 'GameNatives',
+    extends: extendsClause,
+    methods,
+    properties,
+    description: 'REDengine native class available under mp.game.* when use_game_natives = true',
+  };
+
+  parsedRedengineCache.set(cacheKey, record);
+  if (matchedName.toLowerCase() !== cacheKey) {
+    parsedRedengineCache.set(matchedName.toLowerCase(), record);
+  }
+
+  return record;
+}
+
 /**
  * Looks up TypeScript interfaces, classes, enums, and types from official
  * `@cybermp/*-types` declarations. Returns exact signature and JSDoc details.
@@ -84,6 +220,13 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
     exactMatch = filtered.find((t) => t.name.toLowerCase() === q);
     if (!exactMatch && env) {
       exactMatch = allTypes.find((t) => t.name.toLowerCase() === q);
+    }
+  }
+
+  if (!exactMatch && (!env || env === 'client') && q) {
+    const redengineType = parseRedengineType(name);
+    if (redengineType) {
+      exactMatch = redengineType;
     }
   }
 
