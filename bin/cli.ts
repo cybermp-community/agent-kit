@@ -7,8 +7,8 @@ import { getConfigSnippet } from '../src/cli/print-config.js';
 const program = new Command();
 
 program
-  .name('cybermp-mcp')
-  .description('CyberMP AI Agent Extension & MCP Server')
+  .name('cybermp-agent-kit')
+  .description('CyberMP AI Agent Toolkit & MCP Server')
   .version('1.0.0');
 
 program

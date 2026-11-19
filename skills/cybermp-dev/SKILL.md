@@ -228,7 +228,7 @@ commands.add('teleport', (player: MpPlayer, x: string, y: string, z: string) => 
 
 ## 6. MCP Tool Call Instructions
 
-When this agent environment is connected to the `cybermp-mcp` server, query the specialized tools before writing code:
+When this agent environment is connected to the `cybermp-agent-kit` MCP server, query the specialized tools before writing code:
 
 1. **`cybermp_get_event`**:
    - Query exact event callback parameters and JSDocs.

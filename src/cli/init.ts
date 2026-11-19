@@ -129,7 +129,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
           };
         });
         break;
@@ -142,7 +142,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
           };
         });
         break;
@@ -155,7 +155,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
           };
         });
         break;
@@ -168,7 +168,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
             disabled: false,
             autoApprove: [],
           };
@@ -183,7 +183,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
           };
         });
         break;
@@ -194,7 +194,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.context_servers = data.context_servers || {};
           data.context_servers.cybermp = {
             command: 'npx',
-            args: ['-y', 'cybermp-mcp'],
+            args: ['-y', 'cybermp-agent-kit'],
           };
         });
         break;

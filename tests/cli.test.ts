@@ -9,13 +9,13 @@ describe('CLI Config Generator', () => {
   it('returns valid JSON snippet for Cursor and Claude', () => {
     const cursorConfig = getConfigSnippet('cursor');
     expect(cursorConfig).toContain('"command": "npx"');
-    expect(cursorConfig).toContain('"cybermp-mcp"');
+    expect(cursorConfig).toContain('"cybermp-agent-kit"');
     const parsedCursor = JSON.parse(cursorConfig);
     expect(parsedCursor.mcpServers.cybermp).toBeDefined();
 
     const claudeConfig = getConfigSnippet('claude');
     expect(claudeConfig).toContain('"command": "npx"');
-    expect(claudeConfig).toContain('"cybermp-mcp"');
+    expect(claudeConfig).toContain('"cybermp-agent-kit"');
     const parsedClaude = JSON.parse(claudeConfig);
     expect(parsedClaude.mcpServers.cybermp).toBeDefined();
   });

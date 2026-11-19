@@ -1,7 +1,7 @@
 {
   "name": "cybermp",
   "version": "1.0.0",
-  "description": "Official CyberMP multiplayer development suite for AI agents",
+  "description": "Community CyberMP multiplayer development suite for AI agents",
   "suggestedPrompts": [
     "How do I handle playerConnected event in CyberMP?",
     "Explain how to configure resource.toml and server.toml",

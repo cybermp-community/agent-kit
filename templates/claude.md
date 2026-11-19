@@ -36,7 +36,7 @@ Always use official CyberMP events (`events.on`, `events.onClient`, `events.onSe
 
 ## CyberMP MCP Server Tools
 
-When `cybermp-mcp` is available, query these tools rather than hallucinating signatures:
+When `cybermp-agent-kit` is available, query these tools rather than hallucinating signatures:
 - `cybermp_get_event`: Fetch verified event signatures, listener parameters, and execution contexts.
 - `cybermp_get_type`: Inspect TypeScript interfaces, properties, methods, and doc comments.
 - `cybermp_get_rpc_flow`: Generate paired sender and receiver boilerplate code.

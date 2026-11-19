@@ -32,7 +32,7 @@ Use CyberMP's native APIs and TypeScript type definitions.
 
 ## MCP Tools Integration
 
-If the `cybermp-mcp` server is configured:
+If the `cybermp-agent-kit` server is configured:
 - `cybermp_get_event`: Query event names and listener callback signatures.
 - `cybermp_get_type`: Inspect TypeScript interfaces, properties, and methods.
 - `cybermp_get_rpc_flow`: Retrieve bidirectional sender/receiver RPC code snippets.

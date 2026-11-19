@@ -7,7 +7,7 @@ import { registerAllTools } from './tools/index.js';
  */
 export function createCyberMpServer(): McpServer {
   const server = new McpServer({
-    name: 'cybermp-mcp',
+    name: 'cybermp-agent-kit',
     version: '1.0.0',
   });
 

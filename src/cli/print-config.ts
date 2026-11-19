@@ -7,7 +7,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     mcpServers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
       },
     },
   },
@@ -15,7 +15,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     mcpServers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
       },
     },
   },
@@ -23,7 +23,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     mcpServers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
       },
     },
   },
@@ -31,7 +31,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     mcpServers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
         disabled: false,
         autoApprove: [],
       },
@@ -41,7 +41,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     mcpServers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
       },
     },
   },
@@ -49,7 +49,7 @@ export const CONFIG_SNIPPETS: Record<string, object> = {
     context_servers: {
       cybermp: {
         command: 'npx',
-        args: ['-y', 'cybermp-mcp'],
+        args: ['-y', 'cybermp-agent-kit'],
       },
     },
   },

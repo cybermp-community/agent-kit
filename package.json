@@ -1,7 +1,7 @@
 {
-  "name": "cybermp-mcp",
+  "name": "cybermp-agent-kit",
   "version": "1.0.0",
-  "description": "CyberMP AI Agent Extension & MCP Server",
+  "description": "CyberMP AI Agent Toolkit & MCP Server",
   "type": "module",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
@@ -9,7 +9,7 @@
     ".": "./dist/src/index.js"
   },
   "bin": {
-    "cybermp-mcp": "./dist/bin/cli.js"
+    "cybermp-agent-kit": "./dist/bin/cli.js"
   },
   "files": [
     "dist",

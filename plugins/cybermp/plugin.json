@@ -1,7 +1,7 @@
 {
   "name": "cybermp",
   "version": "1.0.0",
-  "description": "Official CyberMP multiplayer development suite for AI agents",
+  "description": "Community CyberMP multiplayer development suite for AI agents",
   "skills": [
     "skills/cybermp-dev"
   ],
