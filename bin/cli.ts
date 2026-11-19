@@ -1,15 +1,25 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import { Command } from 'commander';
 import { startServer } from '../src/server.js';
 import { initProject } from '../src/cli/init.js';
 import { getConfigSnippet } from '../src/cli/print-config.js';
+
+const pkgPath = new URL('../package.json', import.meta.url);
+let version = '1.0.2';
+try {
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+  version = pkg.version || version;
+} catch {
+  // fallback
+}
 
 const program = new Command();
 
 program
   .name('cybermp-agent-kit')
   .description('CyberMP AI Agent Toolkit & MCP Server')
-  .version('1.0.1');
+  .version(version);
 
 program
   .command('run', { isDefault: true })
@@ -39,7 +49,8 @@ program
   .command('init')
   .description('Initialize CyberMP rules and MCP configuration in the current project')
   .option('-e, --editors <editors...>', 'Target editors (cursor, claude, antigravity, cline, windsurf, zed)')
-  .option('--skill', 'Copy cybermp-dev Agent Skill into .agents/skills/')
+  .option('--skill', 'Copy cybermp-dev Agent Skill into .agents/skills/ (default: true)')
+  .option('--no-skill', 'Do not copy cybermp-dev Agent Skill')
   .option('--plugin', 'Copy cybermp Antigravity plugin into .agents/plugins/')
   .option('-y, --yes', 'Non-interactive mode with default settings')
   .option('-f, --force', 'Overwrite existing files')

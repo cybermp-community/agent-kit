@@ -308,4 +308,28 @@ describe('CLI Init Wizard', () => {
     expect(fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8')).not.toBe('# Custom User Skill');
     expect(fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf-8')).toContain('name: cybermp-dev');
   });
+
+  it('extracts skill by default in non-interactive mode when copySkill is omitted', async () => {
+    await initProject({
+      cwd: tempDir,
+      editors: ['antigravity'],
+      nonInteractive: true,
+    });
+
+    const skillPath = path.join(tempDir, '.agents/skills/cybermp-dev/SKILL.md');
+    expect(fs.existsSync(skillPath)).toBe(true);
+    expect(fs.readFileSync(skillPath, 'utf-8')).toContain('name: cybermp-dev');
+  });
+
+  it('does not extract skill when copySkill is explicitly false', async () => {
+    await initProject({
+      cwd: tempDir,
+      editors: ['antigravity'],
+      copySkill: false,
+      nonInteractive: true,
+    });
+
+    const skillPath = path.join(tempDir, '.agents/skills/cybermp-dev');
+    expect(fs.existsSync(skillPath)).toBe(false);
+  });
 });

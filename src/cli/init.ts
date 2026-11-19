@@ -99,14 +99,15 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
   const isWindows = options.isWindows ?? process.platform === 'win32';
   const mcpCmd = resolveMcpServerCommand(cwd, isWindows);
   let selectedEditors: string[] = [];
-  let shouldCopySkill = options.copySkill ?? false;
+  let shouldCopySkill: boolean;
 
   if (options.nonInteractive) {
     selectedEditors = options.editors && options.editors.length > 0
       ? options.editors
       : ['cursor', 'claude', 'antigravity'];
+    shouldCopySkill = options.copySkill ?? true;
   } else {
-    const response = await prompts([
+    const questions: prompts.PromptObject[] = [
       {
         type: 'multiselect',
         name: 'editors',
@@ -121,13 +122,18 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         ],
         hint: '- Space to select. Return to submit',
       },
-      {
+    ];
+
+    if (options.copySkill === undefined) {
+      questions.push({
         type: 'confirm',
         name: 'copySkill',
         message: 'Copy cybermp-dev Agent Skill into .agents/skills/?',
-        initial: false,
-      },
-    ]);
+        initial: true,
+      });
+    }
+
+    const response = await prompts(questions);
 
     if (!response.editors) {
       console.log('Setup cancelled.');
@@ -135,7 +141,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     }
 
     selectedEditors = response.editors;
-    shouldCopySkill = Boolean(response.copySkill);
+    shouldCopySkill = options.copySkill !== undefined
+      ? Boolean(options.copySkill)
+      : Boolean(response.copySkill ?? true);
   }
 
   const normalizedEditors = selectedEditors.map((e) => e.trim().toLowerCase());
@@ -151,6 +159,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = mcpCmd;
         });
+        if (!options.nonInteractive) {
+          console.log('Configured Cursor (.cursor/rules/cybermp.mdc & .cursor/mcp.json)');
+        }
         break;
       }
 
@@ -161,6 +172,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = mcpCmd;
         });
+        if (!options.nonInteractive) {
+          console.log('Configured Claude (CLAUDE.md & .mcp.json)');
+        }
         break;
       }
 
@@ -178,7 +192,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         });
 
         if (!options.nonInteractive) {
-          console.log(`Registered global Antigravity MCP server in ${globalMcpPath}`);
+          console.log(`Configured Antigravity (.agents/rules/cybermp.md & global ${globalMcpPath})`);
         }
         break;
       }
@@ -194,6 +208,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
             autoApprove: [],
           };
         });
+        if (!options.nonInteractive) {
+          console.log('Configured Cline (.clinerules & .cline/mcp_settings.json)');
+        }
         break;
       }
 
@@ -204,6 +221,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.mcpServers = data.mcpServers || {};
           data.mcpServers.cybermp = mcpCmd;
         });
+        if (!options.nonInteractive) {
+          console.log('Configured Windsurf (.windsurfrules & mcp_config.json)');
+        }
         break;
       }
 
@@ -212,6 +232,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           data.context_servers = data.context_servers || {};
           data.context_servers.cybermp = mcpCmd;
         });
+        if (!options.nonInteractive) {
+          console.log('Configured Zed (.zed/settings.json)');
+        }
         break;
       }
     }
@@ -222,11 +245,15 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     const skillSrc = path.join(packageRoot, 'skills/cybermp-dev');
     const skillDest = path.join(cwd, '.agents/skills/cybermp-dev');
     if (fs.existsSync(skillSrc)) {
-      if (fs.existsSync(skillDest) && !force) {
-        console.log(`Skipping existing skill directory (use --force to overwrite)`);
+      const isExistingNonEmpty = fs.existsSync(skillDest) && fs.readdirSync(skillDest).length > 0;
+      if (isExistingNonEmpty && !force) {
+        console.log(`Skipping existing skill directory at .agents/skills/cybermp-dev (use --force to overwrite)`);
       } else {
         fs.mkdirSync(path.dirname(skillDest), { recursive: true });
         fs.cpSync(skillSrc, skillDest, { recursive: true, force: true });
+        if (!options.nonInteractive) {
+          console.log(`Extracted cybermp-dev skill into .agents/skills/cybermp-dev`);
+        }
       }
     }
   }

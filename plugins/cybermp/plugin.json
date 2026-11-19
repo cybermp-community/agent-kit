@@ -1,6 +1,6 @@
 {
   "name": "cybermp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CyberMP multiplayer development toolkit for Antigravity",
   "skills": [
     "skills/cybermp-dev"
