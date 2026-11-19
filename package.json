@@ -4,6 +4,14 @@
   "license": "GPL-3.0-or-later",
   "description": "CyberMP AI Agent Toolkit & MCP Server",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mo3g666/cybermp-agent-kit.git"
+  },
+  "homepage": "https://github.com/mo3g666/cybermp-agent-kit#readme",
+  "bugs": {
+    "url": "https://github.com/mo3g666/cybermp-agent-kit/issues"
+  },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
