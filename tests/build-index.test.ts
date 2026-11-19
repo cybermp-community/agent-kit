@@ -1,0 +1,110 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect } from 'vitest';
+import {
+  parseEventsFromAst,
+  parseTypesFromAst,
+  parseGuides,
+  buildIndex,
+} from '../scripts/build-index';
+
+describe('AST Type Indexer', () => {
+  it('extracts server damage events and types correctly', () => {
+    const events = parseEventsFromAst();
+    expect(events.length).toBeGreaterThan(0);
+    const damageEvent = events.find((e) => e.name === 'playerDamage' || e.name === 'damage');
+    expect(damageEvent).toBeDefined();
+    expect(damageEvent?.env).toBe('server');
+    expect(damageEvent?.parameters.length).toBeGreaterThan(0);
+
+    const types = parseTypesFromAst();
+    const playerType = types.find((t) => t.name === 'MpPlayer');
+    expect(playerType).toBeDefined();
+    expect(playerType?.methods.some((m) => m.name === 'kick')).toBe(true);
+    expect(playerType?.methods.some((m) => m.name === 'setMeta')).toBe(true);
+    expect(playerType?.properties.length).toBeGreaterThan(0);
+  });
+
+  it('extracts client events including CEF and stream events', () => {
+    const events = parseEventsFromAst();
+    const clientEvents = events.filter((e) => e.env === 'client');
+    expect(clientEvents.length).toBeGreaterThan(0);
+
+    const domReady = clientEvents.find((e) => e.name === 'domReady');
+    expect(domReady).toBeDefined();
+    expect(domReady?.env).toBe('client');
+
+    const streamIn = clientEvents.find((e) => e.name === 'vehicleStreamIn');
+    expect(streamIn).toBeDefined();
+    expect(streamIn?.env).toBe('client');
+  });
+
+  it('extracts browser events from MpEvents', () => {
+    const events = parseEventsFromAst();
+    const browserEvents = events.filter((e) => e.env === 'browser');
+    expect(browserEvents.length).toBeGreaterThan(0);
+    expect(browserEvents.some((e) => e.name === 'on')).toBe(true);
+    expect(browserEvents.some((e) => e.name === 'emit')).toBe(true);
+  });
+
+  it('extracts server entities, enums, and types', () => {
+    const types = parseTypesFromAst();
+    const entityTypeEnum = types.find((t) => t.name === 'EntityType');
+    expect(entityTypeEnum).toBeDefined();
+    expect(entityTypeEnum?.kind).toBe('enum');
+    expect(entityTypeEnum?.enumMembers?.some((m) => m.name === 'Player')).toBe(true);
+
+    const vehicleType = types.find((t) => t.name === 'MpVehicle');
+    expect(vehicleType).toBeDefined();
+
+    const entityType = types.find((t) => t.name === 'MpEntity');
+    expect(entityType).toBeDefined();
+    expect(entityType?.methods.some((m) => m.name === 'setMeta')).toBe(true);
+  });
+
+  it('parses guides with code snippets and metadata', () => {
+    const guides = parseGuides();
+    expect(guides.length).toBeGreaterThan(0);
+
+    const rpcGuide = guides.find((g) => g.slug === 'recipes/rpc');
+    expect(rpcGuide).toBeDefined();
+    expect(rpcGuide?.title).toBe('Remote Procedure Calls (RPC)');
+    expect(rpcGuide?.url).toBe('https://docs.cyber.mp/guides/recipes/rpc');
+    expect(rpcGuide?.codeSnippets.length).toBeGreaterThan(0);
+    expect(rpcGuide?.plainText.length).toBeGreaterThan(0);
+  });
+
+  it('buildIndex generates valid JSON files under src/data/', async () => {
+    const result = await buildIndex();
+    expect(result.eventsCount).toBeGreaterThan(0);
+    expect(result.typesCount).toBeGreaterThan(0);
+    expect(result.guidesCount).toBeGreaterThan(0);
+
+    const eventsPath = path.resolve('src/data/events.json');
+    const typesPath = path.resolve('src/data/types.json');
+    const guidesPath = path.resolve('src/data/guides.json');
+
+    expect(fs.existsSync(eventsPath)).toBe(true);
+    expect(fs.existsSync(typesPath)).toBe(true);
+    expect(fs.existsSync(guidesPath)).toBe(true);
+
+    const eventsJson = JSON.parse(fs.readFileSync(eventsPath, 'utf-8'));
+    const typesJson = JSON.parse(fs.readFileSync(typesPath, 'utf-8'));
+    const guidesJson = JSON.parse(fs.readFileSync(guidesPath, 'utf-8'));
+
+    expect(Array.isArray(eventsJson)).toBe(true);
+    expect(Array.isArray(typesJson)).toBe(true);
+    expect(Array.isArray(guidesJson)).toBe(true);
+
+    expect(eventsJson.length).toBe(result.eventsCount);
+    expect(typesJson.length).toBe(result.typesCount);
+    expect(guidesJson.length).toBe(result.guidesCount);
+
+    // Verify total size < 300 KB
+    const totalSize =
+      fs.statSync(eventsPath).size +
+      fs.statSync(typesPath).size +
+      fs.statSync(guidesPath).size;
+    expect(totalSize).toBeLessThan(350 * 1024);
+  });
+});
