@@ -46,7 +46,7 @@
 - Consumes: `getRpcFlow(from, to)` from `rpc-engine.ts`, `getTypeInfo(name, env)` from `types-engine.ts`.
 - Produces: `parseRpcFlowArgs(args: Record<string, any>): { from: string; to: string }`, `resolveTypeName(args: Record<string, any>): string`.
 
-- [ ] **Step 1: Write the failing tests for argument normalization**
+- [x] **Step 1: Write the failing tests for argument normalization**
 
 Add to `tests/engine.test.ts`:
 ```typescript
@@ -84,12 +84,12 @@ describe('MCP Argument Normalization', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm test tests/engine.test.ts`
 Expected: FAIL with `parseRpcFlowArgs is not a function` or `resolveTypeName is not a function`.
 
-- [ ] **Step 3: Implement argument normalization in `rpc-engine.ts` and `types-engine.ts`**
+- [x] **Step 3: Implement argument normalization in `rpc-engine.ts` and `types-engine.ts`**
 
 In `src/engine/rpc-engine.ts`:
 ```typescript
@@ -160,12 +160,12 @@ export const getTypeSchema = {
 ```
 And inside `registerGetTypeTool`, call `const resolvedName = resolveTypeName(args);`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm test tests/engine.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/rpc-engine.ts src/engine/types-engine.ts src/tools/get-rpc-flow.ts src/tools/get-type.ts tests/engine.test.ts
