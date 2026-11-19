@@ -149,6 +149,20 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('AddLinelyVelocity');
       expect(content).toContain('GetValueFromCurve');
     });
+
+    it('provides comprehensive player-mechanics reference', () => {
+      const playerMechPath = path.join(rootDir, 'skills/cybermp-dev/references/player-mechanics.md');
+      expect(fs.existsSync(playerMechPath)).toBe(true);
+      const content = fs.readFileSync(playerMechPath, 'utf-8');
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain('spawnPlayer');
+      expect(content).toContain('GetTeleportationFacility');
+      expect(content).toContain('GetStatPoolsSystem');
+      expect(content).toContain('GetStatusEffectSystem');
+      expect(content).toContain('GameplayRestriction.NoCombat');
+      expect(content).toContain('AddToInventory');
+      expect(content).toContain('MenuScenario_CharacterCustomizationMirror');
+    });
   });
 
   describe('Starter Examples', () => {
