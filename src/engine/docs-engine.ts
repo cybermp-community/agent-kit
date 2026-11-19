@@ -12,11 +12,11 @@ const allGuides = guidesData as GuideRecord[];
 const guideMap = new Map<string, GuideRecord>(allGuides.map((g) => [g.slug, g]));
 
 const miniSearch = new MiniSearch<GuideRecord>({
-  fields: ['title', 'description', 'plainText'],
+  fields: ['sectionTitle', 'title', 'description', 'plainText'],
   storeFields: ['slug'],
   idField: 'slug',
   searchOptions: {
-    boost: { title: 3, description: 2, plainText: 1 },
+    boost: { sectionTitle: 3, title: 2, description: 1, plainText: 1 },
     fuzzy: 0.2,
     prefix: true,
   },
@@ -36,7 +36,23 @@ export function searchDocs(query: string, limit: number = 3): SearchDocsResult {
   let results: GuideRecord[] = [];
 
   if (q) {
-    const rawResults = miniSearch.search(q);
+    const qLower = q.toLowerCase();
+    const qTerms = qLower.split(/\s+/).filter(Boolean);
+
+    const rawResults = miniSearch.search(q, {
+      boostDocument(docId) {
+        if (!docId.includes('#')) {
+          const g = guideMap.get(docId);
+          if (g && qTerms.length > 1) {
+            const tLower = g.title.toLowerCase();
+            if (qTerms.every((term) => tLower.includes(term))) {
+              return 2.0;
+            }
+          }
+        }
+        return 1;
+      },
+    });
     const seen = new Set<string>();
 
     for (const r of rawResults) {
@@ -54,6 +70,7 @@ export function searchDocs(query: string, limit: number = 3): SearchDocsResult {
       for (const guide of allGuides) {
         if (!seen.has(guide.slug)) {
           if (
+            (guide.sectionTitle && guide.sectionTitle.toLowerCase().includes(qLower)) ||
             guide.title.toLowerCase().includes(qLower) ||
             guide.description.toLowerCase().includes(qLower) ||
             guide.plainText.toLowerCase().includes(qLower)
@@ -82,7 +99,10 @@ export function searchDocs(query: string, limit: number = 3): SearchDocsResult {
     ];
 
     for (const guide of results) {
-      lines.push(`### [${guide.title}](${guide.url})`);
+      const heading = guide.sectionTitle
+        ? `${guide.title} -> ${guide.sectionTitle}`
+        : guide.title;
+      lines.push(`### [${heading}](${guide.url})`);
       if (guide.description) {
         lines.push(`**Description:** ${guide.description}`);
       }

@@ -88,7 +88,7 @@ export function extractPlainText(markdown: string): string {
   return markdown
     .replace(/^---[\s\S]*?---\r?\n?/, '') // Remove YAML frontmatter
     .replace(/^[ \t]*(?:```|~~~)[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*(?:```|~~~)[ \t]*$/gm, '') // Remove code blocks
-    .replace(/`[^`\n]+`/g, '') // Remove inline code
+    .replace(/`([^`\n]+)`/g, '$1') // Strip inline code backticks but preserve content
     .replace(/<[^>]+>/g, '') // Remove HTML/JSX tags
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // Remove JSX comments
     .replace(/^#+\s+/gm, '') // Remove headings
@@ -98,6 +98,16 @@ export function extractPlainText(markdown: string): string {
     .replace(/\r?\n+/g, ' ') // Collapse newlines
     .replace(/\s+/g, ' ') // Collapse spaces
     .trim();
+}
+
+export function toKebabCase(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 }
 
 export function extractCodeSnippets(markdown: string): string[] {
@@ -657,6 +667,102 @@ export function parseTypesFromAst(options?: { project?: Project; projectRoot?: s
   return types;
 }
 
+export function parseMarkdownSections(
+  content: string,
+  baseSlug: string,
+  baseUrl: string,
+  docTitle: string,
+  docDescription: string,
+): GuideRecord[] {
+  const allCodeSnippets = extractCodeSnippets(content);
+  const allPlainText = extractPlainText(content);
+  const rawChunks = content.split(/\r?\n(?=#{2,3} )/);
+  const records: GuideRecord[] = [];
+  const usedAnchors = new Set<string>();
+
+  for (let i = 0; i < rawChunks.length; i++) {
+    const chunk = rawChunks[i];
+    const trimmed = chunk.trim();
+    if (!trimmed) continue;
+
+    const headingMatch = chunk.match(/^#{2,3}\s+(.+)$/m);
+
+    // If chunk does not start with ##+, it's the preamble / root overview
+    if (!headingMatch || i === 0) {
+      if (!headingMatch) {
+        const introPlainText = extractPlainText(chunk);
+        const rawSnippets = extractCodeSnippets(chunk);
+        const introSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 500 ? s.slice(0, 500) : s));
+        const fallbackSnippet = allCodeSnippets[0]
+          ? [allCodeSnippets[0].length > 500 ? allCodeSnippets[0].slice(0, 500) : allCodeSnippets[0]]
+          : [];
+
+        if (introPlainText.length > 0 || introSnippets.length > 0 || rawChunks.length === 1) {
+          records.push({
+            title: docTitle,
+            description: docDescription,
+            slug: baseSlug,
+            url: baseUrl,
+            codeSnippets: introSnippets.length > 0 ? introSnippets : fallbackSnippet,
+            plainText: introPlainText.length > 0 ? introPlainText.slice(0, 300) : allPlainText.slice(0, 300),
+          });
+        }
+        continue;
+      }
+    }
+
+    // Heading section (##, ###)
+    const rawHeading = headingMatch[1];
+    const sectionTitle = rawHeading
+      .replace(/\s*#+$/, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .trim();
+
+    if (!sectionTitle) continue;
+
+    const baseAnchor = toKebabCase(sectionTitle) || `section-${i}`;
+    let anchor = baseAnchor;
+    let count = 1;
+    while (usedAnchors.has(anchor)) {
+      anchor = `${baseAnchor}-${count++}`;
+    }
+    usedAnchors.add(anchor);
+
+    const sectionSlug = `${baseSlug}#${anchor}`;
+    const sectionUrl = `${baseUrl}#${anchor}`;
+    const rawSnippets = extractCodeSnippets(chunk);
+    const codeSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 500 ? s.slice(0, 500) : s));
+    const plainText = extractPlainText(chunk);
+
+    records.push({
+      title: docTitle,
+      sectionTitle,
+      description: '',
+      slug: sectionSlug,
+      url: sectionUrl,
+      codeSnippets,
+      plainText: plainText.length > 300 ? plainText.slice(0, 300) : plainText,
+    });
+  }
+
+  // Fallback if no records created
+  if (records.length === 0) {
+    const fallbackSnippet = allCodeSnippets[0]
+      ? [allCodeSnippets[0].length > 500 ? allCodeSnippets[0].slice(0, 500) : allCodeSnippets[0]]
+      : [];
+    records.push({
+      title: docTitle,
+      description: docDescription,
+      slug: baseSlug,
+      url: baseUrl,
+      codeSnippets: fallbackSnippet,
+      plainText: allPlainText.slice(0, 300),
+    });
+  }
+
+  return records;
+}
+
 export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT): GuideRecord[] {
   const targetDir = path.resolve(docsDir || path.join(projectRoot, 'tmp/docs'));
   const referencesDir = path.resolve(projectRoot, 'skills/cybermp-dev/references');
@@ -691,43 +797,41 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
     const slug = doc.relPath.replace(/\.mdx?$/, '').replace(/\\/g, '/');
     const url = `https://docs.cyber.mp/guides/${slug}`;
     const { title, description } = extractDocMetadata(content);
-    const codeSnippets = extractCodeSnippets(content);
-    const plainText = extractPlainText(content);
+    const baseName = path.basename(doc.relPath, path.extname(doc.relPath));
 
-    guides.push({
-      title,
-      description,
+    const sectionRecords = parseMarkdownSections(
+      content,
       slug,
       url,
-      codeSnippets,
-      plainText,
-    });
+      title || baseName,
+      description || `CyberMP documentation guide for ${slug}`,
+    );
+    guides.push(...sectionRecords);
   }
 
-  // Scan skills/cybermp-dev/references/*.md
+  // Scan skills/cybermp-dev/references/**/*.md recursively
   if (hasReferences) {
-    const refFiles = fs.readdirSync(referencesDir).filter((f) => f.endsWith('.md'));
-    for (const file of refFiles) {
-      const fullPath = path.join(referencesDir, file);
-      const content = fs.readFileSync(fullPath, 'utf-8');
-      const slug = `references/${file.replace(/\.md$/, '')}`;
-      const url = `skills/cybermp-dev/references/${file}`;
+    const refFiles = findDocFiles(referencesDir);
+    for (const doc of refFiles) {
+      const content = fs.readFileSync(doc.fullPath, 'utf-8');
+      const slug = `references/${doc.relPath.replace(/\.md$/, '').replace(/\\/g, '/')}`;
+      const url = `skills/cybermp-dev/references/${doc.relPath.replace(/\\/g, '/')}`;
       let { title, description } = extractDocMetadata(content);
+      const baseName = path.basename(doc.relPath, path.extname(doc.relPath));
       if (!title || title === 'Untitled') {
         const h1Match = content.match(/^#\s+(.+)$/m);
-        title = h1Match ? h1Match[1].trim() : file.replace(/\.md$/, '');
+        title = h1Match ? h1Match[1].trim() : baseName;
       }
-      const codeSnippets = extractCodeSnippets(content);
-      const plainText = extractPlainText(content);
+      description = description || `Offline reference guide for ${doc.relPath}`;
 
-      guides.push({
-        title: title || file.replace(/\.md$/, ''),
-        description: description || `Offline reference guide for ${file}`,
+      const sectionRecords = parseMarkdownSections(
+        content,
         slug,
         url,
-        codeSnippets,
-        plainText,
-      });
+        title || baseName,
+        description,
+      );
+      guides.push(...sectionRecords);
     }
   }
 

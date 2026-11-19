@@ -64,6 +64,8 @@ export interface TypeRecord {
 
 export interface GuideRecord {
   title: string;
+  guideTitle?: string;
+  sectionTitle?: string;
   description: string;
   slug: string;
   url: string;

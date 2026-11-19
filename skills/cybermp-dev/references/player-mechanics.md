@@ -354,6 +354,57 @@ export function initPermanentRestrictions(): void {
 | `GameplayRestriction.VehicleFPP` | Locks vehicle camera perspective to first-person | Cockpit-only racing, hardcore mode |
 | `BaseStatusEffect.Invulnerable` | Complete immunity to all physical/thermal damage | God mode, spawn protection |
 
+### Combat Status Effects & Damage-over-Time (DoT)
+
+REDengine includes native status effects for combat damage-over-time (burning, chemical poison, EMP electrocution, and physical bleeding).
+
+| Status Effect Constant | Effect Type | Multiplayer Usage |
+|---|---|---|
+| `BaseStatusEffect.Burning` | Thermal DoT | Incendiary ammo, flamethrowers, explosion aftermath |
+| `BaseStatusEffect.Electrocuted` | EMP DoT | Tech weapons, EMP grenades, cyberware shock |
+| `BaseStatusEffect.Poisoned` | Chemical DoT | Biohazard grenades, venom knives, toxic pools |
+| `BaseStatusEffect.Bleeding` | Physical DoT | Blades, slashing melee, shrapnel |
+
+```typescript
+const activeTemporaryEffects = new Map<string, ReturnType<typeof setTimeout>>();
+
+/**
+ * Applies a temporary status effect (e.g. Burning or Electrocuted) to the target entity
+ * with debounced automatic removal after the specified duration.
+ *
+ * @param player Target player entity
+ * @param effectTdbId TweakDB record ID (e.g. 'BaseStatusEffect.Burning')
+ * @param durationSec Duration in seconds
+ */
+export function applyTemporaryStatusEffect(
+  player: mp.game.gameObject,
+  effectTdbId: string,
+  durationSec: number = 5,
+): void {
+  const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
+  if (!effectSystem || !player) return;
+
+  const entityId = player.GetEntityID();
+  const effectKey = `${entityId.hash}:${effectTdbId}`;
+
+  // Debounce existing removal timer if effect is refreshed
+  if (activeTemporaryEffects.has(effectKey)) {
+    clearTimeout(activeTemporaryEffects.get(effectKey)!);
+  }
+
+  effectSystem.ApplyStatusEffect(entityId, effectTdbId, player.GetRecordID(), entityId);
+
+  const timer = setTimeout(() => {
+    activeTemporaryEffects.delete(effectKey);
+    if (mp.game.StatusEffectHelper && player) {
+      mp.game.StatusEffectHelper.RemoveStatusEffect(player, effectTdbId, undefined);
+    }
+  }, durationSec * 1000);
+
+  activeTemporaryEffects.set(effectKey, timer);
+}
+```
+
 ---
 
 ## 4. Inventory & Equipment Spawning
