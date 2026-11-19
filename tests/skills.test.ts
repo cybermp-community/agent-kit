@@ -120,6 +120,21 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('@cybermp/server-types');
       expect(content).toContain('@cybermp/client-types');
     });
+
+    it('provides comprehensive game-natives reference', () => {
+      const gameNativesPath = path.join(rootDir, 'skills/cybermp-dev/references/game-natives.md');
+      expect(fs.existsSync(gameNativesPath)).toBe(true);
+      const content = fs.readFileSync(gameNativesPath, 'utf-8');
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain('ScriptGameInstance');
+      expect(content).toContain('onceGameLoaded');
+      expect(content).toContain('QuestsSystem');
+      expect(content).toContain('vvc_visual_customization_unlocked');
+      expect(content).toContain('GetWeatherSystem');
+      expect(content).toContain('GetTimeSystem');
+      expect(content).toContain('GetLoadingScreenSystem');
+      expect(content).toContain('world3dToScreen2d');
+    });
   });
 
   describe('Starter Examples', () => {
