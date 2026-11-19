@@ -68,6 +68,15 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('[Server Starter Example](examples/basic-resource/server.ts)');
       expect(content).toContain('[Client Starter Example](examples/basic-resource/client.ts)');
     });
+
+    it('indexes all real-world mechanics reference guides in SKILL.md', () => {
+      const skillContent = fs.readFileSync(skillPath, 'utf-8');
+      expect(skillContent).toContain('references/game-natives.md');
+      expect(skillContent).toContain('references/vehicles-physics.md');
+      expect(skillContent).toContain('references/player-mechanics.md');
+      expect(skillContent).toContain('references/cameras-input-cef.md');
+      expect(skillContent).toContain('references/server-mechanics.md');
+    });
   });
 
   describe('Offline References', () => {

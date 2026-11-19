@@ -23,9 +23,19 @@ CyberMP operates in three distinct, isolated environments:
 ## Anti-Hallucination & Negative Constraints
 
 DO NOT hallucinate APIs from FiveM, alt:V, RAGEMP, or SA-MP:
-- Prohibited: `RegisterNetEvent`, `TriggerClientEvent`, `TriggerServerEvent`, `AddEventHandler`, `GetPlayerPed`, `SetEntityCoords`.
+- Prohibited: `RegisterNetEvent`, `TriggerClientEvent`, `TriggerServerEvent`, `AddEventHandler`, `GetPlayerPed`, `SetEntityCoords`, `SetPedIntoVehicle`, `SetEntityHealth`.
 - Prohibited: `alt.onClient`, `alt.emitServer`, `alt.Player.local`.
 - Prohibited: `mp.events.add`, `mp.events.callRemote`, `mp.players.local`.
+
+### REDengine Game Natives Guidance
+When `use_game_natives = true` is configured in `resource.toml`, client scripts gain direct access to `mp.game.*` for REDengine native classes, systems, and facilities.
+
+DO NOT hallucinate FiveM or GTA native methods for player, vehicle, or health manipulation:
+- Prohibited: `SetEntityCoords(ped, x, y, z)` → Mandated: `mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(player, targetPos, targetRot)`
+- Prohibited: `SetPedIntoVehicle(ped, veh, seat)` → Mandated: `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)`
+- Prohibited: `SetEntityHealth(ped, health)` → Mandated: `mp.game.ScriptGameInstance.GetStatPoolsSystem().RequestSettingStatPoolValueIgnoreChangeMode(...)`
+
+All REDengine native type instantiations must use `Object.assign(new mp.game.<Type>(), { ... })`.
 
 Always verify against CyberMP event and RPC signatures.
 

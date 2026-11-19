@@ -57,7 +57,9 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `TriggerClientEvent('ev', id, ...args)` | FiveM | `events.emitClient(player, 'ev', ...args)` (Server) |
 | `AddEventHandler('ev', cb)` | FiveM | `events.on('ev', cb)` |
 | `GetPlayerPed(-1)` | FiveM | `player` instance / local player context |
-| `SetEntityCoords(ped, x, y, z)` | FiveM | `entity.position = new Vector3(x, y, z)` |
+| `SetEntityCoords(ped, x, y, z)` | FiveM | `player.position = new Vector3(x, y, z)` (Server) or `GetTeleportationFacility().Teleport(...)` (Client) |
+| `SetPedIntoVehicle(ped, veh, seat)` | FiveM | `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)` (Client) |
+| `SetEntityHealth(ped, health)` | FiveM | `StatPoolsSystem.RequestSettingStatPoolValueIgnoreChangeMode(...)` (Client) |
 | `alt.onClient('ev', cb)` / `alt.onServer` | alt:V | `events.onClient('ev', (player, ...args) => ...)` / `events.onServer('ev', cb)` |
 | `alt.emitClient(p, 'ev', ...args)` | alt:V | `events.emitClient(player, 'ev', ...args)` |
 | `alt.emitServer('ev', ...args)` | alt:V | `events.emitServer('ev', ...args)` |
@@ -250,6 +252,11 @@ If the MCP server is unavailable or running in a skill-only mode:
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
    - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
    - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
+   - [Game Engine & World Natives](references/game-natives.md): REDengine initialization, world time/weather systems, loading screen suppression, 3D to 2D projections.
+   - [Vehicles & Physics Reference](references/vehicles-physics.md): Low-level mounting requests, cosmetic/physical deformation repair, nitro impulses, and speedometer curves.
+   - [Player Mechanics & Inventory Reference](references/player-mechanics.md): Safe coordinate teleportation, health/god mode, status effect gameplay restrictions, item spawning, and customization mirrors.
+   - [Cameras, Input & CEF Integration](references/cameras-input-cef.md): Free camera spawning, player spectating, hardware key events (`onInputKeyEvent`), and CEF focus/cursor control.
+   - [Server Mechanics & World Entities](references/server-mechanics.md): Server entity creation, virtual dimensions, spatial safezones, entity metadata synchronization, and persistence.
 2. **Inspect Installed Types**:
    Check the TypeScript definition files directly in `node_modules/@cybermp/`:
    - Server: `node_modules/@cybermp/server-types/src/index.ts`
@@ -258,3 +265,233 @@ If the MCP server is unavailable or running in a skill-only mode:
 3. **Starter Examples**:
    - [Server Starter Example](examples/basic-resource/server.ts)
    - [Client Starter Example](examples/basic-resource/client.ts)
+
+---
+
+## Real-World Mechanics & REDengine Natives (from cybermp-freeroam)
+
+CyberMP client scripts have direct access to REDengine 4 natives when `use_game_natives = true` is configured in `resource.toml`. Below are offline developer guides and practical procedural recipes extracted and verified against production implementations (`cybermp-freeroam`).
+
+### Deep-Dive Reference Guides
+
+- **[Game Engine & World Natives](references/game-natives.md)**: Engine lifecycle (`onceGameLoaded`), quest fact management (`vvc_visual_customization_unlocked`), weather and world time systems, loading screen suppression, and world 3D to screen 2D projections.
+- **[Vehicles & Physics Reference](references/vehicles-physics.md)**: Low-level vehicle mounting (`GetMountingFacility().Mount`), full 10-part deformation and glass repair (`DestructionResetGrid`), linear impulse physics (nitro boost), and true speedometer calculations via vehicle curve evaluation.
+- **[Player Mechanics & Inventory Reference](references/player-mechanics.md)**: Safe coordinate teleportation (`GetTeleportationFacility().Teleport`) vs physical respawning (`mp.local.spawnPlayer`), stat pool health/god mode, status effect gameplay restrictions, item spawning via `AddToInventory`, and appearance mirror customization.
+- **[Cameras, Input & CEF Integration](references/cameras-input-cef.md)**: Custom free camera spawning (`simple_free_camera.ent`), player spectating camera synchronization, hardware key handling via `mp.game.onInputKeyEvent`, and CEF browser focus/cursor control.
+- **[Server Mechanics & World Entities](references/server-mechanics.md)**: Authoritative server object creation (`mp.objects.create`), virtual dimension routing, 2D polygon ray-casting safezones, entity metadata synchronization, and persistence patterns.
+
+---
+
+### Procedural Recipes & Snippets
+
+#### 1. Teleport Player Safely (with `GetTeleportationFacility`)
+
+Use REDengine's `TeleportationFacility` to move a spawned player entity without desynchronizing camera rigs or vehicle states:
+
+```typescript
+/**
+ * Safely teleports the local player entity using REDengine's TeleportationFacility.
+ */
+export function teleportPlayer(x: number, y: number, z: number, yaw: number = 0): void {
+  const player = mp.game.GetPlayerObject();
+  if (!player) return;
+
+  const targetPos = Object.assign(new mp.game.Vector4(), {
+    x,
+    y,
+    z,
+    w: 1.0,
+  });
+
+  const targetRot = Object.assign(new mp.game.EulerAngles(), {
+    roll: 0,
+    pitch: 0,
+    yaw,
+  });
+
+  mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
+    player,
+    targetPos,
+    targetRot,
+  );
+}
+```
+
+#### 2. Vehicle Seat Mounting and Repair
+
+Mounting into vehicles requires low-level `MountingFacility.Mount` calls. Full cosmetic and physical repair requires clearing blend shapes, flat tires, and resetting destruction grids:
+
+```typescript
+import * as CyberEnums from '@cybermp/client-types/enums';
+import type { vehicleBaseObject } from '@cybermp/client-types/game';
+
+/**
+ * Mounts the local player into a streamed vehicle seat via REDengine's MountingFacility.
+ */
+export function mountPlayerInVehicle(
+  vehicle: vehicleBaseObject,
+  slotName: string = 'seat_front_left',
+  instant: boolean = true,
+): void {
+  const player = mp.game.GetPlayer();
+  if (!player || !vehicle) return;
+
+  const mountData = Object.assign(new mp.game.gameMountEventData(), {
+    isInstant: instant,
+    slotName,
+    mountParentEntityId: vehicle.GetEntityID(),
+    entryAnimName: 'forcedTransition',
+  });
+
+  const slotID = Object.assign(new mp.game.gamemountingMountingSlotId(), {
+    id: slotName,
+  });
+
+  const mountingInfo = Object.assign(new mp.game.gamemountingMountingInfo(), {
+    childId: player.GetEntityID(),
+    parentId: vehicle.GetEntityID(),
+    slotId: slotID,
+  });
+
+  const mountRequest = Object.assign(new mp.game.gamemountingMountingRequest(), {
+    lowLevelMountingInfo: mountingInfo,
+    mountData,
+  });
+
+  mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest);
+}
+
+const DEFORMATION_PARTS = [
+  'hood_destruction',
+  'wheel_f_l_destruction',
+  'wheel_f_r_destruction',
+  'bumper_b_destruction',
+  'bumper_f_destruction',
+  'door_f_l_destruction',
+  'door_f_r_destruction',
+  'trunk_destruction',
+  'bumper_b_destruction_side_2',
+  'bumper_f_destruction_side_2',
+] as const;
+
+/**
+ * Performs a 100% complete physical and cosmetic restoration of a vehicle.
+ */
+export function repairVehicle(vehicle: vehicleBaseObject): void {
+  if (!vehicle) return;
+
+  const comp = vehicle.GetVehicleComponent();
+  const vehType = vehicle.GetVehicleType();
+
+  if (vehType !== CyberEnums.gamedataVehicleType.Bike) {
+    comp.bumperFrontState = 0;
+    comp.bumperBackState = 0;
+    for (const part of DEFORMATION_PARTS) {
+      mp.game.entAnimationControllerComponent.SetInputFloat(vehicle, part, 0.0);
+    }
+  }
+
+  comp.damageLevel = 0;
+
+  // Restore flat/broken tires if applicable
+  const flatTireIndex = (vehicle as any).GetFlatTireIndex?.() ?? -1;
+  if (flatTireIndex >= 0) {
+    for (let i = 0; i < 4; i++) {
+      (vehicle as any).ToggleBrokenTire?.(i, false);
+    }
+  }
+
+  vehicle.DestructionResetGrid();
+  vehicle.DestructionResetGlass();
+}
+```
+
+#### 3. Spawning Weapons and Items
+
+Items are added to the player's inventory using `AddToInventory` and verified with REDengine's `TransactionSystem`:
+
+```typescript
+import type { gameItemData } from '@cybermp/client-types/game';
+
+/**
+ * Spawns an item or weapon directly into the player's inventory by TweakDB ID.
+ */
+export function spawnItem(itemKey: string, count: number = 1): void {
+  mp.game.AddToInventory(itemKey, count);
+}
+
+/**
+ * Checks if the player has a specific item in their inventory.
+ */
+export function hasItem(itemKey: string): boolean {
+  const player = mp.game.GetPlayerObject();
+  if (!player) return false;
+
+  const transactionSystem = mp.game.ScriptGameInstance.GetTransactionSystem();
+  const [, itemsList] = transactionSystem.GetItemList(player) as [boolean, gameItemData[]];
+  const targetId = mp.game.gameItemID.FromTDBID(itemKey);
+
+  return itemsList.some((item) => item.GetID().id === targetId.id);
+}
+```
+
+#### 4. Binding Key Inputs (`onInputKeyEvent`)
+
+CyberMP captures hardware key actions through `mp.game.onInputKeyEvent`:
+
+```typescript
+import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
+
+type KeyCallback = (action: EInputAction) => void;
+const keyListeners = new Map<EInputKey, Set<KeyCallback>>();
+let inputInitialized = false;
+
+/**
+ * Binds a callback to a hardware key event (press/release).
+ */
+export function bindKey(key: EInputKey, callback: KeyCallback): () => void {
+  if (!inputInitialized) {
+    inputInitialized = true;
+    mp.game.onInputKeyEvent((action: EInputAction, pressedKey: EInputKey) => {
+      const callbacks = keyListeners.get(pressedKey);
+      if (callbacks) {
+        for (const cb of callbacks) cb(action);
+      }
+    });
+  }
+
+  if (!keyListeners.has(key)) {
+    keyListeners.set(key, new Set());
+  }
+  keyListeners.get(key)!.add(callback);
+
+  return () => {
+    const set = keyListeners.get(key);
+    if (set) {
+      set.delete(callback);
+      if (set.size === 0) keyListeners.delete(key);
+    }
+  };
+}
+```
+
+#### 5. Controlling CEF Focus and Cursor
+
+When an HTML menu or dialog is open, pass input focus to CEF and unhide the cursor:
+
+```typescript
+/**
+ * Toggles CEF browser input focus and cursor visibility.
+ * When focus is enabled, keyboard input is routed to the HTML DOM.
+ */
+export function setCefFocus(enabled: boolean): void {
+  mp.cef.setFocus(enabled, enabled);
+}
+
+/**
+ * Checks if the CEF browser currently holds input focus.
+ */
+export function isCefFocused(): boolean {
+  return mp.cef.isInFocus();
+}
+```
