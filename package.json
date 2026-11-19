@@ -27,7 +27,7 @@
     "build:index": "tsx scripts/build-index.ts",
     "sync:docs": "tsx scripts/sync-docs.ts",
     "test": "vitest run",
-    "prepare": "npm run build"
+    "prepare": "pnpm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.0",

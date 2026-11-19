@@ -4,6 +4,9 @@ on:
   release:
     types:
       - published
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -14,10 +17,10 @@ on:
 
 jobs:
   release:
-    name: Build & Publish to npm
+    name: Build & Release Package
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Checkout code
@@ -38,13 +41,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync official documentation
+        run: pnpm run sync:docs
+
+      - name: Rebuild AST type and docs index
+        run: pnpm run build:index
+
       - name: Run test suite
         run: pnpm test
 
-      - name: Build package artifacts
+      - name: Build TypeScript package
         run: pnpm run build
 
+      - name: Package release tarball
+        run: pnpm pack
+
+      - name: Upload Release Asset to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        with:
+          files: cybermp-agent-kit-*.tgz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to npm registry
+        if: env.NODE_AUTH_TOKEN != ''
         run: pnpm publish --no-git-checks --tag ${{ inputs.tag || 'latest' }} --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
