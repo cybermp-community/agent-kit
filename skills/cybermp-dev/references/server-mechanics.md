@@ -922,3 +922,134 @@ mp.events.on('resourceStop', () => {
   console.log('[Server] Safezones and resources stopped cleanly');
 });
 ```
+
+---
+
+## 6. Entity Pools & Array Iteration
+
+CyberMP provides `.toArray()` on entity collections to easily filter, map, and broadcast across active entities:
+
+```typescript
+import type { MpPlayer, MpVehicle } from '@cybermp/server-types';
+
+/**
+ * Returns all connected players in a specific virtual dimension.
+ */
+export function getPlayersInDimension(dimension: number): MpPlayer[] {
+  return mp.players.toArray().filter((player) => player.dimension === dimension);
+}
+
+/**
+ * Destroys all vehicles spawned in a specific dimension.
+ */
+export function cleanupDimensionVehicles(dimension: number): void {
+  const vehicles = mp.vehicles.toArray().filter((veh) => veh.dimension === dimension);
+  for (const veh of vehicles) {
+    veh.destroy();
+  }
+}
+```
+
+---
+
+## 7. Player Vehicle References & Limits
+
+When a player enters a vehicle, the server entity exposes `player.vehicle`. You can track and enforce maximum vehicles per player:
+
+```typescript
+import type { MpPlayer, MpVehicle, GameHash } from '@cybermp/server-types';
+
+const playerVehiclesMap = new Map<number, Set<number>>();
+const MAX_VEHICLES_PER_PLAYER = 3;
+
+/**
+ * Spawns a vehicle for a player and tracks vehicle count.
+ */
+export function spawnPlayerVehicle(
+  player: MpPlayer,
+  modelHash: GameHash,
+  appearanceHash: GameHash = 0n,
+): MpVehicle {
+  // If player is already inside a vehicle, despawn it first
+  if (player.vehicle) {
+    player.vehicle.destroy();
+  }
+
+  const vehicle = mp.vehicles.create({
+    model: modelHash,
+    appearance: appearanceHash,
+    position: player.position,
+    yaw: player.yaw,
+    dimension: player.dimension,
+    health: 2000,
+  });
+
+  const vehicles = playerVehiclesMap.get(player.id) ?? new Set<number>();
+  while (vehicles.size >= MAX_VEHICLES_PER_PLAYER) {
+    const oldestId = vehicles.values().next().value;
+    if (oldestId !== undefined) {
+      mp.vehicles.destroy(oldestId);
+      vehicles.delete(oldestId);
+    }
+  }
+
+  vehicles.add(vehicle.id);
+  playerVehiclesMap.set(player.id, vehicles);
+  return vehicle;
+}
+```
+
+---
+
+## 8. Server-Side String Hashing (`mp.hashes`)
+
+The server runtime provides `mp.hashes.tweakdbid` and `mp.hashes.cname` to convert string names to 64-bit BigInt hashes:
+
+```typescript
+/**
+ * Hashes a TweakDB record string on the server.
+ * Example: mp.hashes.tweakdbid('Vehicle.v_sport1_herrera_outlaw_player')
+ */
+export function getTweakdbHash(tweakDbPath: string): bigint {
+  return mp.hashes.tweakdbid(tweakDbPath);
+}
+
+/**
+ * Hashes a REDengine CName string on the server.
+ * Example: mp.hashes.cname('player')
+ */
+export function getCNameHash(name: string): bigint {
+  return mp.hashes.cname(name);
+}
+```
+
+---
+
+## 9. Server Event Cancellation & Network Metrics
+
+### Cancelling Native Damage
+
+To implement invincible players or safezones, call `mp.cancelEvent()` inside the `damage` event listener:
+
+```typescript
+import type { DamageEventData } from '@cybermp/server-types';
+
+const godModePlayers = new Set<number>();
+
+mp.events.on('damage', (_offenderId: number, { victimId }: DamageEventData) => {
+  if (victimId && godModePlayers.has(victimId)) {
+    // mp.cancelEvent() prevents damage calculation and health pool decrease
+    mp.cancelEvent();
+  }
+});
+```
+
+### Checking Player Latency
+
+Each `MpPlayer` instance provides the round-trip ping in milliseconds:
+
+```typescript
+export function getPlayerPing(player: MpPlayer): number {
+  return player.ping;
+}
+```

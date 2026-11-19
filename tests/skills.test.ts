@@ -143,6 +143,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GetTimeSystem');
       expect(content).toContain('GetLoadingScreenSystem');
       expect(content).toContain('world3dToScreen2d');
+      expect(content).toContain('GetMappinSystem');
+      expect(content).toContain('GetFxSystem');
+      expect(content).toContain('mp.local.spawnObject');
     });
 
     it('provides comprehensive vehicles-physics reference', () => {
@@ -171,6 +174,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('GameplayRestriction.NoCombat');
       expect(content).toContain('AddToInventory');
       expect(content).toContain('MenuScenario_CharacterCustomizationMirror');
+      expect(content).toContain('PlayerDevelopmentSystem');
+      expect(content).toContain('SetPlayerGender');
+      expect(content).toContain('Ammo.HandgunAmmo');
     });
 
     it('provides comprehensive cameras-input-cef reference', () => {
@@ -184,6 +190,8 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('onInputKeyEvent');
       expect(content).toContain('mp.cef.setFocus');
       expect(content).toContain('mp.events.onCef');
+      expect(content).toContain('inkTextWidget');
+      expect(content).toContain('inkHUDLayer');
     });
 
     it('provides comprehensive server-mechanics reference', () => {
@@ -196,6 +204,9 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('player.setMeta');
       expect(content).toContain('isPointInPolygon2D');
       expect(content).toContain('Safezone');
+      expect(content).toContain('mp.cancelEvent');
+      expect(content).toContain('mp.players.toArray');
+      expect(content).toContain('mp.hashes.tweakdbid');
     });
   });
 

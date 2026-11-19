@@ -669,3 +669,179 @@ export function initGenderChangeObserver(): void {
   );
 }
 ```
+
+---
+
+## 7. Player Development System & Perks (`PlayerDevelopmentSystem`)
+
+Cyberpunk 2077 player stats, attributes (Body/Strength, Reflexes, Technical Ability, Cool, Intelligence), perk points, and experience levels are governed by `PlayerDevelopmentSystem`.
+
+### Setting Attributes & Adding Development Points
+
+All updates to player attributes and perks are sent as scriptable system requests via `QueueRequest` or `QueueScriptableSystemRequest`:
+
+```typescript
+import {
+  gamedataDevelopmentPointType,
+  gamedataNewPerkType,
+  gamedataProficiencyType,
+  gamedataStatType,
+} from '@cybermp/client-types/enums';
+
+/**
+ * Sets a specific player attribute to a given level (e.g. 20).
+ *
+ * @param stat Attribute type (Strength/Body, Reflexes, TechnicalAbility, Cool, Intelligence, Espionage)
+ * @param value Target level (1 - 20)
+ */
+export function setPlayerAttribute(stat: gamedataStatType, value: number): void {
+  const player = mp.game.GetPlayerObject();
+  const devSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'PlayerDevelopmentSystem',
+  );
+
+  const attrReq = Object.assign(new mp.game.SetAttribute(), {});
+  attrReq.Set(player, value, stat);
+  devSystem.QueueRequest(attrReq);
+}
+
+/**
+ * Grants development/perk points to the player.
+ *
+ * @param amount Number of points to add
+ * @param pointType Primary (Perk points) or Attribute points
+ */
+export function addDevelopmentPoints(
+  amount: number,
+  pointType: gamedataDevelopmentPointType = gamedataDevelopmentPointType.Primary,
+): void {
+  const player = mp.game.GetPlayerObject();
+  const devSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'PlayerDevelopmentSystem',
+  );
+
+  const devPointsReq = Object.assign(new mp.game.questAddDevelopmentPointsRequest(), {});
+  devPointsReq.Set(player, amount, pointType);
+  devSystem.QueueRequest(devPointsReq);
+}
+
+/**
+ * Unlocks a specific perk on the player.
+ */
+export function unlockPerk(perkType: gamedataNewPerkType): void {
+  const player = mp.game.GetPlayerObject();
+  const devSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get(
+    'PlayerDevelopmentSystem',
+  );
+
+  const buyPerkRequest = Object.assign(new mp.game.BuyNewPerk(), {});
+  buyPerkRequest.Set(player, perkType);
+  devSystem.QueueRequest(buyPerkRequest);
+}
+
+/**
+ * Adds experience to the player's level or specific proficiency skill.
+ */
+export function addPlayerExperience(
+  amount: number,
+  type: gamedataProficiencyType = gamedataProficiencyType.Level,
+): void {
+  const player = mp.game.GetPlayerObject();
+  const addExpReq = Object.assign(new mp.game.AddExperience(), {});
+  addExpReq.Set(player, amount, type, false);
+
+  mp.game.ScriptGameInstance.QueueScriptableSystemRequest(
+    'PlayerDevelopmentSystem',
+    addExpReq,
+  );
+}
+```
+
+---
+
+## 8. Ammo TweakDB Reference
+
+CyberMP uses native REDengine TweakDB strings for managing ammunition through `mp.game.AddToInventory`:
+
+```typescript
+export const AmmoTypes = {
+  Handgun: 'Ammo.HandgunAmmo',
+  Shotgun: 'Ammo.ShotgunAmmo',
+  Rifle: 'Ammo.RifleAmmo',
+  Sniper: 'Ammo.SniperRifleAmmo',
+  Special: 'Ammo.Special',
+} as const;
+
+/**
+ * Restocks all ammunition categories for the local player.
+ */
+export function restockAllAmmo(): void {
+  mp.game.AddToInventory('Ammo.HandgunAmmo', 1000);
+  mp.game.AddToInventory('Ammo.ShotgunAmmo', 2000);
+  mp.game.AddToInventory('Ammo.RifleAmmo', 3000);
+  mp.game.AddToInventory('Ammo.SniperRifleAmmo', 700);
+  mp.game.AddToInventory('Ammo.Special', 700);
+}
+```
+
+---
+
+## 9. Player Freeze System
+
+To immobilize a player entity (e.g. during cinematic cutscenes, arena countdowns, or menu selection), combine movement restrictions with tick-based position lock:
+
+```typescript
+const FREEZE_STATUS_EFFECTS = [
+  'GameplayRestriction.NoMovement',
+  'GameplayRestriction.NoCombat',
+  'GameplayRestriction.NoWeapons',
+] as const;
+
+let freezeTickId: number | null = null;
+let frozenPosition: mp.game.Vector4 | null = null;
+
+/**
+ * Freezes or unfreezes the player in place.
+ */
+export function setPlayerFrozen(frozen: boolean): void {
+  const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
+  const player = mp.game.GetPlayer();
+  if (!player) return;
+
+  if (frozen) {
+    if (freezeTickId !== null) return;
+    frozenPosition = player.GetWorldPosition();
+
+    // Apply gameplay restrictions
+    for (const effect of FREEZE_STATUS_EFFECTS) {
+      effectSystem.ApplyStatusEffect(
+        player.GetEntityID(),
+        effect,
+        player.GetRecordID(),
+        player.GetEntityID(),
+      );
+    }
+
+    freezeTickId = mp.setTick(() => {
+      const p = mp.game.GetPlayerObject();
+      if (!p || !frozenPosition) return;
+      mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
+        p,
+        frozenPosition,
+        mp.game.Quaternion.ToEulerAngles(p.GetWorldOrientation()),
+      );
+    });
+  } else {
+    if (freezeTickId !== null) {
+      mp.clearTick(freezeTickId);
+      freezeTickId = null;
+    }
+    frozenPosition = null;
+
+    // Remove gameplay restrictions
+    for (const effect of FREEZE_STATUS_EFFECTS) {
+      mp.game.StatusEffectHelper.RemoveStatusEffect(player, effect, undefined);
+    }
+  }
+}
+```

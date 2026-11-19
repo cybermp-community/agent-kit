@@ -365,7 +365,308 @@ export function world3dToScreen2d(worldPos: Vector3): ScreenCoord {
 
 ---
 
-## 8. Anti-Patterns & Negative Constraints
+## 8. Mappins & GPS Tracking System (`GetMappinSystem`)
+
+In REDengine, world markers, quest objectives, player radar blips, and minimap icons are controlled by `gamemappinsMappinSystem` (`mp.game.ScriptGameInstance.GetMappinSystem()`).
+
+### Mappin Architecture
+
+- **`gameNewMappinID`**: Unique identifier returned when registering a mappin.
+- **`gamemappinsMappinData`**: Defines mappin type, variant, visibility through walls, and script data.
+- **`GameplayRoleMappinData`**: Configures gameplay role, radar range, minimap display, and icon texture ID.
+
+```typescript
+import { EGameplayRole, gamedataMappinVariant } from '@cybermp/client-types/enums';
+import type {
+  gamemappinsMappinSystem,
+  gameNewMappinID,
+  Vector4,
+} from '@cybermp/client-types/game';
+
+let mappinSystem: gamemappinsMappinSystem | null = null;
+const registeredMappins = new Map<number, gameNewMappinID>();
+
+mp.game.onceGameLoaded(() => {
+  mappinSystem = mp.game.ScriptGameInstance.GetMappinSystem();
+});
+
+/**
+ * Creates an in-world and minimap quest/objective marker.
+ *
+ * @param entityId Numeric ID associated with the marker (e.g. player ID or checkpoint index)
+ * @param position 3D coordinate Vector4 { x, y, z, w }
+ * @param textureID REDengine icon texture ID (e.g. 'MappinIcons.NPCMappin')
+ * @returns The created gameNewMappinID
+ */
+export function createEntityMappin(
+  entityId: number,
+  position: Vector4,
+  textureID = 'MappinIcons.NPCMappin',
+): gameNewMappinID | null {
+  if (!mappinSystem) return null;
+
+  const roleMappinData = Object.assign(new mp.game.GameplayRoleMappinData(), {
+    isQuest: true,
+    visibleThroughWalls: false,
+    range: 100.0,
+    gameplayRole: EGameplayRole.NPC,
+    textureID,
+    showOnMiniMap: true,
+  });
+
+  const mappinData = Object.assign(new mp.game.gamemappinsMappinData(), {
+    mappinType: 'Mappins.DelamainTaxiDestinationMappinDefinition',
+    variant: gamedataMappinVariant.DefaultQuestVariant,
+    visibleThroughWalls: false,
+    scriptData: roleMappinData,
+    active: true,
+  });
+
+  const mappinId = mappinSystem.RegisterMappin(mappinData, position);
+  registeredMappins.set(entityId, mappinId);
+  return mappinId;
+}
+
+/**
+ * Updates the 3D position of an existing registered mappin.
+ */
+export function updateMappinPosition(entityId: number, position: Vector4): void {
+  if (!mappinSystem) return;
+  const mappinId = registeredMappins.get(entityId);
+  if (mappinId) {
+    mappinSystem.SetMappinPosition(mappinId, position);
+  }
+}
+
+/**
+ * Activates active GPS pathing / track line to a mappin.
+ */
+export function trackMappin(mappinId: gameNewMappinID): void {
+  mappinSystem?.TrackMappin(mappinId);
+}
+
+/**
+ * Disables active GPS pathing / track line.
+ */
+export function untrackMappin(): void {
+  mappinSystem?.UntrackMappin();
+}
+
+/**
+ * Unregisters and removes a mappin from radar and world.
+ */
+export function destroyMappin(entityId: number): void {
+  if (!mappinSystem) return;
+  const mappinId = registeredMappins.get(entityId);
+  if (mappinId) {
+    mappinSystem.UnregisterMappin(mappinId);
+    registeredMappins.delete(entityId);
+  }
+}
+```
+
+---
+
+## 9. World FX & Particle System (`GetFxSystem`)
+
+REDengine spawns particle systems, neon light beams, holographic waypoints, and explosions through `gameFxSystem` (`mp.game.ScriptGameInstance.GetFxSystem()`).
+
+### Spawning World FX
+
+FX instances require a `WorldTransform` and a `gameFxResource` specifying the `.effect` depot path:
+
+```typescript
+import type {
+  gameFxInstance,
+  gameFxResource,
+  WorldTransform,
+} from '@cybermp/client-types/game';
+import { createEulerAngles, createVector4 } from './vectors';
+
+/**
+ * Spawns an in-world visual effect (particle, laser beam, glowing waypoint).
+ *
+ * @param effectPath Depot path to the .effect asset
+ * @param pos [x, y, z] position
+ * @param rot [roll, pitch, yaw] orientation in degrees
+ * @returns The spawned gameFxInstance
+ */
+export function spawnWorldEffect(
+  effectPath: string,
+  pos: [number, number, number],
+  rot: [number, number, number] = [0, 0, 0],
+): gameFxInstance {
+  const [x, y, z] = pos;
+  const [roll, pitch, yaw] = rot;
+
+  const transform = Object.assign(new mp.game.WorldTransform(), {});
+  mp.game.WorldTransform.SetPosition(transform, createVector4(x, y, z, 1.0));
+  mp.game.WorldTransform.SetOrientationEuler(transform, createEulerAngles(roll, pitch, yaw));
+
+  const fxResource = Object.assign(new mp.game.gameFxResource(), {
+    effect: effectPath as any,
+  } satisfies gameFxResource);
+
+  const fxSystem = mp.game.ScriptGameInstance.GetFxSystem();
+  return fxSystem.SpawnEffect(fxResource, transform);
+}
+
+/**
+ * Kills/despawns an active world effect instance.
+ */
+export function destroyWorldEffect(instance: gameFxInstance): void {
+  instance.Kill();
+}
+```
+
+---
+
+## 10. Client Local Objects & Dynamic Mapping
+
+Beyond server-synchronized objects (`mp.objects.create`), the CyberMP client runtime supports spawning purely local REDengine objects (`mp.local.spawnObject`). These are ideal for local racing checkpoints, custom track barriers, or client-rendered custom maps.
+
+### Spawning Client-Side Objects
+
+```typescript
+/**
+ * Spawns a local REDengine mesh object on the client.
+ *
+ * @param depotPath Entity template depot path (e.g. 'base\\gameplay\\devices\\street_signs\\race_checkpoint\\race_checkpoint.ent')
+ * @param position [x, y, z] world coordinates
+ * @param rotation [roll, pitch, yaw] Euler angles in degrees
+ * @param streaming Whether the object participates in world streaming
+ * @returns Numeric entity ID (hash) of the spawned local object
+ */
+export function spawnLocalObject(
+  depotPath: string,
+  position: [number, number, number],
+  rotation: [number, number, number] = [0, 0, 0],
+  streaming = true,
+): number {
+  const skinHash = mp.game.redResourceReferenceScriptToken.GetHash(depotPath);
+  const appHash = 0; // 0 for default mesh appearance
+
+  const [x, y, z] = position;
+  const [roll, pitch, yaw] = rotation;
+
+  return mp.local.spawnObject(
+    skinHash,
+    appHash,
+    x,
+    y,
+    z,
+    roll,
+    pitch,
+    yaw,
+    streaming,
+  );
+}
+
+/**
+ * Despawns and frees a local object by its hash ID.
+ */
+export function despawnLocalObject(objectHash: number): void {
+  mp.local.despawnObject(objectHash);
+}
+
+/**
+ * Finds an entEntity instance in REDengine by its numeric hash ID.
+ */
+export function findEntityByHash(entityHash: number): mp.game.entEntity | null {
+  const entityId = Object.assign(new mp.game.entEntityID(), {
+    hash: entityHash,
+  });
+  return mp.game.ScriptGameInstance.FindEntityByID(entityId);
+}
+```
+
+---
+
+## 11. HUD Groups & Settings Enumeration
+
+The complete set of 17 HUD visibility flags in `/interface/hud`:
+
+```typescript
+import { InGameConfigVarType } from '@cybermp/client-types/enums';
+import type { ConfigVarBool } from '@cybermp/client-types/game';
+
+export const ALL_HUD_ELEMENTS = [
+  'npc_healthbar',     // Boss & Enemy Health Bars
+  'ammo_counter',      // Weapon Ammo Counter
+  'hud_markers',       // On-screen Hints
+  'action_buttons',    // Contextual Action Buttons
+  'activity_log',      // Quest / Activity Log
+  'crosshairs',        // Weapon Crosshair
+  'quest_tracker',     // Target Marker
+  'object_markers',    // Job Tracker
+  'npc_names',         // NPC Names
+  'wanted_level',      // NCPD Wanted Stars
+  'npc_nameplates',    // Floating Nameplates
+  'crouch_indicator',  // Stealth Crouch Indicator
+  'minimap',           // Top-right Radar / Minimap
+  'healthbar',         // Player Health & Armor Bar
+  'stamina_oxygen',    // Stamina and Oxygen Gauges
+  'input_hints',       // Keyboard / Controller Prompts
+  'vehicle_hud',       // Speedometer & Radio Widget
+] as const;
+
+/**
+ * Toggles all native HUD elements on or off.
+ */
+export function setAllHudVisible(visible: boolean): void {
+  const settings = mp.game.ScriptGameInstance.GetSettingsSystem();
+  const group = settings.GetGroup('/interface/hud');
+  const vars = group.GetVars(false);
+
+  for (const settingVar of vars) {
+    if (+String(settingVar.GetType()) === InGameConfigVarType.Bool) {
+      (settingVar as ConfigVarBool).SetValue(visible);
+    }
+  }
+}
+```
+
+---
+
+## 12. Advanced REDengine Event Hooks (`observeBeforeRaw`)
+
+To intercept native engine input before the game processes it (e.g. for custom noclip camera mouse steering):
+
+```typescript
+import type { gameinputScriptListenerAction, ConfigVarInt } from '@cybermp/client-types/game';
+
+let yawDeltaAccumulator = 0;
+
+/**
+ * Hooks PlayerPuppet OnAction to read mouse movement during noclip.
+ */
+export function hookPlayerPuppetActions(): void {
+  mp.game.observeBeforeRaw(
+    'PlayerPuppet',
+    'OnAction',
+    (_self, action: gameinputScriptListenerAction) => {
+      const actionName = mp.game.NameToString(
+        mp.game.gameinputScriptListenerAction.GetName(action),
+      );
+
+      if (actionName === 'CameraMouseX') {
+        const x = Number(mp.game.gameinputScriptListenerAction.GetValue(action));
+        const sensVar = mp.game.ScriptGameInstance.GetSettingsSystem().GetVar(
+          '/controls/fppcameramouse',
+          'FPP_MouseX',
+        ) as ConfigVarInt;
+
+        const sensitivity = Number(sensVar.GetValue()) / 2.9;
+        yawDeltaAccumulator += -(x / 35) * sensitivity;
+      }
+    },
+  );
+}
+```
+
+---
+
+## 13. Anti-Patterns & Negative Constraints
 
 | Prohibited Pattern (Hallucinated / FiveM) | Approved CyberMP Pattern |
 | :--- | :--- |
@@ -375,3 +676,5 @@ export function world3dToScreen2d(worldPos: Vector3): ScreenCoord {
 | `SetWeatherTypePersist("CLEAR")` | `GetWeatherSystem().SetWeather(state, blendTime, priority)` |
 | `SetClockTime(12, 0, 0)` | `GetTimeSystem().SetGameTimeByHMS(hours, minutes, seconds)` |
 | `new mp.game.Vector3(x, y, z)` | `Object.assign(new mp.game.Vector3(), { x, y, z })` |
+| `AddBlipForCoord(x, y, z)` | `GetMappinSystem().RegisterMappin(data, pos)` |
+| `CreateObject(model, x, y, z)` | `mp.local.spawnObject(...)` or server `mp.objects.create(...)` |

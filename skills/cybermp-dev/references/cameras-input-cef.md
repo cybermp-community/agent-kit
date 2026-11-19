@@ -673,3 +673,210 @@ mp.events.onCef('domReady', () => {
   });
 });
 ```
+
+---
+
+## 6. Native INK Text Widgets on HUD Layer (`inkTextWidget`)
+
+In addition to HTML-based CEF overlays, REDengine provides an ultra-low-latency 2D/3D text rendering engine via `inkTextWidget`. This attaches directly to the native `inkHUDLayer` virtual window, rendering in sync with the game's internal rasterizer.
+
+### Creating and Reparenting Ink Widgets
+
+```typescript
+import type { entEntity, inkTextWidget, Vector3 } from '@cybermp/client-types/game';
+
+const REFERENCE_DISPLAY_WIDTH = 1920;
+
+export interface InGameLabel {
+  widget: inkTextWidget;
+  entity: entEntity;
+  text: string;
+  fontSize: number;
+}
+
+/**
+ * Creates an in-engine text widget reparented to the HUD layer.
+ *
+ * @param entity Target game entity
+ * @param initialText Text content to render
+ * @param baseFontSize Font size at 1080p reference resolution
+ */
+export function createEntityLabel(
+  entity: entEntity,
+  initialText: string,
+  baseFontSize = 17,
+): InGameLabel {
+  const [displayWidth] = mp.game.getDisplayResolution();
+  const scaledFontSize = baseFontSize * (displayWidth / REFERENCE_DISPLAY_WIDTH);
+
+  const inkSystem = mp.game.ScriptGameInstance.GetInkSystem();
+  const hudRoot = inkSystem.GetLayer('inkHUDLayer').GetVirtualWindow();
+
+  const widget = Object.assign(new mp.game.inkTextWidget(), {});
+  widget.SetName(`label_${entity.GetEntityID().hash}`);
+  widget.SetFontFamily('base\\gameplay\\gui\\fonts\\arial\\arial.inkfontfamily');
+  widget.SetFontSize(scaledFontSize);
+  widget.SetStyle(
+    mp.game.redResourceReferenceScriptToken.FromName(
+      'base\\gameplay\\gui\\common\\main_colors.inkstyle',
+    ),
+  );
+  widget.BindProperty('tintColor', 'MainColors.ActiveWhite');
+  widget.SetVisible(true);
+  widget.Reparent(hudRoot);
+
+  return {
+    widget,
+    entity,
+    text: initialText,
+    fontSize: baseFontSize,
+  };
+}
+
+/**
+ * Updates the screen position, scale, and opacity of an inkTextWidget.
+ */
+export function updateLabelPosition(
+  label: InGameLabel,
+  screenPos: Vector3,
+  scale = 1.0,
+  alpha = 1.0,
+): void {
+  const centeringX = (label.text.length * (label.fontSize / 2) * scale) / 2;
+
+  label.widget.SetText(label.text);
+  label.widget.SetTranslation({ x: screenPos.x - centeringX, y: screenPos.y });
+  label.widget.SetScale({ x: scale, y: scale });
+  label.widget.SetOpacity(alpha);
+  label.widget.SetVisible(true);
+}
+
+/**
+ * Hides and cleans up an ink text widget.
+ */
+export function destroyEntityLabel(label: InGameLabel): void {
+  label.widget.SetVisible(false);
+}
+```
+
+---
+
+## 7. CEF Synthetic Keyboard Bridge
+
+When CEF does not own direct keyboard focus (`mp.cef.isInFocus() === false`), web applications (e.g. React apps with TanStack Router, modal dialogues, or shortcut keys) can still receive key presses by dispatching synthetic DOM `KeyboardEvent`s in browser scripts:
+
+### Browser-Side Event Simulator (`keys.ts`)
+
+```typescript
+import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
+
+const keyCodeToName: Record<number, string> = {
+  27: 'esc',
+  13: 'return',
+  32: 'space',
+  37: 'left',
+  38: 'up',
+  39: 'right',
+  40: 'down',
+  160: 'ShiftLeft',
+  162: 'ControlLeft',
+  113: 'F2',
+  114: 'F3',
+  115: 'F4',
+  116: 'F5',
+  117: 'F6',
+  118: 'F7',
+};
+
+function dispatchSyntheticKey(key: EInputKey, type: 'down' | 'up'): void {
+  const mappedCode = keyCodeToName[key] ?? `Key${String.fromCharCode(key)}`;
+
+  const event = new KeyboardEvent(`key${type}`, {
+    keyCode: key,
+    which: key,
+    code: mappedCode,
+    altKey: mappedCode.toLowerCase().includes('alt'),
+    shiftKey: mappedCode.toLowerCase().includes('shift'),
+    ctrlKey: mappedCode.toLowerCase().includes('control'),
+  });
+
+  document.dispatchEvent(event);
+}
+
+// In browser script: listen for bridged events from client V8
+cybermp.events.on('incomingKeyPressed', (data: { action: EInputAction; key: EInputKey }) => {
+  if (data.action === EInputAction.IACT_Press) {
+    dispatchSyntheticKey(data.key, 'down');
+  } else if (data.action === EInputAction.IACT_Release) {
+    dispatchSyntheticKey(data.key, 'up');
+  }
+});
+```
+
+---
+
+## 8. Noclip Controller Implementation
+
+Noclip combines camera directional vectors, tick-based teleportation, and `PlayerPuppet.OnAction` hook for mouse yaw delta:
+
+```typescript
+import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
+
+export class NoclipController {
+  private active = false;
+  private tickId: number | null = null;
+  private speed = 3.0;
+  private activeKeys = new Set<EInputKey>();
+
+  start(): void {
+    if (this.active) return;
+    this.active = true;
+
+    // Apply movement freeze status effects
+    const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
+    const player = mp.game.GetPlayer();
+    if (player) {
+      effectSystem.ApplyStatusEffect(player.GetEntityID(), 'GameplayRestriction.NoMovement', player.GetRecordID(), player.GetEntityID());
+    }
+
+    this.tickId = mp.setTick(() => this.onTick());
+  }
+
+  stop(): void {
+    if (!this.active) return;
+    this.active = false;
+    if (this.tickId) {
+      mp.clearTick(this.tickId);
+      this.tickId = null;
+    }
+    const player = mp.game.GetPlayer();
+    if (player) {
+      mp.game.StatusEffectHelper.RemoveStatusEffect(player, 'GameplayRestriction.NoMovement', undefined);
+    }
+  }
+
+  private onTick(): void {
+    const player = mp.game.GetPlayer();
+    if (!player || player.GetMountedVehicle()) return;
+
+    const cam = mp.game.ScriptGameInstance.GetCameraSystem();
+    const forwardVec = cam.GetActiveCameraForward();
+    const rightVec = cam.GetActiveCameraRight();
+    const pos = player.GetWorldPosition();
+
+    const forward = (this.activeKeys.has(EInputKey.IK_W) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_S) ? 1 : 0);
+    const right = (this.activeKeys.has(EInputKey.IK_D) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_A) ? 1 : 0);
+    const up = (this.activeKeys.has(EInputKey.IK_Space) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_Shift) ? 1 : 0);
+
+    pos.x += (forwardVec.x * forward + rightVec.x * right) * this.speed;
+    pos.y += (forwardVec.y * forward + rightVec.y * right) * this.speed;
+    pos.z += (forwardVec.z * forward + rightVec.z * right + up * 0.7) * this.speed;
+
+    mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
+      mp.game.GetPlayerObject(),
+      pos,
+      mp.game.EulerAngles.create(0, 0, player.GetWorldYaw()),
+    );
+  }
+}
+```
