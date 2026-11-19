@@ -163,6 +163,19 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('AddToInventory');
       expect(content).toContain('MenuScenario_CharacterCustomizationMirror');
     });
+
+    it('provides comprehensive cameras-input-cef reference', () => {
+      const camInputPath = path.join(rootDir, 'skills/cybermp-dev/references/cameras-input-cef.md');
+      expect(fs.existsSync(camInputPath)).toBe(true);
+      const content = fs.readFileSync(camInputPath, 'utf-8');
+      expect(content.length).toBeGreaterThan(500);
+      expect(content).toContain('GetFPPCameraComponent');
+      expect(content).toContain('simple_free_camera.ent');
+      expect(content).toContain('spectateCamera');
+      expect(content).toContain('onInputKeyEvent');
+      expect(content).toContain('mp.cef.setFocus');
+      expect(content).toContain('mp.events.onCef');
+    });
   });
 
   describe('Starter Examples', () => {
