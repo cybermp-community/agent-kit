@@ -242,14 +242,14 @@ When this agent environment is connected to the `cybermp-mcp` server, query the 
 
 If the MCP server is unavailable or running in a skill-only mode:
 1. **Consult Local References in `references/`**:
-   - [Core Events Catalog](file:///Users/user/cybermp-mcp/skills/cybermp-dev/references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
-   - [RPC Flows Matrix](file:///Users/user/cybermp-mcp/skills/cybermp-dev/references/rpc-flows.md): Complete paired code snippets for inter-process communication.
-   - [Resource Structure & Toolchain](file:///Users/user/cybermp-mcp/skills/cybermp-dev/references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
+   - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
+   - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
+   - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
 2. **Inspect Installed Types**:
    Check the TypeScript definition files directly in `node_modules/@cybermp/`:
    - Server: `node_modules/@cybermp/server-types/src/index.ts`
    - Client: `node_modules/@cybermp/client-types/precomputed/index.d.ts`
    - Browser: `node_modules/@cybermp/browser-types/index.d.ts`
 3. **Starter Examples**:
-   - [Server Starter Example](file:///Users/user/cybermp-mcp/skills/cybermp-dev/examples/basic-resource/server.ts)
-   - [Client Starter Example](file:///Users/user/cybermp-mcp/skills/cybermp-dev/examples/basic-resource/client.ts)
+   - [Server Starter Example](examples/basic-resource/server.ts)
+   - [Client Starter Example](examples/basic-resource/client.ts)

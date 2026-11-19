@@ -37,9 +37,9 @@ CyberMP uses a three-tier architecture with strictly defined directional boundar
 
 **Server (`src/server/index.ts`):**
 ```typescript
-import { events, players } from '@cybermp/server-types';
+import type { MpPlayer } from '@cybermp/server-types';
 
-// Emit to an individual player
+// Emit to an individual player (events and players are global in server runtime)
 function notifyPlayer(player: MpPlayer, message: string) {
   events.emitClient(player, 'chat:notify', {
     type: 'info',
@@ -62,8 +62,7 @@ function broadcastMessage(message: string) {
 
 **Client (`src/client/index.ts`):**
 ```typescript
-import { events } from '@cybermp/client-types';
-
+// In CyberMP client scripts, `events` is a global runtime object
 events.onServer('chat:notify', (data: { type: string; text: string; timestamp: number }) => {
   console.log(`[Notification ${data.type}] ${data.text}`);
   // Forward to CEF HUD if active
@@ -77,9 +76,7 @@ events.onServer('chat:notify', (data: { type: string; text: string; timestamp: n
 
 **Client (`src/client/index.ts`):**
 ```typescript
-import { events } from '@cybermp/client-types';
-
-// Client requests to buy a vehicle
+// Client requests to buy a vehicle (events is a global runtime object)
 function requestVehiclePurchase(modelId: string) {
   events.emitServer('dealership:purchaseVehicle', modelId);
 }
@@ -87,7 +84,7 @@ function requestVehiclePurchase(modelId: string) {
 
 **Server (`src/server/index.ts`):**
 ```typescript
-import { events, MpPlayer } from '@cybermp/server-types';
+import type { MpPlayer } from '@cybermp/server-types';
 
 // Notice: player is ALWAYS prepended by the engine as the first parameter
 events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string) => {
@@ -114,9 +111,7 @@ events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string
 
 **Client (`src/client/index.ts`):**
 ```typescript
-import { events } from '@cybermp/client-types';
-
-// Update player stats in web HUD
+// Update player stats in web HUD (events is a global runtime object)
 function syncHud(health: number, armor: number, eddies: number) {
   events.emitCef('hud:updateStats', {
     hp: health,
@@ -156,8 +151,7 @@ document.getElementById('save-char-btn').addEventListener('click', () => {
 
 **Client (`src/client/index.ts`):**
 ```typescript
-import { events } from '@cybermp/client-types';
-
+// Listen for events sent from CEF web view (events is a global runtime object)
 events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string }) => {
   console.log('Received customization from UI:', data);
   // Forward to server to persist character in database

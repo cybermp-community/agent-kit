@@ -56,6 +56,17 @@ describe('Agent Skills & Plugins', () => {
       // Offline fallback instructions
       expect(content).toMatch(/Offline Fallback|Without MCP/i);
       expect(content).toContain('references/');
+
+      // Ensure no machine-specific absolute file links are used
+      expect(content).not.toMatch(/file:\/\/\//);
+      expect(content).not.toMatch(/\/Users\//);
+
+      // Ensure portable relative links
+      expect(content).toContain('[Core Events Catalog](references/events.md)');
+      expect(content).toContain('[RPC Flows Matrix](references/rpc-flows.md)');
+      expect(content).toContain('[Resource Structure & Toolchain](references/resource-structure.md)');
+      expect(content).toContain('[Server Starter Example](examples/basic-resource/server.ts)');
+      expect(content).toContain('[Client Starter Example](examples/basic-resource/client.ts)');
     });
   });
 
@@ -91,6 +102,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('cybermp.events.on');
       expect(content).toContain('cybermp.events.emit');
       expect(content).toContain('events.onCef');
+
+      // Ensure events global is not imported as a value from type packages
+      expect(content).not.toMatch(/import\s+\{[^}]*events[^}]*\}\s+from\s+['"]@cybermp\//);
+      expect(content).toContain("import type { MpPlayer } from '@cybermp/server-types';");
     });
 
     it('provides standard resource structure and configs in resource-structure.md', () => {
