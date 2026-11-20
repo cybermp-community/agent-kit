@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { packageVersion } from './version.js';
 import { registerAllTools } from './tools/index.js';
 
 /**
@@ -8,7 +9,7 @@ import { registerAllTools } from './tools/index.js';
 export function createCyberMpServer(): McpServer {
   const server = new McpServer({
     name: 'cybermp-agent-kit',
-    version: '1.0.0',
+    version: packageVersion,
   });
 
   registerAllTools(server);

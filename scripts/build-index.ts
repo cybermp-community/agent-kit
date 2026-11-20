@@ -9,6 +9,7 @@ import {
   EnumDeclaration,
   Node,
 } from 'ts-morph';
+import { buildNativeIndex } from './build-native-index.js';
 import { extractDocMetadata } from './sync-docs.js';
 import type {
   EventParameter,
@@ -896,7 +897,7 @@ const isDirectExecution = Boolean(
 );
 
 if (isDirectExecution) {
-  buildIndex().catch((err) => {
+  buildIndex().then(() => buildNativeIndex()).catch((err) => {
     console.error('buildIndex failed:', err);
     process.exit(1);
   });

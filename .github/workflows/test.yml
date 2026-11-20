@@ -38,3 +38,6 @@ jobs:
 
       - name: Run build
         run: pnpm run build
+
+      - name: Verify installed MCP package
+        run: pnpm run test:packed

@@ -18,6 +18,8 @@ export interface EventRecord {
 }
 
 export interface PropertyRecord {
+  declaredIn?: string;
+  static?: boolean;
   name: string;
   type: string;
   optional?: boolean;
@@ -34,6 +36,7 @@ export interface MethodParameter {
 }
 
 export interface MethodRecord {
+  declaredIn?: string;
   name: string;
   parameters: MethodParameter[];
   returnType: string;
@@ -60,6 +63,11 @@ export interface TypeRecord {
   extends?: string[];
   rawDefinition?: string;
   enumMembers?: EnumMemberRecord[];
+}
+
+export interface NativeTypeIndex {
+  packageVersion: string;
+  types: TypeRecord[];
 }
 
 export interface GuideRecord {

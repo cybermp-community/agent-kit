@@ -16,7 +16,7 @@ An offline-first Model Context Protocol (MCP) server, universal agent skills, an
 ## Key Features
 
 - 🛡️ **Anti-Hallucination Guard**: Intercepts foreign multiplayer API hallucinations (FiveM `SetEntityCoords`, alt:V `alt.emitServer`, SA-MP, RAGE:MP) in real-time and directs agents to authentic CyberMP and REDengine native facilities.
-- 🔍 **Native REDengine Introspection**: Dynamic on-demand parsing and inheritance resolution for **19,176 native REDengine classes** (such as `ScriptGameInstance`, `TeleportationFacility`, `MountingFacility`, `StatPoolsSystem`) directly from `@cybermp/client-types`.
+- 🔍 **Native REDengine Introspection**: Versioned declarations and inheritance resolution for REDengine classes such as `ScriptGameInstance`, `TeleportationFacility`, and `inkCircleWidget`. The npm package includes the native index and identifies the source types version in responses.
 - 📚 **Offline Guides & Recipes Search**: Instant full-text search across **38 guides** covering vehicle mechanics, camera components, CEF UI integration, local storage (`mp.localStorage`), Discord Rich Presence, and 3D spatial math.
 - 🔄 **Cross-Boundary RPC Verification**: Generates paired, type-safe RPC flow templates across isolated execution environments: Server (Node.js), Client (in-game V8), and CEF (Chromium).
 - 🤖 **Universal AI Editor Support**: Pre-configured rules and skills for Cursor, Claude Code / Desktop, Google Antigravity, Cline / Roo Code, Windsurf, and Zed.
@@ -145,7 +145,7 @@ npx cybermp-agent-kit config [cursor|claude|antigravity|cline|windsurf|zed|all]
 
 ## MCP Tools Reference
 
-When connected, `cybermp-agent-kit` provides 4 specialized MCP tools:
+When connected, `cybermp-agent-kit` provides five specialized MCP tools:
 
 | Tool | Description | Example Query |
 |---|---|---|
@@ -153,6 +153,7 @@ When connected, `cybermp-agent-kit` provides 4 specialized MCP tools:
 | `cybermp_get_type` | Inspect TypeScript interfaces and 19k+ REDengine native classes | `{"name": "TeleportationFacility"}` |
 | `cybermp_get_event` | Fetch event callback signatures and execution context | `{"name": "playerEnterVehicle", "env": "server"}` |
 | `cybermp_get_rpc_flow` | Generate paired sender & receiver RPC boilerplate | `{"from": "client", "to": "browser"}` |
+| `cybermp_lookup_tweakdb` | Search a curated subset of TweakDB IDs | `{"query": "burning"}` |
 
 ---
 

@@ -1,12 +1,11 @@
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { gunzipSync } from 'node:zlib';
 import typesData from '../data/types.json' with { type: 'json' };
-import type { TypeRecord, PropertyRecord, MethodRecord, EnumMemberRecord } from '../types/index.js';
+import type { TypeRecord, PropertyRecord, MethodRecord, EnumMemberRecord, NativeTypeIndex } from '../types/index.js';
 import { checkForeignApi } from './anti-hallucination.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 export interface GetTypeInfoResult {
   type?: TypeRecord;
@@ -31,12 +30,13 @@ function formatPropertiesTable(properties: PropertyRecord[]): string {
 
   const rows = properties.map((p) => {
     const modifiers = [
+      p.static ? 'static' : '',
       p.readonly ? 'readonly' : '',
       p.optional ? 'optional' : '',
     ]
       .filter(Boolean)
       .join(', ') || '-';
-    const desc = p.description ? p.description.replace(/\|/g, '\\|') : '-';
+    const desc = [p.declaredIn ? `Inherited from \`${p.declaredIn}\`` : '', p.description?.replace(/\|/g, '\\|')].filter(Boolean).join('. ') || '-';
     return `| \`${p.name}\` | \`${p.type}\` | ${modifiers} | ${desc} |`;
   });
 
@@ -53,7 +53,8 @@ function formatMethodsList(methods: MethodRecord[]): string {
   }
 
   const lines = methods.map((m) => {
-    const comment = m.description ? ` // ${m.description}` : '';
+    const detail = [m.declaredIn ? `inherited from ${m.declaredIn}` : '', m.description].filter(Boolean).join('. ');
+    const comment = detail ? ` // ${detail}` : '';
     return `  ${m.signature};${comment}`;
   });
 
@@ -78,137 +79,79 @@ function formatEnumMembersTable(members: EnumMemberRecord[]): string {
   ].join('\n');
 }
 
-let cachedGameDts: string | null = null;
-let dtsLoadAttempted = false;
-const parsedRedengineCache = new Map<string, TypeRecord | null>();
+let nativeVersion: string | undefined;
+const nativeNames = new Map<string, TypeRecord>();
+const nativeAliases = new Map<string, TypeRecord[]>();
+const resolvedTypes = new Map<string, TypeRecord>();
 
-function getGameDtsContent(): string | null {
-  if (dtsLoadAttempted) return cachedGameDts;
-  dtsLoadAttempted = true;
-  try {
-    const candidatePaths = [
-      path.resolve(__dirname, '../../node_modules/@cybermp/client-types/out/game.d.ts'),
-      path.resolve(__dirname, '../../../node_modules/@cybermp/client-types/out/game.d.ts'),
-      path.resolve(process.cwd(), 'node_modules/@cybermp/client-types/out/game.d.ts'),
-    ];
-
-    for (const p of candidatePaths) {
-      if (fs.existsSync(p)) {
-        cachedGameDts = fs.readFileSync(p, 'utf-8');
-        break;
-      }
+function loadNativeIndex(): void {
+  if (nativeVersion !== undefined) return;
+  const file = require.resolve('#native-types');
+  const index: NativeTypeIndex = JSON.parse(gunzipSync(fs.readFileSync(file)).toString('utf8'));
+  for (const type of index.types) {
+    nativeNames.set(type.name.toLowerCase(), type);
+    const alias = /^game[a-z]*([A-Z].*)$/.exec(type.name)?.[1]?.toLowerCase();
+    if (alias) {
+      const candidates = nativeAliases.get(alias) ?? [];
+      candidates.push(type);
+      nativeAliases.set(alias, candidates);
     }
-  } catch {
-    cachedGameDts = null;
   }
-  return cachedGameDts;
+  nativeVersion = index.packageVersion;
 }
 
-export function parseRedengineType(name: string, visited = new Set<string>()): TypeRecord | null {
-  const q = name ? name.trim() : '';
-  if (!q) return null;
+function nativeMatches(name: string): TypeRecord[] {
+  loadNativeIndex();
+  const exact = nativeNames.get(name);
+  return exact ? [exact] : nativeAliases.get(name) ?? [];
+}
 
-  const cacheKey = q.toLowerCase();
-  if (parsedRedengineCache.has(cacheKey)) {
-    return parsedRedengineCache.get(cacheKey) || null;
-  }
-  if (visited.has(cacheKey)) return null;
-  visited.add(cacheKey);
-
-  const content = getGameDtsContent();
-  if (!content) return null;
-
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  // 1. Exact match (case-insensitive)
-  const exactRegex = new RegExp(`export\\s+(class|interface)\\s+(${escaped})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`, 'i');
-  let match = content.match(exactRegex);
-
-  // 2. Controlled REDengine subsystem prefix match for PascalCase queries (e.g. gamemountingMountingFacility)
-  if (!match) {
-    const capitalized = q.charAt(0).toUpperCase() + q.slice(1);
-    const prefixRegex = new RegExp(`export\\s+(class|interface)\\s+(game[a-z]*${capitalized})\\b(?:\\s+extends\\s+([^{]+))?\\s*\\{([\\s\\S]*?)\\n\\}`);
-    match = content.match(prefixRegex);
-  }
-
-  if (!match) {
-    parsedRedengineCache.set(cacheKey, null);
-    return null;
-  }
-
-  const kind = match[1] as 'class' | 'interface';
-  const matchedName = match[2];
-  const extendsClause = match[3] ? match[3].trim().split(/\s*,\s*/) : [];
-  const body = match[4];
+export function parseRedengineType(name: string): TypeRecord | null {
+  const query = name.trim().toLowerCase();
+  if (!query) return null;
+  const [type, ...otherMatches] = nativeMatches(query);
+  if (!type || otherMatches.length > 0) return null;
+  const key = type.name.toLowerCase();
+  const cached = resolvedTypes.get(key);
+  if (cached) return cached;
 
   const methods: MethodRecord[] = [];
   const properties: PropertyRecord[] = [];
-
-  for (const line of body.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    const methodMatch = trimmed.match(/^(?:(static)\s+)?(?:"([^"]+)"|([a-zA-Z0-9_]+))\s*\(([^)]*)\)\s*:\s*([^;]+);/);
-    if (methodMatch) {
-      const isStatic = !!methodMatch[1];
-      const methodName = methodMatch[2] || methodMatch[3];
-      const rawParams = methodMatch[4];
-      const returnType = methodMatch[5].trim();
-      const params = rawParams
-        ? rawParams.split(',').map((p) => {
-            const colonIdx = p.indexOf(':');
-            if (colonIdx !== -1) {
-              const pName = p.slice(0, colonIdx).trim();
-              const pType = p.slice(colonIdx + 1).trim();
-              return { name: pName || 'param', type: pType || 'any' };
-            }
-            return { name: p.trim() || 'param', type: 'any' };
-          })
-        : [];
-
-      methods.push({
-        name: methodName,
-        signature: `${isStatic ? 'static ' : ''}${methodName}(${rawParams}): ${returnType}`,
-        parameters: params,
-        returnType,
-      });
-      continue;
+  const visited = new Set<string>();
+  const overriddenMethods = new Set<string>();
+  const inheritedProperties = new Set<string>();
+  function collect(owner: TypeRecord): void {
+    if (visited.has(owner.name)) return;
+    visited.add(owner.name);
+    const methodKeys = new Set<string>();
+    for (const method of owner.methods) {
+      const key = method.signature.startsWith('static ') ? `static ${method.name}` : method.name;
+      if (overriddenMethods.has(key)) continue;
+      methodKeys.add(key);
+      methods.push(owner === type ? method : { ...method, declaredIn: owner.name });
     }
-
-    const propMatch = trimmed.match(/^(?:"([^"]+)"|([a-zA-Z0-9_]+))(\?)?\s*:\s*([^;]+);/);
-    if (propMatch) {
-      properties.push({
-        name: propMatch[1] || propMatch[2],
-        optional: !!propMatch[3],
-        type: propMatch[4].trim(),
-      });
+    for (const methodKey of methodKeys) overriddenMethods.add(methodKey);
+    for (const property of owner.properties) {
+      const key = property.static ? `static ${property.name}` : property.name;
+      if (inheritedProperties.has(key)) continue;
+      inheritedProperties.add(key);
+      properties.push(owner === type ? property : { ...property, declaredIn: owner.name });
+    }
+    for (const baseName of owner.extends ?? []) {
+      const base = nativeNames.get(baseName.toLowerCase());
+      if (base) collect(base);
     }
   }
-
-  // If class has no own methods but extends a base class, also inspect base class
-  if (methods.length === 0 && extendsClause.length > 0) {
-    const baseType = parseRedengineType(extendsClause[0], visited);
-    if (baseType) {
-      methods.push(...baseType.methods);
-      properties.push(...baseType.properties);
-    }
-  }
-
+  collect(type);
   const record: TypeRecord = {
-    name: matchedName,
-    kind,
-    env: 'client',
+    ...type,
     source: 'REDengine',
     category: 'GameNatives',
-    extends: extendsClause,
+    description: 'Native declaration for the CyberMP client. Verify runtime behavior in your client build.',
     methods,
     properties,
-    description: 'REDengine native class available under mp.game.* when use_game_natives = true',
   };
-
-  parsedRedengineCache.set(matchedName.toLowerCase(), record);
-  parsedRedengineCache.set(cacheKey, record);
-
+  resolvedTypes.set(key, record);
   return record;
 }
 
@@ -230,9 +173,6 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
   let exactMatch: TypeRecord | undefined;
   if (q) {
     exactMatch = filtered.find((t) => t.name.toLowerCase() === q);
-    if (!exactMatch && env) {
-      exactMatch = allTypes.find((t) => t.name.toLowerCase() === q);
-    }
   }
 
   // Matches
@@ -250,6 +190,8 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
       if (isExactMatch || matches.length === 0) {
         exactMatch = redengineType;
       }
+    } else if (matches.length === 0) {
+      matches = nativeMatches(q);
     }
   }
 
@@ -270,6 +212,10 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
       `- **Category:** ${exactMatch.category || 'General'}`,
       `- **Environment:** ${exactMatch.env}`,
     ];
+
+    if (exactMatch.source === 'REDengine' && nativeVersion) {
+      lines.push(`- **Declaration source:** @cybermp/client-types@${nativeVersion}/game`);
+    }
 
     if (exactMatch.extends && exactMatch.extends.length > 0) {
       lines.push(`- **Extends:** \`${exactMatch.extends.join(', ')}\``);

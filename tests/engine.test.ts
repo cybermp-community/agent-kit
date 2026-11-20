@@ -290,6 +290,21 @@ describe('Types Engine', () => {
     expect(result.formattedText).toContain('MpVehicle');
   });
 
+  it('keeps all inherited ink tint overloads and identifies their declaring type', () => {
+    const { type, formattedText } = getTypeInfo('inkCircleWidget', 'client');
+    expect(type?.properties.some((property) => property.name === 'segmentsNumber')).toBe(true);
+    const tintMethods = type?.methods.filter((method) => method.name === 'SetTintColor');
+    expect(tintMethods).toHaveLength(3);
+    expect(tintMethods?.map((method) => method.declaredIn)).toEqual(Array(3).fill('inkWidget'));
+    expect(formattedText).toContain('@cybermp/client-types@2.7.1');
+  });
+
+  it('never returns an exact client interface for a server query', () => {
+    const result = getTypeInfo('MpCef', 'server');
+    expect(result.type).toBeUndefined();
+    expect(result.matches.every((match) => match.env !== 'client')).toBe(true);
+  });
+
   it('does not resolve client REDengine classes when environment filter is server', () => {
     const result = getTypeInfo('TeleportationFacility', 'server');
     expect(result.type).toBeUndefined();

@@ -1,37 +1,16 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { startServer } from '../src/server.js';
 import { initProject } from '../src/cli/init.js';
 import { getConfigSnippet } from '../src/cli/print-config.js';
-
-function getPackageVersion(): string {
-  let dir = path.dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 5; i++) {
-    const candidate = path.join(dir, 'package.json');
-    if (fs.existsSync(candidate)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(candidate, 'utf-8'));
-        if (pkg.version) return pkg.version;
-      } catch {
-        break;
-      }
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  return '1.0.4';
-}
+import { packageVersion } from '../src/version.js';
 
 const program = new Command();
 
 program
   .name('cybermp-agent-kit')
   .description('CyberMP AI Agent Toolkit & MCP Server')
-  .version(getPackageVersion());
+  .version(packageVersion);
 
 program
   .command('run', { isDefault: true })
