@@ -1,0 +1,5 @@
+{
+  "server": "@cybermp/server-types@3.2.8",
+  "client": "@cybermp/client-types@2.7.1",
+  "browser": "@cybermp/browser-types@2.0.1"
+}

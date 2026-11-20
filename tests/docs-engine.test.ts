@@ -50,3 +50,21 @@ it('keeps Markdown headings inside fenced code', async () => {
   expect(guide.map((record) => record.sectionTitle)).toEqual([undefined, 'Shell']);
   expect(guide[1].codeSnippets).toEqual(['## a shell comment\necho safe']);
 });
+
+it('preserves literal depot paths, underscores and generic arguments in inline code', async () => {
+  const { parseMarkdownSections } = await import('../scripts/build-index.js');
+  const [guide] = parseMarkdownSections(
+    'Pack `cybermp_kit_cube.archive` with `cybermp_kit\\diagnostics\\cube.ent` and call `get<Foo | Bar>`.',
+    'fixture', 'https://example.org/fixture', 'Fixture', '',
+  );
+  expect(guide.plainText).toContain('cybermp_kit_cube.archive');
+  expect(guide.plainText).toContain('cybermp_kit\\diagnostics\\cube.ent');
+  expect(guide.plainText).toContain('get<Foo | Bar>');
+});
+
+it('links a documented upstream result to the recorded revision', () => {
+  const result = searchDocs('Observing Game Methods', 10);
+  const guide = result.results.find(({ slug }) => slug === 'client/observes');
+  expect(guide?.sourceUrl).toContain(`/blob/${guide?.sourceRevision}/`);
+  expect(result.formattedText).toContain(guide!.sourceUrl);
+});

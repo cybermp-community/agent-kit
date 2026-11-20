@@ -73,7 +73,9 @@ export function buildNativeIndex(
   }
   const index = { packageVersion, types };
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'native-types.json.gz'), gzipSync(JSON.stringify(index), { level: 9 }));
+  const archive = gzipSync(JSON.stringify(index), { level: 9 });
+  archive[9] = 255; // Normalize the gzip OS byte across build hosts.
+  fs.writeFileSync(path.join(outDir, 'native-types.json.gz'), archive);
   fs.copyFileSync(path.join(installedPackage, 'LICENSE'), path.join(outDir, 'LICENSE-cybermp-client-types'));
   return index;
 }

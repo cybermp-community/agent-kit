@@ -30,6 +30,7 @@
   "files": [
     "dist",
     "data",
+    "docs/knowledge-inventory.md",
     "skills",
     "plugins",
     "templates",

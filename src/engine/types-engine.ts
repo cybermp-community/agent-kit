@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { gunzipSync } from 'node:zlib';
 import typesData from '../data/types.json' with { type: 'json' };
 import type { TypeRecord, PropertyRecord, MethodRecord, EnumMemberRecord, NativeTypeIndex } from '../types/index.js';
+import { declarationSource } from './type-sources.js';
 import { checkForeignApi } from './anti-hallucination.js';
 
 const require = createRequire(import.meta.url);
@@ -81,6 +82,7 @@ function formatEnumMembersTable(members: EnumMemberRecord[]): string {
 
 let nativeVersion: string | undefined;
 const nativeNames = new Map<string, TypeRecord>();
+const foldedNativeNames = new Map<string, TypeRecord[]>();
 const nativeAliases = new Map<string, TypeRecord[]>();
 const resolvedTypes = new Map<string, TypeRecord>();
 
@@ -88,14 +90,16 @@ function loadNativeIndex(): void {
   if (nativeVersion !== undefined) return;
   const file = require.resolve('#native-types');
   const index: NativeTypeIndex = JSON.parse(gunzipSync(fs.readFileSync(file)).toString('utf8'));
+  function addToBucket(map: Map<string, TypeRecord[]>, key: string, type: TypeRecord): void {
+    const candidates = map.get(key) ?? [];
+    candidates.push(type);
+    map.set(key, candidates);
+  }
   for (const type of index.types) {
-    nativeNames.set(type.name.toLowerCase(), type);
+    nativeNames.set(type.name, type);
+    addToBucket(foldedNativeNames, type.name.toLowerCase(), type);
     const alias = /^game[a-z]*([A-Z].*)$/.exec(type.name)?.[1]?.toLowerCase();
-    if (alias) {
-      const candidates = nativeAliases.get(alias) ?? [];
-      candidates.push(type);
-      nativeAliases.set(alias, candidates);
-    }
+    if (alias) addToBucket(nativeAliases, alias, type);
   }
   nativeVersion = index.packageVersion;
 }
@@ -103,15 +107,17 @@ function loadNativeIndex(): void {
 function nativeMatches(name: string): TypeRecord[] {
   loadNativeIndex();
   const exact = nativeNames.get(name);
-  return exact ? [exact] : nativeAliases.get(name) ?? [];
+  if (exact) return [exact];
+  const folded = name.toLowerCase();
+  return foldedNativeNames.get(folded) ?? nativeAliases.get(folded) ?? [];
 }
 
 export function parseRedengineType(name: string): TypeRecord | null {
-  const query = name.trim().toLowerCase();
+  const query = name.trim();
   if (!query) return null;
   const [type, ...otherMatches] = nativeMatches(query);
   if (!type || otherMatches.length > 0) return null;
-  const key = type.name.toLowerCase();
+  const key = type.name;
   const cached = resolvedTypes.get(key);
   if (cached) return cached;
 
@@ -138,7 +144,7 @@ export function parseRedengineType(name: string): TypeRecord | null {
       properties.push(owner === type ? property : { ...property, declaredIn: owner.name });
     }
     for (const baseName of owner.extends ?? []) {
-      const base = nativeNames.get(baseName.toLowerCase());
+      const base = nativeNames.get(baseName);
       if (base) collect(base);
     }
   }
@@ -190,8 +196,8 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
       if (isExactMatch || matches.length === 0) {
         exactMatch = redengineType;
       }
-    } else if (matches.length === 0) {
-      matches = nativeMatches(q);
+    } else {
+      matches = [...new Set([...nativeMatches(name.trim()), ...matches])];
     }
   }
 
@@ -213,9 +219,10 @@ export function getTypeInfo(name: string, env?: string): GetTypeInfoResult {
       `- **Environment:** ${exactMatch.env}`,
     ];
 
-    if (exactMatch.source === 'REDengine' && nativeVersion) {
-      lines.push(`- **Declaration source:** @cybermp/client-types@${nativeVersion}/game`);
-    }
+    const source = exactMatch.source === 'REDengine'
+      ? `@cybermp/client-types@${nativeVersion}/game`
+      : declarationSource(exactMatch.env);
+    lines.push(`- **Declaration source:** ${source}`);
 
     if (exactMatch.extends && exactMatch.extends.length > 0) {
       lines.push(`- **Extends:** \`${exactMatch.extends.join(', ')}\``);

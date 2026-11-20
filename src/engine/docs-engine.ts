@@ -62,6 +62,7 @@ export function formatGuide(guide: GuideRecord, query: string): string {
     `**Source:** ${source} · **Environment:** ${guide.environment ?? 'unspecified'} · **Revision:** ${guide.sourceRevision ?? 'unspecified'}`,
     `**Evidence:** ${verificationLabels[guide.verificationStatus ?? 'unreviewed']}`,
   ];
+  if (guide.sourceUrl) lines.push(`[Pinned source](${guide.sourceUrl})`);
   if (guide.description) lines.push(guide.description);
   const relevant = excerpt(guide, terms);
   if (relevant && relevant !== guide.description) lines.push(relevant);

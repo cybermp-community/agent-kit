@@ -73,8 +73,8 @@ function mergeJsonConfig(
   let data: Record<string, unknown> = {};
   let mode: number | undefined;
 
-  if (fs.existsSync(filePath)) {
-    const stat = fs.lstatSync(filePath);
+  const stat = fs.lstatSync(filePath, { throwIfNoEntry: false });
+  if (stat) {
     if (!stat.isFile()) throw new Error(`Expected a regular JSON file at ${filePath}`);
     mode = stat.mode & 0o777;
     let parsed: unknown;

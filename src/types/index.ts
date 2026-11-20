@@ -84,6 +84,7 @@ export interface GuideRecord {
   priorityAliases?: string[];
   sourceKind?: 'cybermp-docs' | 'kit-reference';
   sourceRevision?: string | null;
+  sourceUrl?: string;
   environment?: 'client' | 'server' | 'browser' | 'mixed' | 'tooling';
   verificationStatus?: 'upstream-summary' | 'static-cross-check' | 'unreviewed';
   plainText: string;

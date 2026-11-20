@@ -87,19 +87,19 @@ export function getParamJsDoc(node: any, paramName: string): string | undefined 
 }
 
 export function extractPlainText(markdown: string): string {
-  return markdown
-    .replace(/^---[\s\S]*?---\r?\n?/, '') // Remove YAML frontmatter
-    .replace(/^[ \t]*(?:```|~~~)[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*(?:```|~~~)[ \t]*$/gm, '') // Remove code blocks
-    .replace(/`([^`\n]+)`/g, '$1') // Strip inline code backticks but preserve content
-    .replace(/<[^>]+>/g, '') // Remove HTML/JSX tags
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // Remove JSX comments
-    .replace(/^#+\s+/gm, '') // Remove headings
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Markdown links [text](url) -> text
-    .replace(/[*_~>]/g, '') // Formatting chars
-    .replace(/\|/g, ' ') // Table delimiters
-    .replace(/\r?\n+/g, ' ') // Collapse newlines
-    .replace(/\s+/g, ' ') // Collapse spaces
-    .trim();
+  const prose = markdown
+    .replace(/^---[\s\S]*?---\r?\n?/, '')
+    .replace(/^[ \t]*(?:```|~~~)[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*(?:```|~~~)[ \t]*$/gm, '');
+  return prose.split(/(`[^`\n]+`)/).map((part, index) => {
+    if (index % 2) return part.slice(1, -1);
+    return part
+      .replace(/<!--[^]*?-->/g, '')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/^#+\s+/gm, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[*~>|]/g, '');
+  }).join('').replace(/\s+/g, ' ').trim();
 }
 
 export function toKebabCase(str: string): string {
@@ -780,6 +780,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
         codeSnippets: [],
         sourceKind: 'cybermp-docs',
         sourceRevision: upstream.revision,
+        sourceUrl: `${upstream.repository.replace(/\.git$/, '')}/blob/${upstream.revision}/${upstream.contentRoot}/${guide.slug}.mdx`,
         environment: guide.environment,
         verificationStatus: 'upstream-summary',
       });
@@ -864,6 +865,13 @@ export async function buildIndex(options?: {
   fs.writeFileSync(eventsPath, JSON.stringify(events), 'utf-8');
   fs.writeFileSync(typesPath, JSON.stringify(types), 'utf-8');
   fs.writeFileSync(guidesPath, JSON.stringify(guides), 'utf-8');
+
+  const typeSources = Object.fromEntries(['server', 'client', 'browser'].map((env) => {
+    const name = `@cybermp/${env}-types`;
+    const { version } = JSON.parse(fs.readFileSync(path.join(projectRoot, 'node_modules', name, 'package.json'), 'utf8'));
+    return [env, `${name}@${version}`];
+  }));
+  fs.writeFileSync(path.join(outDir, 'type-sources.json'), JSON.stringify(typeSources, null, 2) + '\n');
 
   const eventsSize = fs.statSync(eventsPath).size;
   const typesSize = fs.statSync(typesPath).size;

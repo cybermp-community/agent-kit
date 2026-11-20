@@ -1,5 +1,6 @@
 import eventsData from '../data/events.json' with { type: 'json' };
 import type { EventRecord, EventParameter } from '../types/index.js';
+import { declarationSource } from './type-sources.js';
 import { checkForeignApi } from './anti-hallucination.js';
 
 export interface GetEventInfoOptions {
@@ -122,6 +123,7 @@ export function getEventInfo(options: GetEventInfoOptions = {}): GetEventInfoRes
       `- **Category:** ${exactMatch.category || 'General'}`,
       `- **Source Interface:** ${exactMatch.source || 'N/A'}`,
       `- **Environment:** ${exactMatch.env}`,
+      `- **Declaration source:** ${declarationSource(exactMatch.env)}`,
     ];
 
     if (exactMatch.description) {

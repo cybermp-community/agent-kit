@@ -167,6 +167,16 @@ describe('CLI Init Wizard', () => {
     },
   );
 
+  it.skipIf(process.platform === 'win32')('preserves a dangling config symlink', async () => {
+    const config = path.join(tempDir, '.cursor/mcp.json');
+    fs.mkdirSync(path.dirname(config));
+    fs.symlinkSync('missing.json', config);
+    await expect(initProject({
+      cwd: tempDir, editors: ['cursor'], nonInteractive: true,
+    })).rejects.toThrow(/regular JSON file/);
+    expect(fs.readlinkSync(config)).toBe('missing.json');
+  });
+
   it('replaces only the existing CyberMP entry with force', async () => {
     const config = path.join(tempDir, '.cursor/mcp.json');
     fs.mkdirSync(path.dirname(config));

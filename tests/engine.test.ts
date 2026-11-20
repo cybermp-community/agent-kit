@@ -296,7 +296,12 @@ describe('Types Engine', () => {
     const tintMethods = type?.methods.filter((method) => method.name === 'SetTintColor');
     expect(tintMethods).toHaveLength(3);
     expect(tintMethods?.map((method) => method.declaredIn)).toEqual(Array(3).fill('inkWidget'));
-    expect(formattedText).toContain('@cybermp/client-types@2.7.1');
+    expect(formattedText).toMatch(/@cybermp\/client-types@\d+\.\d+\.\d+/);
+  });
+
+  it('identifies the exact type package for core API declarations', () => {
+    expect(getTypeInfo('MpCef', 'client').formattedText).toMatch(/@cybermp\/client-types@\d+\.\d+\.\d+/);
+    expect(getEventInfo({ name: 'damage', env: 'server' }).formattedText).toMatch(/@cybermp\/server-types@\d+\.\d+\.\d+/);
   });
 
   it('never returns an exact client interface for a server query', () => {
@@ -311,6 +316,23 @@ describe('Types Engine', () => {
     expect(result.matches.map((record) => record.name)).toEqual([
       'gameCameraShakeEvent', 'gameeventsCameraShakeEvent',
     ]);
+  });
+
+  it('retains ambiguous native candidates when ordinary results contain the query', () => {
+    const result = getTypeInfo('DeathEvent');
+    expect(result.type).toBeUndefined();
+    expect(result.matches.map((record) => record.name)).toEqual(
+      expect.arrayContaining(['gameDeathEvent', 'gameeventsDeathEvent']),
+    );
+  });
+
+  it('keeps native declarations that differ only by case distinct', () => {
+    const upper = getTypeInfo('GameObject', 'client').type;
+    const lower = getTypeInfo('gameObject', 'client').type;
+    expect(upper?.name).toBe('GameObject');
+    expect(upper?.extends).toEqual(['gameObject']);
+    expect(lower?.name).toBe('gameObject');
+    expect(lower?.extends).toEqual(['entGameEntity']);
   });
 
   it('does not resolve client REDengine classes when environment filter is server', () => {
