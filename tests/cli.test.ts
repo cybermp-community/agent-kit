@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getConfigSnippet, getEditorSnippets } from '../src/cli/print-config.js';
 import { initProject, resolveMcpServerCommand } from '../src/cli/init.js';
 
@@ -111,6 +111,7 @@ describe('MCP Server Command Resolution', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -138,10 +139,46 @@ describe('CLI Init Wizard', () => {
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-init-test-'));
+    vi.spyOn(os, 'homedir').mockReturnValue(path.join(tempDir, 'home'));
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('does not touch global Antigravity settings by default', async () => {
+    await initProject({ cwd: tempDir, nonInteractive: true });
+
+    expect(fs.existsSync(path.join(tempDir, '.agents/rules/cybermp.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, 'home/.gemini/config/mcp_config.json'))).toBe(false);
+  });
+
+  it.each(['', '{', 'null', '[]', '{"mcpServers": []}'])(
+    'preserves invalid config %j even with force',
+    async (original) => {
+      const config = path.join(tempDir, '.cursor/mcp.json');
+      fs.mkdirSync(path.dirname(config));
+      fs.writeFileSync(config, original);
+      await expect(initProject({
+        cwd: tempDir, editors: ['cursor'], nonInteractive: true, force: true,
+      })).rejects.toThrow(/mcp\.json/);
+      expect(fs.readFileSync(config, 'utf8')).toBe(original);
+    },
+  );
+
+  it('replaces only the existing CyberMP entry with force', async () => {
+    const config = path.join(tempDir, '.cursor/mcp.json');
+    fs.mkdirSync(path.dirname(config));
+    const original = '{"mcpServers":{"cybermp":{"command":"custom"},"other":{"command":"other"}}}';
+    fs.writeFileSync(config, original);
+    const options = { cwd: tempDir, editors: ['cursor'], nonInteractive: true, isWindows: false };
+    await initProject(options);
+    expect(fs.readFileSync(config, 'utf8')).toBe(original);
+    await initProject({ ...options, force: true });
+    expect(JSON.parse(fs.readFileSync(config, 'utf8')).mcpServers).toMatchObject({
+      cybermp: { command: 'npx' }, other: { command: 'other' },
+    });
   });
 
   it('initializes Cursor configuration and rules without existing files', async () => {

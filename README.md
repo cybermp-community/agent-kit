@@ -42,6 +42,9 @@ npx cybermp-agent-kit init -y
 # Configure specific editors
 npx cybermp-agent-kit init -e cursor claude antigravity
 
+# Configure the global Antigravity MCP separately
+npx cybermp-agent-kit init -e antigravity --global-antigravity -y
+
 # Install standalone Antigravity plugin into .agents/plugins/cybermp/
 npx cybermp-agent-kit init --plugin
 

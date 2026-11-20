@@ -63,6 +63,7 @@ program
   .option('-e, --editors <editors...>', 'Target editors (cursor, claude, antigravity, cline, windsurf, zed)')
   .option('--skill', 'Copy cybermp-dev Agent Skill into .agents/skills/ (default: true)')
   .option('--no-skill', 'Do not copy cybermp-dev Agent Skill')
+  .option('--global-antigravity', 'Configure Antigravity MCP in the global user settings')
   .option('--plugin', 'Copy cybermp Antigravity plugin into .agents/plugins/')
   .option('-y, --yes', 'Non-interactive mode with default settings')
   .option('-f, --force', 'Overwrite existing files')
@@ -72,6 +73,7 @@ program
         editors: options.editors,
         copySkill: options.skill,
         plugin: options.plugin,
+        globalAntigravity: options.globalAntigravity,
         nonInteractive: options.yes,
         force: options.force,
       });

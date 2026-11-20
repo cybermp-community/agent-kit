@@ -10,6 +10,7 @@ export interface InitOptions {
   copySkill?: boolean;
   plugin?: boolean;
   geminiConfigDir?: string;
+  globalAntigravity?: boolean;
   isWindows?: boolean;
   force?: boolean;
   nonInteractive?: boolean;
@@ -59,24 +60,51 @@ function readTemplate(templateName: string): string {
   throw new Error(`Template not found: ${templatePath}`);
 }
 
-/**
- * Safely updates or creates a JSON configuration file, preserving existing fields.
- */
-function mergeJsonConfig(filePath: string, updater: (data: Record<string, any>) => void): void {
-  let data: Record<string, any> = {};
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mergeJsonConfig(
+  filePath: string,
+  containerKey: 'mcpServers' | 'context_servers',
+  entry: object,
+  force: boolean,
+): void {
+  let data: Record<string, unknown> = {};
+  let mode: number | undefined;
+
   if (fs.existsSync(filePath)) {
+    const stat = fs.lstatSync(filePath);
+    if (!stat.isFile()) throw new Error(`Expected a regular JSON file at ${filePath}`);
+    mode = stat.mode & 0o777;
+    let parsed: unknown;
     try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      data = JSON.parse(raw);
-    } catch {
-      data = {};
+      parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (cause) {
+      throw new Error(`Cannot read JSON configuration at ${filePath}`, { cause });
     }
-  } else {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    if (!isJsonObject(parsed)) throw new Error(`Expected a JSON object at ${filePath}`);
+    data = parsed;
   }
 
-  updater(data);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  const current = Object.hasOwn(data, containerKey) ? data[containerKey] : {};
+  if (!isJsonObject(current)) {
+    throw new Error(`Expected a JSON object for ${containerKey} at ${filePath}`);
+  }
+  if (Object.hasOwn(current, 'cybermp') && !force) return;
+  data[containerKey] = { ...current, cybermp: entry };
+
+  const directory = path.dirname(filePath);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporaryDirectory = fs.mkdtempSync(path.join(directory, '.cybermp-config-'));
+  try {
+    const pending = path.join(temporaryDirectory, path.basename(filePath));
+    fs.writeFileSync(pending, JSON.stringify(data, null, 2) + '\n', { mode: mode ?? 0o600 });
+    if (mode !== undefined) fs.chmodSync(pending, mode);
+    fs.renameSync(pending, filePath);
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
 }
 
 /**
@@ -115,7 +143,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         choices: [
           { title: 'Cursor (.cursor/rules/ & .cursor/mcp.json)', value: 'cursor', selected: true },
           { title: 'Claude (CLAUDE.md & .mcp.json)', value: 'claude', selected: true },
-          { title: 'Antigravity (.agents/rules/ & global mcp_config.json)', value: 'antigravity', selected: true },
+          { title: 'Antigravity (.agents/rules/)', value: 'antigravity', selected: true },
           { title: 'Cline / Roo Code (.clinerules & .cline/mcp_settings.json)', value: 'cline' },
           { title: 'Windsurf (.windsurfrules & mcp_config.json)', value: 'windsurf' },
           { title: 'Zed (.zed/settings.json)', value: 'zed' },
@@ -155,10 +183,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       case 'cursor': {
         const cursorTemplate = readTemplate('cursor.mdc');
         writeRuleFile(path.join(cwd, '.cursor/rules/cybermp.mdc'), cursorTemplate, force);
-        mergeJsonConfig(path.join(cwd, '.cursor/mcp.json'), (data) => {
-          data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = mcpCmd;
-        });
+        mergeJsonConfig(path.join(cwd, '.cursor/mcp.json'), 'mcpServers', mcpCmd, force);
         if (!options.nonInteractive) {
           console.log('Configured Cursor (.cursor/rules/cybermp.mdc & .cursor/mcp.json)');
         }
@@ -168,10 +193,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       case 'claude': {
         const claudeTemplate = readTemplate('claude.md');
         writeRuleFile(path.join(cwd, 'CLAUDE.md'), claudeTemplate, force);
-        mergeJsonConfig(path.join(cwd, '.mcp.json'), (data) => {
-          data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = mcpCmd;
-        });
+        mergeJsonConfig(path.join(cwd, '.mcp.json'), 'mcpServers', mcpCmd, force);
         if (!options.nonInteractive) {
           console.log('Configured Claude (CLAUDE.md & .mcp.json)');
         }
@@ -182,32 +204,18 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
         const antigravityTemplate = readTemplate('antigravity.md');
         writeRuleFile(path.join(cwd, '.agents/rules/cybermp.md'), antigravityTemplate, force);
 
-        // Antigravity loads MCP configs globally from ~/.gemini/config/mcp_config.json,
-        // ignoring root workspace mcp_config.json
-        const geminiConfigDir = options.geminiConfigDir || path.join(os.homedir(), '.gemini', 'config');
-        const globalMcpPath = path.join(geminiConfigDir, 'mcp_config.json');
-        mergeJsonConfig(globalMcpPath, (data) => {
-          data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = mcpCmd;
-        });
-
-        if (!options.nonInteractive) {
-          console.log(`Configured Antigravity (.agents/rules/cybermp.md & global ${globalMcpPath})`);
-        }
+        if (!options.nonInteractive) console.log('Configured Antigravity workspace rules');
         break;
       }
 
       case 'cline': {
         const clineTemplate = readTemplate('clinerules.md');
         writeRuleFile(path.join(cwd, '.clinerules'), clineTemplate, force);
-        mergeJsonConfig(path.join(cwd, '.cline/mcp_settings.json'), (data) => {
-          data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = {
-            ...mcpCmd,
-            disabled: false,
-            autoApprove: [],
-          };
-        });
+        mergeJsonConfig(path.join(cwd, '.cline/mcp_settings.json'), 'mcpServers', {
+          ...mcpCmd,
+          disabled: false,
+          autoApprove: [],
+        }, force);
         if (!options.nonInteractive) {
           console.log('Configured Cline (.clinerules & .cline/mcp_settings.json)');
         }
@@ -217,10 +225,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       case 'windsurf': {
         const universalTemplate = readTemplate('universal.md');
         writeRuleFile(path.join(cwd, '.windsurfrules'), universalTemplate, force);
-        mergeJsonConfig(path.join(cwd, 'mcp_config.json'), (data) => {
-          data.mcpServers = data.mcpServers || {};
-          data.mcpServers.cybermp = mcpCmd;
-        });
+        mergeJsonConfig(path.join(cwd, 'mcp_config.json'), 'mcpServers', mcpCmd, force);
         if (!options.nonInteractive) {
           console.log('Configured Windsurf (.windsurfrules & mcp_config.json)');
         }
@@ -228,16 +233,23 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       }
 
       case 'zed': {
-        mergeJsonConfig(path.join(cwd, '.zed/settings.json'), (data) => {
-          data.context_servers = data.context_servers || {};
-          data.context_servers.cybermp = mcpCmd;
-        });
+        mergeJsonConfig(path.join(cwd, '.zed/settings.json'), 'context_servers', mcpCmd, force);
         if (!options.nonInteractive) {
           console.log('Configured Zed (.zed/settings.json)');
         }
         break;
       }
     }
+  }
+
+  if (options.globalAntigravity || (options.geminiConfigDir && normalizedEditors.includes('antigravity'))) {
+    const geminiConfigDir = options.geminiConfigDir || path.join(os.homedir(), '.gemini', 'config');
+    const globalMcpPath = path.join(geminiConfigDir, 'mcp_config.json');
+    const globalCmd = mcpCmd.command === 'node'
+      ? { ...mcpCmd, args: [path.resolve(cwd, mcpCmd.args[0])] }
+      : mcpCmd;
+    mergeJsonConfig(globalMcpPath, 'mcpServers', globalCmd, force);
+    if (!options.nonInteractive) console.log(`Configured Antigravity global MCP at ${globalMcpPath}`);
   }
 
   // Copy Agent Skill if requested
