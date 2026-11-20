@@ -242,6 +242,9 @@ When this agent environment is connected to the `cybermp-agent-kit` MCP server, 
 4. **`cybermp_search_docs`**:
    - Search official guides for recipes and implementation patterns.
    - Example: `cybermp_search_docs({ query: "live reload" })`
+5. **`cybermp_lookup_tweakdb`**:
+   - Query verified Cyberpunk 2077 TweakDB record IDs for status effects, weapons, armed vehicles, clothing, and workspots.
+   - Example: `cybermp_lookup_tweakdb({ query: "burning", category: "status_effects" })`
 
 ---
 

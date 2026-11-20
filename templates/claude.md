@@ -35,6 +35,30 @@ CyberMP is not FiveM, alt:V, RAGEMP, or SA-MP. DO NOT use APIs from other multip
 
 Always use official CyberMP events (`mp.events.on`, `mp.events.onClient`, `mp.events.onServer`, `mp.events.onCef`).
 
+### REDengine Game Natives Guidance
+When `use_game_natives = true` is configured in `resource.toml`, client scripts gain direct access to `mp.game.*` for REDengine native classes, systems, and facilities.
+
+DO NOT hallucinate FiveM or GTA native methods for player, vehicle, door, prop, or animation manipulation:
+- Prohibited: `SetEntityCoords(ped, x, y, z)` → Mandated: `mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(player, targetPos, targetRot)`
+- Prohibited: `SetPedIntoVehicle(ped, veh, seat)` → Mandated: `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)`
+- Prohibited: `SetEntityHealth(ped, health)` → Mandated: `mp.game.ScriptGameInstance.GetStatPoolsSystem().RequestSettingStatPoolValueIgnoreChangeMode(...)`
+- Prohibited: `SetVehicleDoorOpen` / `SetVehicleDoorBroken` → Mandated: `vehicle.GetVehicleControllerPS().SetDoorState(door, state, immediate)`
+- Prohibited: `SetVehicleEngineOn` → Mandated: `vehicle.TurnEngineOn(engineOn)`
+- Prohibited: `TaskPlayAnim` / `PlayEntityAnim` → Mandated: `mp.game.ScriptGameInstance.GetWorkspotSystem().PlayInDeviceSimple(device, actor, allowCameraMov)`
+- Prohibited: `CreateObject` / `CreateObjectNoOffset` → Mandated: `mp.local.spawnObject(skinHash, appHash, x, y, z, roll, pitch, yaw, streaming)` (client) or `mp.objects.create({ model, position, dimension })` (server)
+
+All REDengine native type instantiations must use `Object.assign(new mp.game.<Type>(), { ... })`.
+
+### Reference Guides Suite
+Detailed native implementation patterns are documented in `skills/cybermp-dev/references/`:
+- Native [F] Prompt & Markers: `recipes/world-interaction.md`
+- Doors & Interior Unlocking: `doors-and-devices.md`
+- Props & Interior Streaming: `object-spawning-and-streaming.md`
+- Ambient Animations & Workspots: `animations-and-workspots.md`
+- Vehicle Tuning, Shaders & Combat 2.0: `vehicles-tuning-combat.md`
+- Engine Systems & Lifecycle: `game-natives.md`
+- Player Lifecycle & Restrictions: `player-mechanics.md`
+
 ## CyberMP MCP Server Tools
 
 When `cybermp-agent-kit` is available, query these tools rather than hallucinating signatures:
@@ -42,6 +66,7 @@ When `cybermp-agent-kit` is available, query these tools rather than hallucinati
 - `cybermp_get_type`: Inspect TypeScript interfaces, properties, methods, and doc comments.
 - `cybermp_get_rpc_flow`: Generate paired sender and receiver boilerplate code.
 - `cybermp_search_docs`: Search official guides and documentation.
+- `cybermp_lookup_tweakdb`: Lookup verified Cyberpunk 2077 TweakDB record IDs for status effects, armed vehicles, weapons, and workspots.
 
 ## TypeScript Configuration & Coding Conventions
 

@@ -61,6 +61,7 @@ Consult the CyberMP MCP server whenever needed:
 - `cybermp_get_type`: Inspect TypeScript interfaces, properties, and methods.
 - `cybermp_get_rpc_flow`: Generate paired RPC code across Server, Client, and CEF.
 - `cybermp_search_docs`: Search guides, architecture patterns, and setup instructions.
+- `cybermp_lookup_tweakdb`: Lookup verified Cyberpunk 2077 TweakDB record IDs for status effects, armed vehicles, weapons, and workspots.
 
 ## Resource Architecture
 
