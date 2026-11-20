@@ -1,165 +1,71 @@
+---
+environment: client
+---
+
 # Animations & Workspots Reference
 
-This reference covers REDengine 4's native workspot system (`gameWorkspotGameSystem`) in CyberMP client scripts, enabling contextual full-body animations such as sitting, leaning, smoking, drinking, and dancing.
+A REDengine workspot uses a device or anchor and an actor. Its data can define alignment, entry and exit animations, camera behavior and props. The outcome depends on the selected workspot, the device setup and the actor.
 
----
+## 1. Workspot Assets in Cyberpunk 2077
 
-## 1. What are Workspots in REDengine?
+When inspecting a vanilla spot or building one in WolvenKit, start with the device entity. One documented pattern is an `.ent` with a `workWorkspotResourceComponent` referencing a `.workspot` by component name and depot path. Inspect the animation clips and their dependencies in the target build. Treat labels such as sitting, leaning, smoking or dancing as search terms. A label alone does not identify the device, position, animation or camera behavior. [Workspot asset example](https://wiki.redmodding.org/cyberpunk-2077-modding/modding-guides/animations/animations/abusing-workspots)
 
-In Cyberpunk 2077, complex ambient and interactive animations are handled by **Workspots**. Rather than manually blending skeletal bones or clipping through chairs, a workspot aligns the actor entity with an interactive object or anchor point, handling:
+### Delivering an Archive with a Workspot
 
-- Seamless camera transitions (allowing free look or fixed cinematic angles).
-- Prop attachment (holding glasses, cigarettes, bottles, datashards).
-- Entry, idle loops, reactions, and smooth exit transitions.
-
-The subsystem managing all workspot interactions is `gameWorkspotGameSystem`, retrieved via:
-
-```typescript
-const workspotSystem = mp.game.ScriptGameInstance.GetWorkspotSystem();
-```
-
----
+Verify one device and one animation in the target game first. For custom assets, package the device, workspot and required dependencies into an archive and declare it in the resource's `file` list. Test the depot path, spawn or placement, component name and playback separately on a clean CyberMP client. If the original mod uses another runtime, verify how its logic is invoked in CyberMP. Archive delivery alone proves neither that its external script runtime is available nor that the animation is replicated. [CyberMP resource files](https://docs.cyber.mp/guides/resources/adding-resource-files/) · [Archive prop recipe](recipes/archive-prop.md)
 
 ## 2. Core Workspot API (`gameWorkspotGameSystem`)
 
-### Key Methods
+These methods are declared in `@cybermp/client-types@2.7.1`. Get the system through `mp.game.ScriptGameInstance.GetWorkspotSystem()` after the world is available. Actor and device arguments are native `gameObject` handles. [CyberMP type definitions](https://github.com/Cyber-MP/CyberMP-Types)
 
-| Method | Description |
+| Method | Purpose |
 |---|---|
-| `PlayInDeviceSimple(device, actor, allowCameraMov, ...)` | Begins workspot animation playback on the actor anchored to the device. |
-| `SendSlowExitSignal(actor, animName?, dontWait?)` | Gracefully transitions the actor out of the workspot with an exit animation. |
-| `SendFastExitSignal(actor, dirLS?, stayIfFailed?, ...)` | Abruptly breaks out of the workspot (e.g. taking damage or drawing weapons). |
-| `StopInDevice(actor, posDelta?, orientDelta?)` | Immediately stops workspot playback without exit animations. |
-| `IsActorInWorkspot(actor)` | Checks if the given actor entity is currently playing a workspot. |
-
----
+| `PlayInDeviceSimple(device, actor, allowCameraMov, ...)` | Requests playback at the device. Optional arguments include actor and device component names, a sync slot and slide settings. |
+| `IsActorInWorkspot(actor)` | Reports whether the actor is in a workspot. Check device identity separately if the mode needs it. |
+| `SendSlowExitSignal(actor, animationName?, dontWaitForCurrentAnimationToFinish?)` | Requests a normal exit. |
+| `SendFastExitSignal(actor, ...)` | Requests a fast exit with optional failure and transition behavior. |
+| `StopInDevice(actor, posDelta?, orientDelta?)` | Stops playback with optional position and rotation deltas. |
 
 ## 3. Playing and Exiting Workspots
 
-Here is a standard wrapper implementing safe workspot playback, camera freedom, and graceful exit handling.
+### Local Playback Request (`PlayInDeviceSimple`)
+
+Pass a resolved device that you have checked in the target build. Run after the local player spawns. The wrapper returns whether it issued the request. Verify alignment, entry and exit separately from `IsActorInWorkspot`.
 
 ```typescript
-import type { gameObject, gameWorkspotGameSystem } from '@cybermp/client-types/game';
+import type { gameObject } from '@cybermp/client-types/game';
 
-const workspotSystem: gameWorkspotGameSystem = mp.game.ScriptGameInstance.GetWorkspotSystem();
+export function requestLocalWorkspot(device: gameObject, deviceComponent?: string): boolean {
+  const actor = mp.game.GetPlayerObject();
+  if (!actor) return false;
 
-/**
- * Starts a workspot on the local player using a target workspot device entity.
- *
- * @param device Target interactive furniture, chair, or workspot anchor entity
- * @param allowCameraMovement Whether the player retains free camera look-around
- */
-export function enterWorkspot(device: gameObject, allowCameraMovement: boolean = true): boolean {
-  const player = mp.game.GetPlayer();
-  if (!player || !device || !workspotSystem) return false;
+  const system = mp.game.ScriptGameInstance.GetWorkspotSystem();
+  if (!system || system.IsActorInWorkspot(actor)) return false;
 
-  if (workspotSystem.IsActorInWorkspot(player)) {
-    console.log('[Workspot] Player is already in an active workspot.');
-    return false;
-  }
-
-  workspotSystem.PlayInDeviceSimple(
-    device,
-    player,
-    allowCameraMovement,
-    undefined, // actorDataCompName
-    undefined, // deviceDataCompName
-    undefined, // syncSlotName
-    0.3,       // slideTime (seconds to align into spot)
-  );
-
-  console.log('[Workspot] Entered workspot successfully');
+  system.PlayInDeviceSimple(device, actor, true, undefined, deviceComponent);
   return true;
 }
-
-/**
- * Gracefully exits the current workspot with a natural exit animation.
- */
-export function exitWorkspotGracefully(): void {
-  const player = mp.game.GetPlayer();
-  if (!player || !workspotSystem) return;
-
-  if (workspotSystem.IsActorInWorkspot(player)) {
-    workspotSystem.SendSlowExitSignal(player);
-    console.log('[Workspot] Sent slow exit signal');
-  }
-}
-
-/**
- * Immediately breaks the player out of a workspot (e.g. in combat or emergency).
- */
-export function exitWorkspotFast(): void {
-  const player = mp.game.GetPlayer();
-  if (!player || !workspotSystem) return;
-
-  if (workspotSystem.IsActorInWorkspot(player)) {
-    workspotSystem.SendFastExitSignal(player, undefined, false, true, true);
-    console.log('[Workspot] Sent fast exit signal');
-  }
-}
-
-/**
- * Returns whether the local player is currently seated or in a workspot.
- */
-export function isPlayerInWorkspot(): boolean {
-  const player = mp.game.GetPlayer();
-  if (!player || !workspotSystem) return false;
-  return workspotSystem.IsActorInWorkspot(player);
-}
 ```
 
----
+### Local Exit Request (`SendSlowExitSignal`)
 
-## 4. Catalog of Verified Workspot Actions
-
-Night City includes thousands of predefined workspot devices scattered across the map. Below are verified workspot categories and behaviors:
-
-### 1. Sitting (Chairs, Benches, Bar Stools, Couches)
-- **Visuals**: Seamless alignment with seat cushions, natural relaxed posture, hands resting on knees or bar counter.
-- **Camera**: Allows first-person or third-person 360-degree look.
-- **Exit**: Slow exit plays standing up animation; pressing movement keys (`W/A/S/D`) can trigger `SendSlowExitSignal`.
-
-### 2. Smoking (Balconies, Street Corners, Alleyways)
-- **Visuals**: Character leans back or against railings, spawns an animated cigarette prop in fingers, takes periodic drags, and emits smoke particle VFX from mouth.
-- **Props**: Automatically attaches `base\items\quest\q000\q000_cigarette.ent` (or equivalent) to the player's hand bone slot (`ItemSlot.Hand_R`).
-
-### 3. Drinking (Bars, Lounges, Nightclubs)
-- **Visuals**: Spawns bottle or glass (e.g. Nicola, Centzon, Johnny Silverhand cocktail), sips periodically, and rests elbows on the bar counter.
-- **Props**: Attaches beverage container prop to the hand slot and synchronizes audio sips.
-
-### 4. Leaning (Railings, Walls, Balconies)
-- **Visuals**: Forearms resting on chest-high railings, overlooking cityscapes, or leaning back against concrete walls.
-- **Multiplayer Usage**: Perfect for scenic social hubs, penthouses, and club balconies.
-
-### 5. Dancing (Clubs, Afterlife, Riot, 7th Hell)
-- **Visuals**: Continuous rhythmic dancing with multiple synchronized variations (energetic EDM dance, relaxed swaying, industrial groove).
-- **Audio**: Automatically syncs rhythm with nearby music emitters.
-
----
-
-## 5. Multiplayer Workspot Synchronization
-
-Because `gameWorkspotGameSystem` runs in the local game client, when a player sits down or smokes, other players will not see it unless the action is synchronized over CyberMP:
+Call this only when your resource owns the actor's current workspot session. Actor presence in a workspot alone does not prove ownership. Watch for puppet replacement and clean up the resource's occupancy state on mode exit and resource stop.
 
 ```typescript
-// 1. Client notifies server when entering a workspot
-export function syncWorkspotStart(workspotEntityId: string): void {
-  mp.events.emitServer('player:workspot:enter', workspotEntityId);
+export function requestLocalWorkspotExit(): boolean {
+  const actor = mp.game.GetPlayerObject();
+  if (!actor) return false;
+
+  const system = mp.game.ScriptGameInstance.GetWorkspotSystem();
+  if (!system?.IsActorInWorkspot(actor)) return false;
+
+  system.SendSlowExitSignal(actor);
+  return true;
 }
-
-// 2. Server relays to all nearby clients
-// mp.events.onClient('player:workspot:enter', (player, workspotEntityId) => {
-//   mp.events.emitClient(otherPlayers, 'player:workspot:replicate', player.id, workspotEntityId);
-// });
-
-// 3. Other clients play the workspot on the remote player ped
-mp.events.onServer('player:workspot:replicate', (remotePlayerId: number, workspotEntityId: string) => {
-  const remotePlayerPed = getRemotePlayerPed(remotePlayerId);
-  const workspotDevice = findDeviceEntityById(workspotEntityId);
-
-  if (remotePlayerPed && workspotDevice) {
-    const ws = mp.game.ScriptGameInstance.GetWorkspotSystem();
-    ws.PlayInDeviceSimple(workspotDevice, remotePlayerPed, true);
-  }
-});
 ```
+
+## 4. Multiplayer Workspot Synchronization
+
+First test the local animation with two clients to see what CyberMP already replicates. If the mode needs shared occupancy, keep the canonical occupancy on the server using a stable resource key for the spot and the player's CyberMP Network ID. Validate requests against the spot catalog, player position, dimension and current occupancy. Send the current state to late joiners and release occupancy on exit, disconnect or mode reset.
+
+Remote playback is a separate engine test. For an available player, resolve the Network ID with `mp.network.getPlayerGameId` on that client. Resolve the device by the resource key on the same client. Defer presentation if the actor or device is missing. Before applying `PlayInDeviceSimple` to a remote actor, test whether it works with that actor's ownership and CyberMP's movement updates. Verify stream-out and stream-in, another client joining while the spot is occupied, and exit or respawn. [CyberMP Network IDs](https://docs.cyber.mp/guides/client/network-ids/)

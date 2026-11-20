@@ -92,12 +92,23 @@ it('serves the installed package with the locked production dependencies', async
         expect(answer, query).toContain('WolvenKit');
         expect(answer, query).toContain('ArchiveXL');
       }
+      for (const query of ['archive compatibility', 'mod dependencies', 'CET Lua', 'совместимость модов']) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain('CyberMP archive mod compatibility');
+        expect(answer, query).toContain('file delivery, engine loading, local behavior and multiplayer replication');
+      }
       const cefReadiness = await client.callTool({
         name: 'cybermp_search_docs', arguments: { query: 'ui:ready' },
       });
       const cefText = (cefReadiness.content as Array<{ text: string }>)[0].text;
       expect(cefText).toContain("mp.events.onCef('ui:ready'");
       expect(cefText).toContain("mp.events.emit('ui:ready')");
+      expect(cefText).toContain('Example environment:** browser');
+      expect(cefText).toContain('Example environment:** client');
+      expect(cefText).toContain('Type-checked against @cybermp/browser-types@2.0.1');
       const camera = await client.callTool({
         name: 'cybermp_search_docs', arguments: { query: 'simple_free_camera.ent', limit: 1 },
       });
@@ -109,6 +120,26 @@ it('serves the installed package with the locked production dependencies', async
       const interiorText = (interior.content as Array<{ text: string }>)[0].text;
       expect(interiorText).toContain('collision-readiness signal');
       expect(interiorText).not.toContain('enterInteriorSafely');
+      for (const [query, expected] of [
+        ['coordinate teleportation', ['close', 'GetPlayerObject()', 'puppet.GetMountedVehicle()']],
+        ['health max health god mode', ['perc argument', 'units of the current value']],
+        ['EquipCyberwareByTDBID', ['takes a PlayerPuppet', 'equipmentSystem.EquipCyberwareByTDBID(player, itemKey)']],
+        ['door manipulation helper', ['state.IsSealed()', 'door.OpenDoor()', 'door.CloseDoor()']],
+        ['PlayInDeviceSimple', ['GetPlayerObject()', 'system.PlayInDeviceSimple(device, actor']],
+        ['speedometer cef bridge', ['vehicle.GetCurrentSpeed()', 'kmh: null', 'RPM and gear require']],
+        ['controlling doors hood and trunk', ['vehicle.GetVehiclePS()?.GetVehicleControllerPS()', 'controller.SetDoorState']],
+        ['TrackMappin', ['Environment:** client', "typeof system?.TrackMappin !== 'function'"]],
+        ['GetSlotTransform', ['success flag', 'if (found) return']],
+        ['SendInputHintData', ['Interaction Point Probe', 'after world load', 'remove the point, hint and timer']],
+        ['authoritative server damage protection', ['Environment:** server', 'data.victimId', 'mp.cancelEvent() synchronously']],
+        ['cross-resource exports pipeline', ['@cybermp/server-types@3.2.8', 'has no MpServer.exports member']],
+      ] as const) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        for (const text of expected) expect(answer, query).toContain(text);
+      }
       for (const [name, env, signature, method] of [
         ['vehicleStreamIn', 'client', 'vehicleStreamIn(netID: number, gameID: number)', 'mp.events.on'],
         ['playerConnecting', 'server', 'playerConnecting(tempId: number, name: string)', 'mp.events.on'],
@@ -139,6 +170,30 @@ it('serves the installed package with the locked production dependencies', async
       const evidence = (disputedId.content as Array<{ text: string }>)[0].text;
       expect(evidence).toContain('ID needs recheck');
       expect(evidence).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
+      const quickhack = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'Items.DisableCyberwareLvl4Program', category: 'quickhacks' },
+      });
+      const quickhackText = (quickhack.content as Array<{ text: string }>)[0].text;
+      expect(quickhackText).toContain('Items.CyberwareMalfunctionLvl4Program');
+      expect(quickhackText).toContain('Candidate: `Items.DisableCyberwareLvl4Program`');
+      for (const [category, query] of [
+        ['ammo', 'Ammo.RifleAmmo'],
+        ['cyberware', 'Items.AdvancedMantisBladesLegendaryPlus'],
+        ['consumables', 'Items.HealthBooster'],
+      ]) {
+        const response = await client.callTool({
+          name: 'cybermp_lookup_tweakdb', arguments: { category, query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, category).toContain(`\`${query}\``);
+        expect(answer, category).toContain('Exact record name in WolvenKit index');
+      }
+      const workspot = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'Workspot.SitChair' },
+      });
+      const workspotText = (workspot.content as Array<{ text: string }>)[0].text;
+      expect(workspotText).toContain('Workspot search label');
+      expect(workspotText).toContain('PlayInDeviceSimple');
     } finally {
       await client.close();
     }

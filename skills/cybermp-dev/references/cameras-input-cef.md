@@ -1,3 +1,7 @@
+---
+environment: client
+---
+
 # Camera, Input & CEF Reference
 
 This reference covers low-level REDengine camera manipulation, detached free camera spawning, multi-target spectator systems, direct keyboard hardware input capturing, and Chromium Embedded Framework (CEF) focus/cursor management in CyberMP client scripts (`use_game_natives = true`).
@@ -425,7 +429,7 @@ Game state has a separate lifecycle. For player-specific data, send an update af
 
 Register `ui:ready` using the game client's `mp.events.onCef`. Reply with `ui:init` using `mp.events.emitCef`.
 
-```typescript
+```typescript env=client checked=@cybermp/client-types@2.7.1
 mp.events.onCef('ui:ready', () => {
   mp.events.emitCef('ui:init', { timestamp: Date.now() });
 });
@@ -435,7 +439,7 @@ mp.events.onCef('ui:ready', () => {
 
 In the CEF browser script, register `ui:init` using the injected `mp.events.on`. Emit `ui:ready` once the UI has initialized.
 
-```typescript
+```typescript env=browser checked=@cybermp/browser-types@2.0.1
 mp.events.on('ui:init', (data: { timestamp: number }) => {
   console.log('[CEF] Startup data received at', data.timestamp);
 });
@@ -535,7 +539,7 @@ When CEF does not own direct keyboard focus (`mp.cef.isInFocus() === false`), we
 
 ### Browser-Side Event Simulator (`keys.ts`)
 
-```typescript
+```typescript env=browser
 import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
 
 const keyCodeToName: Record<number, string> = {

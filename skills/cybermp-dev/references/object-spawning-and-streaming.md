@@ -22,7 +22,7 @@ CyberMP provides two distinct mechanisms for spawning world objects, each suited
 
 Use the model and appearance hashes expected by the client API. Use a `bigint` for a 64-bit hash obtained as a string, since converting it to `number` can lose precision. The numeric return value is the local handle used for cleanup. Check entity and appearance resolution in the target client. [Local entities guide](https://docs.cyber.mp/guides/client/local-entities/) · [Archive prop recipe](recipes/archive-prop.md)
 
-```typescript
+```typescript env=client
 // Store spawned local props for lifecycle management
 const activeLocalObjects: number[] = [];
 
@@ -81,7 +81,7 @@ mp.events.on('resourceStop', clearAllLocalProps);
 
 On the server, resolve a prop depot path as a resource reference with `mp.hashes.resref`. Test visibility with clients inside and outside the streaming range and in different dimensions. Every client that should render a custom prop needs its asset and dependencies. [Server object guide](https://docs.cyber.mp/guides/server/entities/#spawning-objects) · [Archive prop recipe](recipes/archive-prop.md)
 
-```typescript
+```typescript env=server
 import type { MpObject, Vector3 } from '@cybermp/server-types';
 
 /**

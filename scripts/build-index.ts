@@ -21,6 +21,7 @@ import type {
   MethodRecord,
   EnumMemberRecord,
   TypeRecord,
+  GuideExampleContext,
   GuideRecord,
   BuildIndexResult,
 } from '../src/types/index.js';
@@ -701,13 +702,26 @@ export function parseMarkdownSections(
 
   const anchors = new Set<string>();
   return sections.map(({ title: sectionTitle, lines }, index) => {
-    const blocks: Array<{ language: string; code: string }> = [];
-    const prose = lines.join('\n').replace(
-      /^[ \t]*([`~])\1{2,}([^\s`~]*)[^\n]*\n([\s\S]*?)\n[ \t]*\1{3,}[ \t]*$/gm,
-      (_, _marker: string, language: string, code: string) => {
+    const blocks: Array<{ language: string; code: string; context: GuideExampleContext }> = [];
+    const sectionText = lines.join('\n');
+    let previousFenceEnd = 0;
+    const prose = sectionText.replace(
+      /^[ \t]*([`~])\1{2,}([^\s`~]*)([^\n]*)\n([\s\S]*?)\n[ \t]*\1{3,}[ \t]*$/gm,
+      (block: string, _marker: string, language: string, attributes: string, code: string, offset: number) => {
         if (language.toLowerCase() !== 'mermaid' && code.trim()) {
-          blocks.push({ language, code: code.trim() });
+          const context: GuideExampleContext = {};
+          const [, environment] = /(?:^|\s)env=(client|server|browser|tooling)(?=\s|$)/.exec(attributes) ?? [];
+          if (environment === 'client' || environment === 'server' || environment === 'browser' || environment === 'tooling') {
+            context.environment = environment;
+          }
+          const checked = /(?:^|\s)checked=(@cybermp\/(client|server|browser)-types@[^\s]+)(?=\s|$)/.exec(attributes);
+          if (checked && checked[2] === environment) context.checkedAgainst = checked[1];
+          const notes = sectionText.slice(previousFenceEnd, offset).trim()
+            .split(/\n[ \t]*\n/).map(extractPlainText).filter((paragraph) => paragraph && !/^[-*_]{3,}$/.test(paragraph)).at(-1);
+          if (notes) context.notes = notes;
+          blocks.push({ language, code: code.trim(), context });
         }
+        previousFenceEnd = offset + block.length;
         return '\n\n';
       },
     );
@@ -730,6 +744,7 @@ export function parseMarkdownSections(
       url: baseUrl + suffix,
       codeSnippets: blocks.map((block) => block.code),
       codeLanguages: blocks.map((block) => block.language),
+      ...(blocks.length ? { exampleContexts: blocks.map((block) => block.context) } : {}),
       plainText: paragraphs.join(' '),
       paragraphs,
       ...(metadata.environment ? { environment: metadata.environment } : {}),

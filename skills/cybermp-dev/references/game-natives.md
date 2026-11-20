@@ -1,3 +1,7 @@
+---
+environment: client
+---
+
 # REDengine Game Natives Reference
 
 This reference covers the low-level REDengine native subsystems and patterns available in the CyberMP client environment when `use_game_natives = true` is enabled in `resource.toml`.
@@ -429,6 +433,7 @@ export function createEntityMappin(
     active: true,
   });
 
+  destroyMappin(entityId);
   const mappinId = mappinSystem.RegisterMappin(mappinData, position);
   registeredMappins.set(entityId, mappinId);
   return mappinId;
@@ -446,20 +451,6 @@ export function updateMappinPosition(entityId: number, position: Vector4): void 
 }
 
 /**
- * Activates active GPS pathing / track line to a mappin.
- */
-export function trackMappin(mappinId: gameNewMappinID): void {
-  mappinSystem?.TrackMappin(mappinId);
-}
-
-/**
- * Disables active GPS pathing / track line.
- */
-export function untrackMappin(): void {
-  mappinSystem?.UntrackMappin();
-}
-
-/**
  * Unregisters and removes a mappin from radar and world.
  */
 export function destroyMappin(entityId: number): void {
@@ -469,6 +460,29 @@ export function destroyMappin(entityId: number): void {
     mappinSystem.UnregisterMappin(mappinId);
     registeredMappins.delete(entityId);
   }
+}
+
+mp.events.on('resourceStop', () => {
+  for (const key of registeredMappins.keys()) destroyMappin(key);
+  mappinSystem = null;
+});
+```
+
+### Requesting GPS Tracking (`TrackMappin`)
+
+The generated getter returns `gamemappinsMappinSystem`. The CyberMP extension is documented separately. Freeroam augments the generated interface locally before requesting tracking. Check that the target bridge exposes the method and verify the resulting GPS line in the game. [CyberMP extension](https://docs.cyber.mp/reference/client/api/natives/extended__gamemappinsystem/) · [Freeroam checkpoint code](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game-modes/modes/race/checkpoint.ts)
+
+```typescript env=client checked=@cybermp/client-types@2.7.1
+import type { gamemappinsMappinSystem, gameNewMappinID } from '@cybermp/client-types/game';
+
+export function requestMappinTracking(id: gameNewMappinID): boolean {
+  const system = mp.game.ScriptGameInstance.GetMappinSystem() as
+    | (gamemappinsMappinSystem & { TrackMappin?: (id: gameNewMappinID) => void })
+    | undefined;
+  if (typeof system?.TrackMappin !== 'function') return false;
+
+  system.TrackMappin(id);
+  return true;
 }
 ```
 
@@ -480,51 +494,22 @@ REDengine spawns particle systems, neon light beams, holographic waypoints, and 
 
 ### Spawning World FX
 
-FX instances require a `WorldTransform` and a `gameFxResource` specifying the `.effect` depot path:
+Pass a `gameFxResource` whose effect reference is already configured and resolved for the target asset. The generated `effect` field is a resource reference. The fragment accepts that typed input so the resource can use a verified asset setup. Call after world load and retain the returned instance for cleanup. [Freeroam FX example](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game-modes/modes/race/map-builder.ts)
 
 ```typescript
-import type {
-  gameFxInstance,
-  gameFxResource,
-  WorldTransform,
-} from '@cybermp/client-types/game';
-import { createEulerAngles, createVector4 } from './vectors';
+import type { gameFxResource, Vector4 } from '@cybermp/client-types/game';
 
-/**
- * Spawns an in-world visual effect (particle, laser beam, glowing waypoint).
- *
- * @param effectPath Depot path to the .effect asset
- * @param pos [x, y, z] position
- * @param rot [roll, pitch, yaw] orientation in degrees
- * @returns The spawned gameFxInstance
- */
-export function spawnWorldEffect(
-  effectPath: string,
-  pos: [number, number, number],
-  rot: [number, number, number] = [0, 0, 0],
-): gameFxInstance {
-  const [x, y, z] = pos;
-  const [roll, pitch, yaw] = rot;
+export function requestWorldEffect(resource: gameFxResource, position: Vector4) {
+  const system = mp.game.ScriptGameInstance.GetFxSystem();
+  if (!system) return;
 
-  const transform = Object.assign(new mp.game.WorldTransform(), {});
-  mp.game.WorldTransform.SetPosition(transform, createVector4(x, y, z, 1.0));
-  mp.game.WorldTransform.SetOrientationEuler(transform, createEulerAngles(roll, pitch, yaw));
-
-  const fxResource = Object.assign(new mp.game.gameFxResource(), {
-    effect: effectPath as any,
-  } satisfies gameFxResource);
-
-  const fxSystem = mp.game.ScriptGameInstance.GetFxSystem();
-  return fxSystem.SpawnEffect(fxResource, transform);
-}
-
-/**
- * Kills/despawns an active world effect instance.
- */
-export function destroyWorldEffect(instance: gameFxInstance): void {
-  instance.Kill();
+  const transform = new mp.game.WorldTransform();
+  mp.game.WorldTransform.SetPosition(transform, position);
+  return system.SpawnEffect(resource, transform);
 }
 ```
+
+Use the instance's `Kill()` when the resource no longer needs the effect. Verify the effect's rendered appearance, lifetime and cleanup in the game.
 
 ---
 
@@ -581,7 +566,7 @@ export function despawnLocalObject(handle: number): void {
 /**
  * Finds an entEntity instance in REDengine by its numeric hash ID.
  */
-export function findEntityByHash(entityHash: number): mp.game.entEntity | null {
+export function findEntityByHash(entityHash: number) {
   const entityId = Object.assign(new mp.game.entEntityID(), {
     hash: entityHash,
   });
@@ -725,51 +710,31 @@ export function interactWithLookAtDoor(): boolean {
 
 ## 14. Native Engine Multiplayer System (`GetMultiplayerSystem`)
 
-Cyberpunk 2077 includes an internal engine multiplayer subsystem accessible via `mp.game.ScriptGameInstance.GetMultiplayerSystem()`.
-
-```typescript
-import { createVector4 } from './vectors';
-
-/**
- * Configures the engine's internal default respawn coordinates.
- *
- * @param x World X coordinate
- * @param y World Y coordinate
- * @param z World Z coordinate
- * @param heading Facing angle in degrees
- */
-export function setEngineDefaultSpawn(x: number, y: number, z: number, heading = 0): void {
-  const mpSystem = mp.game.ScriptGameInstance.GetMultiplayerSystem();
-  const vec4 = createVector4(x, y, z, heading);
-
-  mpSystem.SetDefaultSpawnPosition(
-    mp.game.Vector4.Vector4To3(vec4),
-    heading,
-  );
-}
-```
+The native `GetMultiplayerSystem()` exposes an engine subsystem, including `SetDefaultSpawnPosition`. CyberMP's resource spawn flow uses its own lifecycle and API. Use the [player spawning reference](player-mechanics.md#player-spawning-implementation) for a resource-controlled spawn and verify any direct engine configuration against your target build.
 
 ---
 
 ## 15. Client Streamed Entity Pools (`mp.network.getStreamedPool`)
 
-In client-side scripts, `mp.network.getStreamedPool` retrieves arrays of numeric REDengine entity hashes currently loaded in the local streaming memory:
+In client-side scripts, `mp.network.getStreamedPool` returns engine IDs for the specified pool. Entity resolution can fail while streaming changes. Treat the result as a local snapshot.
 
 ```typescript
+import type { vehicleBaseObject } from '@cybermp/client-types/game';
+
 export type StreamedPoolType = 'CVehicle' | 'CPed' | 'CObject' | 'CPickup';
 
 /**
  * Retrieves all currently streamed vehicle hashes and converts them to entity objects.
  */
-export function getStreamedVehicles(): mp.game.vehicleBaseObject[] {
+export function getStreamedVehicles(): vehicleBaseObject[] {
   const vehicleHashes = mp.network.getStreamedPool('CVehicle');
-  const vehicles: mp.game.vehicleBaseObject[] = [];
+  const vehicles: vehicleBaseObject[] = [];
 
   for (const hash of vehicleHashes) {
     const entityId = Object.assign(new mp.game.entEntityID(), { hash });
     const entity = mp.game.ScriptGameInstance.FindEntityByID(entityId);
-    if (entity) {
-      vehicles.push(entity as mp.game.vehicleBaseObject);
+    if (entity?.IsA('vehicleBaseObject')) {
+      vehicles.push(entity as unknown as vehicleBaseObject);
     }
   }
 
@@ -832,74 +797,41 @@ export function isEntityVisibleToPlayer(targetEntity: gameObject): boolean {
 
 ### Exact Bone & Head Transforms (`GetSlotTransform` & `WorldPosition.ToVector4`)
 
-For nametag placement, headshots, or bone attachments, query the entity's `slotComponent`:
+Use this client fragment with a verified component name and slot name for the entity's asset. The generated `GetSlotTransform` return value includes a success flag. An unavailable component or slot produces no position.
 
-```typescript
-import type { entEntity, Vector4 } from '@cybermp/client-types/game';
+```typescript env=client checked=@cybermp/client-types@2.7.1
+import type { entEntity, entSlotComponent, Vector4 } from '@cybermp/client-types/game';
 
-/**
- * Retrieves the precise world position of an entity's head bone.
- */
-export function getEntityHeadPosition(entity: entEntity): Vector4 {
-  const slotComp = entity.FindComponentByName('Item_Attachment_Slot');
-  if (slotComp) {
-    const [, transform] = slotComp.GetSlotTransform('Head');
-    if (transform?.Position) {
-      return mp.game.WorldPosition.ToVector4(transform.Position);
-    }
-  }
+export function readSlotPosition(
+  entity: entEntity, componentName: string, slotName: string,
+): Vector4 | undefined {
+  const component = entity.FindComponentByName(componentName);
+  if (!component?.IsA('entSlotComponent')) return;
 
-  return entity.GetWorldPosition();
+  const [found, transform] = (component as entSlotComponent).GetSlotTransform(slotName);
+  if (found) return mp.game.WorldPosition.ToVector4(transform.Position);
 }
 ```
 
 ### In-Game Warning Alerts & Drop Point Control
 
 ```typescript
-/**
- * Displays a native Cyberpunk warning banner across the HUD.
- */
 export function showEngineWarning(message: string): void {
-  mp.game.GetPlayer().SetWarningMessage(message);
+  mp.game.GetPlayer()?.SetWarningMessage(message);
 }
+```
 
-/**
- * Disables physical drop point stash terminals across the game world.
- */
-export function disableDropPoints(): void {
-  const req = Object.assign(new mp.game.ToggleDropPointSystemRequest(), {
-    isEnabled: false,
-    reason: 'MultiplayerCore',
-  });
+The generated declarations expose `ToggleDropPointSystemRequest` for the drop point subsystem. Verify its dispatch, effect and restoration on the target build before changing game-wide device behavior.
 
-  const dropPointSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('DropPointSystem');
-  dropPointSystem.OnToggleDropPointSystemRequest(req);
-}
+### Journal Manager & Quest Marker Inspection (`GetJournalManager`)
 
-### Journal Manager & Quest Marker Suppression (`GetJournalManager`)
-
-Singleplayer quests can trigger unwanted map pins or objectives in multiplayer. Suppress tracked entries via `JournalManager`:
+Inspect a tracked journal entry and its hash when investigating a vanilla marker. Changing the quest state to succeeded affects the journal itself. For resource-owned markers, register and remove your own mappins.
 
 ```typescript
-import { gameJournalEntryState, gameJournalNotifyOption } from '@cybermp/client-types/enums';
-
-/**
- * Suppresses active singleplayer tracked quests.
- */
-export function suppressSingleplayerTrackedQuests(): void {
-  const journalManager = mp.game.ScriptGameInstance.GetJournalManager();
-  if (!journalManager) return;
-
-  const trackedEntry = journalManager.GetTrackedEntry();
-  if (!trackedEntry) return;
-
-  const parentEntry = journalManager.GetParentEntry(journalManager.GetParentEntry(trackedEntry));
-  const entryHash = journalManager.GetEntryHash(parentEntry);
-  journalManager.ChangeEntryStateByHash(
-    entryHash,
-    gameJournalEntryState.Succeeded,
-    gameJournalNotifyOption.DoNotNotify,
-  );
+export function readTrackedJournalEntryHash(): number | undefined {
+  const journal = mp.game.ScriptGameInstance.GetJournalManager();
+  const entry = journal?.GetTrackedEntry();
+  if (entry) return journal.GetEntryHash(entry);
 }
 ```
 
@@ -944,6 +876,8 @@ export function getHeldRightHandWeapon() {
 ### Client Hashing, Network & Vector Utilities (`toTweakdbid`, `getLocalPlayerId`, `Vector4.Distance`)
 
 ```typescript
+import type { Vector2, Vector4 } from '@cybermp/client-types/game';
+
 /**
  * Converts a TweakDB string to its integer hash on the client.
  */
@@ -961,14 +895,14 @@ export function getClientNetworkPlayerId(): number {
 /**
  * Calculates 3D distance between two Vector4 coordinates.
  */
-export function getEntityDistance(posA: mp.game.Vector4, posB: mp.game.Vector4): number {
+export function getEntityDistance(posA: Vector4, posB: Vector4): number {
   return mp.game.Vector4.Distance(posA, posB);
 }
 
 /**
  * Creates a native 2D vector for screen projections.
  */
-export function createVector2(x: number, y: number): mp.game.Vector2 {
+export function createVector2(x: number, y: number): Vector2 {
   return Object.assign(new mp.game.Vector2(), { x, y });
 }
 ```
@@ -979,7 +913,7 @@ export function createVector2(x: number, y: number): mp.game.Vector2 {
 
 | Prohibited Pattern (Hallucinated / FiveM) | Approved CyberMP Pattern |
 | :--- | :--- |
-| `SetEntityCoords(ped, x, y, z)` | `GetTeleportationFacility().Teleport(player, pos, angles)` or `mp.local.spawnPlayer` |
+| `SetEntityCoords(ped, x, y, z)` | `GetTeleportationFacility().Teleport(playerObject, pos, angles)` for an existing local player. See [teleport preparation](player-mechanics.md#coordinate-teleportation-implementation). |
 | `SetPedIntoVehicle(ped, veh, -1)` | `GetMountingFacility().Mount(mountingRequest)` |
 | `SetEntityHealth(ped, 100)` | `StatPoolsSystem.RequestSettingStatPoolValueIgnoreChangeMode(...)` |
 | `SetWeatherTypePersist("CLEAR")` | `GetWeatherSystem().SetWeather(state, blendTime, priority)` |

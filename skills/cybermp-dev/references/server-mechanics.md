@@ -1,3 +1,7 @@
+---
+environment: server
+---
+
 # Server Systems & 3D Math Reference
 
 This reference covers server-side architecture, entity lifecycle management, virtual dimensions, metadata synchronization, player administration, and 3D spatial collision geometry in CyberMP server scripts (`@cybermp/server-types`).
@@ -45,21 +49,10 @@ In CyberMP, the server is authoritative over entity lifecycles. Game objects (pr
 
 ### Object Management (`mp.objects`)
 
-Game objects represent physical REDengine meshes spawned in the multiplayer world. They can be static or dynamic (physics-enabled).
+Resolve a prop depot path with `mp.hashes.resref` and pass the result as the model. Verify the asset and its dependencies on the client. [Object spawning](object-spawning-and-streaming.md)
 
 ```typescript
 import type { MpObject, Vector3, GameHash } from '@cybermp/server-types';
-
-/**
- * Common prop model hashes in REDengine.
- * Game hashes can be represented as 64-bit BigInts or 32-bit numbers.
- */
-export const ObjectModelHashes = {
-  Radio: 7454566152498118096n,
-  TrafficCone: 1045239512398571234n,
-  ConcreteBarrier: 8934521098451293845n,
-  StreetLight: 3498572394857239485n,
-} as const;
 
 export interface SpawnObjectOptions {
   model: GameHash;
@@ -230,10 +223,7 @@ Dimensions isolate entities into separate virtual worlds running on the same ser
 
 ### Core Dimension Rules
 
-1. **Dimension `0`**: Default public world. All connected players start here.
-2. **Dimension `> 0`**: Private/isolated instances. Entities in dimension `X` can only see, hear, collide with, and interact with other entities in dimension `X`.
-3. **Dimension `-1` (Global)**: Entities exist globally across all dimensions (useful for global broadcast markers or universal triggers).
-4. Entities across different dimensions are **completely hidden** from each other, drastically reducing network sync bandwidth and client rendering overhead.
+The server exposes a writable `dimension` on entities. Use explicit dimension IDs assigned by your mode. Test visibility, interaction and any exceptions in the target build before relying on a special value. When moving an occupied vehicle, coordinate all occupants and the vehicle. [CyberMP entity reference](https://docs.cyber.mp/reference/server/api/entities/mpentity/)
 
 ### Isolating Players and Vehicles
 
@@ -251,20 +241,6 @@ export function setPlayerDimension(player: MpPlayer, dimension: number): void {
   console.log(`[Dimension] Moved player ${player.nickname} (${player.id}) to dimension ${dimension}`);
 }
 
-/**
- * Moves a player and their current vehicle together into a private dimension.
- *
- * @param player Target player
- * @param dimension Destination dimension
- */
-export function transferPlayerAndVehicleToDimension(player: MpPlayer, dimension: number): void {
-  player.dimension = dimension;
-
-  if (player.vehicle) {
-    player.vehicle.dimension = dimension;
-    console.log(`[Dimension] Moved player's vehicle ${player.vehicle.id} to dimension ${dimension}`);
-  }
-}
 ```
 
 ### Procedural Dimension Allocator
@@ -343,50 +319,14 @@ CyberMP entities feature metadata key-value stores. Metadata is divided into **s
 
 ### Metadata Mechanics
 
-- **`player.setMeta(key, value, sync = false)`**:
-  - `sync = false` (default): Private to the server. Useful for DB IDs, auth tokens, cooldowns, sensitive player state.
-  - `sync = true`: Broadcast to all streaming clients via the network layer. Automatically accessible on clients.
-- **`player.getMeta<T>(key)`**: Reads stored metadata typed as `T`.
-- **`mp.meta`**: Global metadata manager for setting server-wide or entity-specific keys.
+Use `mp.meta.setPlayerMeta` for explicit synchronization choices. The locked JavaScript declaration also accepts `sync` on entity methods. For values clients must receive, use the metadata manager and verify visibility and lifetime on the target build. Keep permissions on the server and write them only after checking the authenticated account. [CyberMP metadata guide](https://docs.cyber.mp/guides/server/meta/)
 
 ```typescript
 import type { MpPlayer } from '@cybermp/server-types';
 
-export interface PlayerAccountMeta {
-  dbId: number;
-  adminLevel: number;
-  isMuted: boolean;
-  joinedAt: number;
-}
-
-export interface PlayerPublicMeta {
-  clanTag: string;
-  isGodMode: boolean;
-  isInSafezone: boolean;
-}
-
-/**
- * Initializes default metadata upon player authentication.
- */
-export function initializePlayerMetadata(player: MpPlayer, account: PlayerAccountMeta): void {
-  // 1. Private Server-Side Metadata (sync = false)
-  player.setMeta('account:dbId', account.dbId, false);
-  player.setMeta('account:adminLevel', account.adminLevel, false);
-  player.setMeta('account:isMuted', account.isMuted, false);
-  player.setMeta('account:joinedAt', account.joinedAt, false);
-
-  // 2. Synchronized Public Metadata (sync = true -> streamed to connected clients)
-  player.setMeta('clanTag', 'ARASAKA', true);
-  player.setMeta('isGodMode', false, true);
-  player.setMeta('isInSafezone', false, true);
-}
-
-/**
- * Verifies if a player has the required administrative permission level.
- */
-export function hasAdminLevel(player: MpPlayer, requiredLevel: number): boolean {
-  const level = player.getMeta<number>('account:adminLevel') ?? 0;
-  return level >= requiredLevel;
+export function setPlayerMetadata(player: MpPlayer, adminLevel: number, clanTag: string): void {
+  mp.meta.setPlayerMeta(player, 'account:adminLevel', adminLevel, false);
+  mp.meta.setPlayerMeta(player, 'clanTag', clanTag, true);
 }
 ```
 
@@ -476,452 +416,101 @@ export function checkPlayerBan(ip: string): { banned: boolean; reason?: string }
 
 ### Admin Commands Registration
 
+Register commands with `mp.commands.add`. The callback receives `(player: MpPlayer | null, args: string[])`. Handle console invocations explicitly, validate inputs and recheck authorization through the server-owned account state. This fragment accepts the resource's authorization function.
+
 ```typescript
 import type { MpPlayer } from '@cybermp/server-types';
 
-/**
- * Registers administrative server chat commands.
- * Commands registered via mp.commands.add receive (player: MpPlayer | null, args: string[]).
- */
-export function registerAdminCommands(): void {
-  // /kick <playerId> <reason...>
-  mp.commands.add('kick', (player: MpPlayer | null, args: string[]) => {
-    if (!player) return;
-    if (!hasAdminLevel(player, 1)) {
-      player.emit('chat:notify', 'Permission denied.');
-      return;
-    }
-
-    const [targetIdStr, ...reasonParts] = args;
-    if (!targetIdStr) {
-      player.emit('chat:notify', 'Usage: /kick <playerId> <reason>');
-      return;
-    }
-
-    const targetId = parseInt(targetIdStr, 10);
-    if (!mp.players.exists(targetId)) {
-      player.emit('chat:notify', `Player ${targetId} not found.`);
-      return;
-    }
+export function registerKickCommand(canKick: (actor: MpPlayer, target: MpPlayer) => boolean): void {
+  mp.commands.add('kick', (actor, args) => {
+    const [id, ...reason] = args;
+    if (!actor || !/^\d+$/.test(id ?? '')) return;
+    const targetId = Number(id);
+    if (!Number.isSafeInteger(targetId) || !mp.players.exists(targetId)) return;
     const target = mp.players.at(targetId);
-
-    const reason = reasonParts.join(' ') || 'Kicked by admin';
-    kickPlayer(target, reason);
-  });
-
-  // /dimension <dim>
-  mp.commands.add('dimension', (player: MpPlayer | null, args: string[]) => {
-    if (!player) return;
-    if (!hasAdminLevel(player, 2)) {
-      player.emit('chat:notify', 'Permission denied.');
-      return;
-    }
-
-    const dim = args[0] ? parseInt(args[0], 10) : 0;
-    player.dimension = dim;
-    player.emit('chat:notify', `Switched dimension to ${dim}`);
+    if (canKick(actor, target)) target.kick(reason.join(' ') || 'Kicked by an administrator');
   });
 }
+
+mp.events.on('resourceStop', () => mp.commands.remove('kick'));
 ```
 
 ---
 
 ## 4. 3D Zones & Polygon Collision
 
-CyberMP freeroam resources implement safezones (greenzones) to disable combat, weapon drawing, and vehicle collisions in populated hubs (spawns, clinics, shops).
+A Safezone needs an ordered polygon footprint, explicit lower and upper Z bounds and an exact dimension. The sample checks player positions when a PvP damage event arrives. Overlapping polygons use union membership. This avoids relying on a delayed UI flag when a player crosses a boundary.
 
-### 2D Raycasting Algorithm (`isPointInPolygon2D`)
+### Authoritative Server Damage Protection (`mp.cancelEvent`)
 
-Tests whether a point `(x, y)` lies within an arbitrary non-self-intersecting 2D polygon using the Jordan Curve theorem (even-odd rule):
+Freeroam treats the first `damage` argument as the offender and reads the victim from `data.victimId`. The locked declaration calls the first argument `playerId`. The sample handles distinct connected players in the same dimension and calls `mp.cancelEvent()` synchronously. Verify both directions across the boundary in the target build. [Freeroam damage handler](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/server/src/modules/greenzones/greenzones.service.ts) · [Kit event catalog](events.md)
 
-```typescript
-/**
- * Determines whether a 2D coordinate point lies within a polygon using the Raycasting algorithm.
- *
- * @param point Coordinates [x, y] to test
- * @param polygon Ordered array of polygon vertices [[x1, y1], [x2, y2], ...]
- * @returns True if point is inside the polygon boundary
- */
-export function isPointInPolygon2D(
-  point: [number, number],
-  polygon: [number, number][],
-): boolean {
-  const [x, y] = point;
-  let inside = false;
+```typescript env=server checked=@cybermp/server-types@3.2.8
+import type { DamageEventData, Vector3 } from '@cybermp/server-types';
 
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i][0];
-    const yi = polygon[i][1];
-    const xj = polygon[j][0];
-    const yj = polygon[j][1];
-
-    // Check intersection with horizontal ray extending to the right
-    const intersect =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-
-    if (intersect) {
-      inside = !inside;
-    }
-  }
-
-  return inside;
-}
-```
-
-### 3D Safezone Bounding Check (`isInsideSafezone`)
-
-In 3D game engines like Cyberpunk 2077, safezones are extruded vertical prisms defined by:
-1. An ordered set of horizontal 2D/3D vertices forming the base footprint.
-2. A vertical `height` extrusion parameter.
-3. A `dimension` identifier.
-
-```typescript
-import type { Vector3 } from '@cybermp/server-types';
-
-/**
- * Checks whether a 3D position collides with an extruded safezone volume.
- *
- * @param position Entity world coordinates [x, y, z]
- * @param vertices Ordered ground boundary vertices [x, y, z]
- * @param height Vertical extrusion height in meters
- * @param dimension Target dimension (-1 matches any dimension)
- * @param currentDimension Entity's current virtual dimension
- * @returns True if the entity is inside the 3D volume
- */
-export function isInsideSafezone(
-  position: Vector3,
-  vertices: Vector3[],
-  height: number,
-  dimension: number = 0,
-  currentDimension: number = 0,
-): boolean {
-  // 1. Dimension Isolation Check
-  if (dimension !== -1 && dimension !== currentDimension) {
-    return false;
-  }
-
-  // 2. Elevation Range Check (Z-axis bounds with slight margin)
-  const minZ = vertices[0][2] - 0.2;
-  const maxZ = minZ + height + 0.4;
-
-  if (position[2] < minZ || position[2] > maxZ) {
-    return false;
-  }
-
-  // 3. 2D Footprint Check (Raycasting on X-Y plane)
-  const polygon2D: [number, number][] = vertices.map((v) => [v[0], v[1]]);
-  return isPointInPolygon2D([position[0], position[1]], polygon2D);
-}
-```
-
-### Safezone Manager Implementation
-
-A production-grade, procedural Safezone system that handles periodic spatial collision queries, player enter/leave state transitions, and server damage cancellation:
-
-```typescript
-import type { MpPlayer, MpAnyEntity, Vector3, DamageEventData } from '@cybermp/server-types';
-import { EntityType } from '@cybermp/server-types';
+type Point2D = readonly [x: number, y: number];
 
 export interface Safezone {
-  id: string;
-  name: string;
-  vertices: Vector3[];
-  height: number;
+  footprint: readonly Point2D[];
+  minZ: number;
+  maxZ: number;
   dimension: number;
-  enabled: boolean;
-  occupants: Set<number>; // Entity IDs inside zone
-  debugObjects: Set<number>;
 }
 
-export interface SafezoneManager {
-  zones: Map<string, Safezone>;
-  createZone(opts: {
-    id: string;
-    name: string;
-    vertices: Vector3[];
-    height: number;
-    dimension?: number;
-    enabled?: boolean;
-    debugVisuals?: boolean;
-  }): Safezone;
-  removeZone(id: string): void;
-  startTick(intervalMs?: number): () => void;
-  isPlayerInAnySafezone(player: MpPlayer): boolean;
+// Use a simple, non-self-intersecting polygon. Edges and vertices are inside.
+export function isPointInPolygon2D([x, y]: Point2D, polygon: readonly Point2D[]): boolean {
+  if (polygon.length < 3) return false;
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [ax, ay] = polygon[j];
+    const [bx, by] = polygon[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lengthSquared = dx * dx + dy * dy;
+    if (lengthSquared === 0) continue;
+
+    const projection = ((x - ax) * dx + (y - ay) * dy) / lengthSquared;
+    if (projection >= 0 && projection <= 1) {
+      const edgeDistance = Math.hypot(x - ax - projection * dx, y - ay - projection * dy);
+      if (edgeDistance <= 1e-6) return true;
+    }
+
+    if ((ay > y) !== (by > y) && x < ax + (y - ay) * dx / dy) inside = !inside;
+  }
+  return inside;
 }
 
-const DEBUG_CORNER_PROP_HASH = 7454566152498118096n; // Radio or marker prop
+export function isInsideSafezone(position: Vector3, dimension: number, zone: Safezone): boolean {
+  const [x, y, z] = position;
+  return dimension === zone.dimension && z >= zone.minZ && z <= zone.maxZ
+    && isPointInPolygon2D([x, y], zone.footprint);
+}
 
-/**
- * Creates and initializes a procedural Safezone Manager.
- */
-export function createSafezoneManager(): SafezoneManager {
-  const zones = new Map<string, Safezone>();
+export function registerSafezoneCombatProtection(zones: readonly Safezone[]): () => void {
+  const onDamage = (offenderId: number, { victimId }: DamageEventData): void => {
+    if (offenderId === victimId || !mp.players.exists(offenderId) || !mp.players.exists(victimId)) return;
 
-  function spawnDebugVisuals(zone: Safezone): void {
-    for (const v of zone.vertices) {
-      // Bottom corner marker
-      const bottomObj = mp.objects.create({
-        model: DEBUG_CORNER_PROP_HASH,
-        position: v,
-        dimension: Math.max(0, zone.dimension),
-      });
-      zone.debugObjects.add(bottomObj.id);
+    const offender = mp.players.at(offenderId);
+    const victim = mp.players.at(victimId);
+    if (offender.dimension !== victim.dimension) return;
 
-      // Top corner marker
-      const topObj = mp.objects.create({
-        model: DEBUG_CORNER_PROP_HASH,
-        position: [v[0], v[1], v[2] + zone.height],
-        dimension: Math.max(0, zone.dimension),
-      });
-      zone.debugObjects.add(topObj.id);
-    }
-  }
-
-  function destroyDebugVisuals(zone: Safezone): void {
-    for (const objId of zone.debugObjects) {
-      if (mp.objects.exists(objId)) {
-        mp.objects.destroy(objId);
-      }
-    }
-    zone.debugObjects.clear();
-  }
-
-  function handleEntityEnter(zone: Safezone, entity: MpAnyEntity): void {
-    zone.occupants.add(entity.id);
-
-    if (entity.type === EntityType.Player) {
-      const player = entity as MpPlayer;
-      player.setMeta('isInSafezone', true, true);
-
-      // Notify player via chat or RPC
-      player.emit('safezone:enter', zone.name);
-      console.log(`[Safezone] Player ${player.nickname} entered "${zone.name}"`);
-    }
-  }
-
-  function handleEntityLeave(zone: Safezone, entity: MpAnyEntity): void {
-    zone.occupants.delete(entity.id);
-
-    if (entity.type === EntityType.Player) {
-      const player = entity as MpPlayer;
-      player.setMeta('isInSafezone', false, true);
-
-      player.emit('safezone:leave', zone.name);
-      console.log(`[Safezone] Player ${player.nickname} exited "${zone.name}"`);
-    }
-  }
-
-  const manager: SafezoneManager = {
-    zones,
-
-    createZone(opts) {
-      const zone: Safezone = {
-        id: opts.id,
-        name: opts.name,
-        vertices: opts.vertices,
-        height: opts.height,
-        dimension: opts.dimension ?? 0,
-        enabled: opts.enabled ?? true,
-        occupants: new Set(),
-        debugObjects: new Set(),
-      };
-
-      if (opts.debugVisuals) {
-        spawnDebugVisuals(zone);
-      }
-
-      zones.set(zone.id, zone);
-      return zone;
-    },
-
-    removeZone(id: string) {
-      const zone = zones.get(id);
-      if (!zone) return;
-
-      destroyDebugVisuals(zone);
-      zone.occupants.clear();
-      zones.delete(id);
-    },
-
-    startTick(intervalMs = 100) {
-      const intervalId = setInterval(() => {
-        if (zones.size === 0) return;
-
-        const players = mp.players.toArray();
-
-        for (const zone of zones.values()) {
-          if (!zone.enabled) continue;
-
-          for (const player of players) {
-            const isColliding = isInsideSafezone(
-              player.position,
-              zone.vertices,
-              zone.height,
-              zone.dimension,
-              player.dimension,
-            );
-            const isContained = zone.occupants.has(player.id);
-
-            if (!isContained && isColliding) {
-              handleEntityEnter(zone, player);
-            } else if (isContained && !isColliding) {
-              handleEntityLeave(zone, player);
-            }
-          }
-        }
-      }, intervalMs);
-
-      // Return cleanup function
-      return () => {
-        clearInterval(intervalId);
-        for (const zone of zones.values()) {
-          destroyDebugVisuals(zone);
-        }
-      };
-    },
-
-    isPlayerInAnySafezone(player: MpPlayer): boolean {
-      for (const zone of zones.values()) {
-        if (zone.enabled && zone.occupants.has(player.id)) {
-          return true;
-        }
-      }
-      return false;
-    },
+    const protectedHit = zones.some((zone) =>
+      isInsideSafezone(offender.position, offender.dimension, zone)
+      || isInsideSafezone(victim.position, victim.dimension, zone),
+    );
+    if (protectedHit) mp.cancelEvent();
   };
-
-  return manager;
+  mp.events.on('damage', onDamage);
+  return () => mp.events.off('damage', onDamage);
 }
 ```
 
-### Authoritative Server Damage Protection
+Call `registerSafezoneCombatProtection` once with your validated zone configuration and invoke the returned function on `resourceStop`. Keep the geometry separate from any minimap layer. If the mode needs UI enter/leave notifications, compute overall membership across all zones before publishing a change. Clear UI state when the player disconnects or the resource stops.
 
-In CyberMP, player damage events are authoritative on the server. Listen to the `damage` event and cancel it if the victim or attacker is in a safezone:
+## 5. Server Resource Lifecycle
 
-```typescript
-import type { SafezoneManager } from './safezone-manager';
-import type { DamageEventData } from '@cybermp/server-types';
-
-/**
- * Registers authoritative server-side combat protection for safezones.
- * The damage callback receives (offenderId: number, data: DamageEventData),
- * where offenderId is the attacker and data.victimId is the targeted victim.
- */
-export function registerSafezoneCombatProtection(manager: SafezoneManager): void {
-  mp.events.on('damage', (offenderId: number, data: DamageEventData) => {
-    const offender = mp.players.exists(offenderId) ? mp.players.at(offenderId) : null;
-    const victim = data.victimId && mp.players.exists(data.victimId) ? mp.players.at(data.victimId) : null;
-
-    // Check if either victim or attacker is protected inside a safezone
-    const victimInZone = victim ? manager.isPlayerInAnySafezone(victim) : false;
-    const attackerInZone = offender ? manager.isPlayerInAnySafezone(offender) : false;
-
-    if (victimInZone || attackerInZone) {
-      // mp.cancelEvent() cancels the native damage event on the server
-      mp.cancelEvent();
-      console.log(`[Safezone] Blocked combat damage between offender ${offenderId} and victim ${data.victimId}`);
-    }
-  });
-}
-```
-
-### Helper: Generating Square/Box Safezones
-
-```typescript
-import type { Vector3 } from '@cybermp/server-types';
-
-/**
- * Creates 4 boundary vertices for an axis-aligned square safezone footprint.
- *
- * @param centerX Center world X coordinate
- * @param centerY Center world Y coordinate
- * @param groundZ Ground elevation Z
- * @param size Width and length of the square zone in meters
- * @returns Array of 4 Vector3 vertices [BottomLeft, BottomRight, TopRight, TopLeft]
- */
-export function createSquareSafezoneVertices(
-  centerX: number,
-  centerY: number,
-  groundZ: number,
-  size: number,
-): Vector3[] {
-  const half = size / 2;
-  return [
-    [centerX - half, centerY - half, groundZ], // Bottom Left
-    [centerX + half, centerY - half, groundZ], // Bottom Right
-    [centerX + half, centerY + half, groundZ], // Top Right
-    [centerX - half, centerY + half, groundZ], // Top Left
-  ];
-}
-```
-
----
-
-## 5. Clean Server Module Template
-
-Here is a ready-to-run server script wiring entity pools, dimensions, admin commands, and safezones:
-
-```typescript
-import type { MpPlayer } from '@cybermp/server-types';
-import {
-  createSafezoneManager,
-  createSquareSafezoneVertices,
-  registerSafezoneCombatProtection,
-} from './safezone-mechanics';
-import { createDimensionAllocator } from './dimension-allocator';
-import { registerAdminCommands, checkPlayerBan } from './admin-mechanics';
-
-// 1. Initialize Allocators & Managers
-const dimensions = createDimensionAllocator(100);
-const safezones = createSafezoneManager();
-
-// 2. Setup Default Spawn Safezone (Afterlife Hub)
-const spawnVertices = createSquareSafezoneVertices(-1412.5, 1285.2, 23.4, 40);
-safezones.createZone({
-  id: 'afterlife_spawn',
-  name: 'Afterlife Safezone',
-  vertices: spawnVertices,
-  height: 15.0,
-  dimension: 0,
-  debugVisuals: process.env.NODE_ENV === 'development',
-});
-
-// 3. Start Zone Tick Loop and Combat Cancellation
-const stopZones = safezones.startTick(100);
-registerSafezoneCombatProtection(safezones);
-registerAdminCommands();
-
-// 4. Connection & Lifecycle Guards
-// playerConnecting provides (tempId: number, name: string)
-mp.events.on('playerConnecting', (tempId: number, name: string) => {
-  console.log(`[Server] Player connecting: ${name} (tempId: ${tempId})`);
-});
-
-// playerConnected provides (playerId: number, tempId: string)
-// Player IP address (player.ip) is available once the player entity is instantiated
-mp.events.on('playerConnected', (playerId: number, tempId: string) => {
-  if (!mp.players.exists(playerId)) return;
-  const player = mp.players.at(playerId);
-
-  // Validate player IP against ban list upon connection
-  const banStatus = checkPlayerBan(player.ip);
-  if (banStatus.banned) {
-    console.log(`[Security] Kicking banned IP ${player.ip} (${banStatus.reason})`);
-    player.kick(`Your IP address is permanently banned: ${banStatus.reason}`);
-    return;
-  }
-
-  player.dimension = 0;
-  player.setMeta('account:joinedAt', Date.now(), false);
-  console.log(`[Server] Player ${player.nickname} (${playerId}) initialized in default dimension`);
-});
-
-// 5. Clean Resource Shutdown
-mp.events.on('resourceStop', () => {
-  stopZones();
-  console.log('[Server] Safezones and resources stopped cleanly');
-});
-```
+Register handlers and validate configuration when the resource starts. Keep ownership of created entities, listeners and timers so the resource can release them on stop. See the [basic server example](../examples/basic-resource/server.ts) and the [event signatures](events.md).
 
 ---
 
@@ -966,63 +555,20 @@ export function getServerEntityCounts(): { players: number; vehicles: number; pe
 
 ## 7. Player Vehicle References & Limits
 
-When a player enters a vehicle, the server entity exposes `player.vehicle`. You can track and enforce maximum vehicles per player:
-
-```typescript
-import type { MpPlayer, MpVehicle, GameHash } from '@cybermp/server-types';
-
-const playerVehiclesMap = new Map<number, Set<number>>();
-const MAX_VEHICLES_PER_PLAYER = 3;
-
-/**
- * Spawns a vehicle for a player and tracks vehicle count.
- */
-export function spawnPlayerVehicle(
-  player: MpPlayer,
-  modelHash: GameHash,
-  appearanceHash: GameHash = 0n,
-): MpVehicle {
-  // If player is already inside a vehicle, despawn it first
-  if (player.vehicle) {
-    player.vehicle.destroy();
-  }
-
-  const vehicle = mp.vehicles.create({
-    model: modelHash,
-    appearance: appearanceHash,
-    position: player.position,
-    yaw: player.yaw,
-    dimension: player.dimension,
-    health: 2000,
-  });
-
-  const vehicles = playerVehiclesMap.get(player.id) ?? new Set<number>();
-  while (vehicles.size >= MAX_VEHICLES_PER_PLAYER) {
-    const oldestId = vehicles.values().next().value;
-    if (oldestId !== undefined) {
-      mp.vehicles.destroy(oldestId);
-      vehicles.delete(oldestId);
-    }
-  }
-
-  vehicles.add(vehicle.id);
-  playerVehiclesMap.set(player.id, vehicles);
-  return vehicle;
-}
-```
+`player.vehicle` describes current occupancy. For a spawn limit, track vehicles created by your resource using an explicit account or session owner. Prune stale records and remove only resource-owned vehicles according to the mode's policy. Before despawning, check both ownership and occupancy. [Server vehicle guide](https://docs.cyber.mp/guides/server/vehicles/)
 
 ---
 
 ## 8. Server-Side String Hashing (`mp.hashes`)
 
-The server runtime provides `mp.hashes.tweakdbid` and `mp.hashes.cname` to convert string names to 64-bit BigInt hashes:
+The locked server signatures return `GameHash` (`number | bigint`). Keep the hash kind appropriate to the API. Use `mp.hashes.resref` for prop depot paths.
 
 ```typescript
 /**
  * Hashes a TweakDB record string on the server.
  * Example: mp.hashes.tweakdbid('Vehicle.v_sport1_herrera_outlaw_player')
  */
-export function getTweakdbHash(tweakDbPath: string): bigint {
+export function getTweakdbHash(tweakDbPath: string) {
   return mp.hashes.tweakdbid(tweakDbPath);
 }
 
@@ -1030,7 +576,7 @@ export function getTweakdbHash(tweakDbPath: string): bigint {
  * Hashes a REDengine CName string on the server.
  * Example: mp.hashes.cname('player')
  */
-export function getCNameHash(name: string): bigint {
+export function getCNameHash(name: string) {
   return mp.hashes.cname(name);
 }
 ```
@@ -1041,26 +587,15 @@ export function getCNameHash(name: string): bigint {
 
 ### Cancelling Native Damage
 
-To implement invincible players or safezones, call `mp.cancelEvent()` inside the `damage` event listener:
-
-```typescript
-import type { DamageEventData } from '@cybermp/server-types';
-
-const godModePlayers = new Set<number>();
-
-mp.events.on('damage', (_offenderId: number, { victimId }: DamageEventData) => {
-  if (victimId && godModePlayers.has(victimId)) {
-    // mp.cancelEvent() prevents damage calculation and health pool decrease
-    mp.cancelEvent();
-  }
-});
-```
+Use the [Safezone damage example](#authoritative-server-damage-protection-mpcancelevent) for a synchronous cancellation decision. Verify the event source and resulting health on the target build.
 
 ### Checking Player Latency
 
 Each `MpPlayer` instance provides the round-trip ping in milliseconds:
 
 ```typescript
+import type { MpPlayer } from '@cybermp/server-types';
+
 export function getPlayerPing(player: MpPlayer): number {
   return player.ping;
 }
@@ -1074,13 +609,14 @@ In CyberMP, `playerDeath` triggers on the server with a structured `PlayerDeathE
 import type { PlayerDeathEventData } from '@cybermp/server-types';
 
 mp.events.on('playerDeath', (victimId: number, { killerId }: PlayerDeathEventData) => {
-  const victim = mp.players.at(victimId);
-  const killer = killerId !== undefined ? mp.players.at(killerId) : undefined;
+  const victim = mp.players.exists(victimId) ? mp.players.at(victimId) : undefined;
+  const killer = killerId !== undefined && mp.players.exists(killerId)
+    ? mp.players.at(killerId) : undefined;
 
   if (killer) {
     console.log(`[Killfeed] ${killer.nickname} (${killerId}) killed ${victim?.nickname} (${victimId})`);
   } else {
-    console.log(`[Killfeed] ${victim?.nickname} (${victimId}) died of natural causes or suicide`);
+    console.log(`[Killfeed] ${victim?.nickname} (${victimId}) died (no connected killer resolved)`);
   }
 });
 ```
@@ -1122,21 +658,7 @@ export function readResourceConfig(resourceName: string, relativePath: string): 
 
 ## 11. Cross-Resource Exports Pipeline (`mp.exports`)
 
-CyberMP supports sharing functions across resources without circular imports or bundling dependencies:
-
-```typescript
-// 1. In provider resource (e.g. 'auth'):
-mp.exports('isPlayerAdmin', (playerId: number): boolean => {
-  const player = mp.players.at(playerId);
-  return player?.getMeta('admin') === true;
-});
-
-// 2. In consumer resource (e.g. 'freeroam'):
-export function checkRemoteAdmin(playerId: number): boolean {
-  // Access exported function through mp.exports.<resourceName>.<functionName>
-  return mp.exports.auth.isPlayerAdmin(playerId);
-}
-```
+The public CyberMP guide describes exports within the same runtime. The locked `@cybermp/server-types@3.2.8` declaration has no `MpServer.exports` member. Confirm a server contract and run provider, consumer and restart checks before depending on server exports in TypeScript. Server-local `mp.events.emit` and `mp.events.on` are declared for custom notifications. Verify delivery scope if the listener is in a different resource. For client/server communication use the appropriate network event or RPC. [CyberMP exports guide](https://docs.cyber.mp/guides/resources/exports/) · [Server events guide](https://docs.cyber.mp/guides/server/events/)
 
 ---
 
@@ -1261,15 +783,15 @@ export function identifyLastDriver(vehicle: MpVehicle): MpPlayer | null {
 }
 
 /**
- * Ejects all passengers from a vehicle, keeping the driver.
+ * Sends an application-defined request to passengers. Provide a client handler.
  */
-export function ejectPassengers(vehicle: MpVehicle): void {
+export function requestPassengersExit(vehicle: MpVehicle): void {
   const passengerSeats = [VehicleSeat.Passenger, VehicleSeat.RearLeft, VehicleSeat.RearRight];
   for (const seat of passengerSeats) {
     const occupant = vehicle.getPlayerInSeat(seat);
     if (occupant) {
       occupant.emit('vehicle:eject');
-      console.log(`[Vehicles] Ejected passenger ${occupant.nickname} from seat ${seat}`);
+      console.log(`[Vehicles] Requested exit for passenger ${occupant.nickname} from seat ${seat}`);
     }
   }
 }
@@ -1342,28 +864,13 @@ export function checkPlayerVelocity(player: MpPlayer, maxAllowedSpeed = 120.0): 
   return true;
 }
 
-/**
- * Recalls the player's last occupied vehicle back to their current position.
- */
-export function recallLastVehicle(player: MpPlayer): boolean {
-  const lastVeh = player.lastVehicle;
-  if (!lastVeh || !lastVeh.exist) {
-    player.emit('chat:system', 'You do not have an active recent vehicle.');
-    return false;
-  }
-
-  // Teleport vehicle to player position
-  console.log(`[Vehicles] Recalling vehicle ${lastVeh.id} to player ${player.nickname}`);
-  player.emit('chat:system', `Vehicle ${lastVeh.id} recalled.`);
-  return true;
-}
 ```
 
 ---
 
 ## 16. Entity Physics Ownership & Synchronization
 
-In CyberMP's multiplayer network topology, physics calculations for dynamic objects and vehicles are host-synchronized: the server designates a connected client as the **physics owner** (sync host) who computes local simulation and streams transformation frames to peers.
+`MpEntity.owner` is the declared synchronization owner. Verify the observed simulation and migration behavior in the target build. The server can check a candidate owner before assigning it. [CyberMP entity reference](https://docs.cyber.mp/reference/server/api/entities/mpentity/)
 
 ### API Reference (`MpEntity` Synchronization)
 
@@ -1377,14 +884,14 @@ In CyberMP's multiplayer network topology, physics calculations for dynamic obje
 ### Physics Host Allocation & Dynamic Object Spawning
 
 ```typescript
-import type { MpPlayer, MpVehicle, MpObject, Vector3 } from '@cybermp/server-types';
+import type { GameHash, MpPlayer, MpVehicle, MpObject, Vector3 } from '@cybermp/server-types';
 
 /**
  * Spawns a physical dynamic object (reacts to collisions, gravity, impulses).
  * Dynamic objects must have their sync ownership managed when clients join/leave.
  */
 export function spawnDynamicProp(
-  modelHash: bigint,
+  modelHash: GameHash,
   position: Vector3,
   dimension = 0,
 ): MpObject {
@@ -1402,36 +909,18 @@ export function spawnDynamicProp(
 }
 
 /**
- * Reassigns sync ownership of an entity to the closest available player.
- * Ensures smooth physics simulation when the previous host moves away or disconnects.
+ * Requests ownership transfer after the resource chooses an eligible player.
  */
-export function migrateSyncOwnership(entity: MpVehicle | MpObject): boolean {
-  if (!entity.exist) {
-    return false;
-  }
+export function assignSyncOwner(entity: MpVehicle | MpObject, player: MpPlayer): boolean {
+  if (!entity.exist || !player.exist || player.dimension !== entity.dimension) return false;
 
-  const [ex, ey, ez] = entity.position;
-  let closestPlayer: MpPlayer | null = null;
-  let minDistanceSq = Infinity;
+  const [x, y, z] = entity.position;
+  const [px, py, pz] = player.position;
+  if (Math.hypot(px - x, py - y, pz - z) > entity.streamingRadius) return false;
 
-  for (const player of mp.players.toArray()) {
-    if (player.dimension !== entity.dimension) continue;
-
-    const [px, py, pz] = player.position;
-    const distSq = (px - ex) ** 2 + (py - ey) ** 2 + (pz - ez) ** 2;
-
-    if (distSq < minDistanceSq) {
-      minDistanceSq = distSq;
-      closestPlayer = player;
-    }
-  }
-
-  if (closestPlayer) {
-    entity.owner = closestPlayer; // Assign sync host
-    console.log(`[Sync] Assigned entity ${entity.id} sync ownership to ${closestPlayer.nickname}`);
-    return true;
-  }
-
-  return false;
+  entity.owner = player;
+  return true;
 }
 ```
+
+Verify the actual streamed state and active owner before and after transfer. Test owner departure and subsequent movement from both clients. [Vehicle physics](vehicles-physics.md)

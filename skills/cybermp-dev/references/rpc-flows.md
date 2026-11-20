@@ -36,7 +36,7 @@ CyberMP uses a three-tier architecture with strictly defined directional boundar
 ### Pattern A: Server $\rightarrow$ Client (Push Notification / State Sync)
 
 **Server (`src/server/index.ts`):**
-```typescript
+```typescript env=server
 import type { MpPlayer } from '@cybermp/server-types';
 
 // Emit to an individual player (mp.events and mp.players are global in server runtime)
@@ -61,7 +61,7 @@ function broadcastMessage(message: string) {
 ```
 
 **Client (`src/client/index.ts`):**
-```typescript
+```typescript env=client
 // In CyberMP client scripts, `mp.events` is a global runtime object
 mp.events.onServer('chat:notify', (data: { type: string; text: string; timestamp: number }) => {
   console.log(`[Notification ${data.type}] ${data.text}`);
@@ -75,7 +75,7 @@ mp.events.onServer('chat:notify', (data: { type: string; text: string; timestamp
 ### Pattern B: Client $\rightarrow$ Server (Action Request)
 
 **Client (`src/client/index.ts`):**
-```typescript
+```typescript env=client
 // Client requests to buy a vehicle (mp.events is a global runtime object)
 function requestVehiclePurchase(modelId: string) {
   mp.events.emitServer('dealership:purchaseVehicle', modelId);
@@ -83,7 +83,7 @@ function requestVehiclePurchase(modelId: string) {
 ```
 
 **Server (`src/server/index.ts`):**
-```typescript
+```typescript env=server
 import type { MpPlayer } from '@cybermp/server-types';
 
 // Notice: player is ALWAYS prepended by the engine as the first parameter
@@ -101,7 +101,7 @@ mp.events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: str
 ### Pattern C: Client $\rightarrow$ Browser (Updating Web UI / HUD)
 
 **Client (`src/client/index.ts`):**
-```typescript
+```typescript env=client
 // Update player stats in web HUD (mp.events is a global runtime object)
 function syncHud(health: number, armor: number, eddies: number) {
   mp.events.emitCef('hud:updateStats', {
@@ -113,7 +113,7 @@ function syncHud(health: number, armor: number, eddies: number) {
 ```
 
 **CEF Browser (`src/cef/app.ts` / HTML):**
-```javascript
+```javascript env=browser
 // Web UI JavaScript (window.mp.events is injected into DOM by game engine)
 mp.events.on('hud:updateStats', (stats) => {
   const healthBar = document.getElementById('hp-bar');
@@ -130,7 +130,7 @@ mp.events.on('hud:updateStats', (stats) => {
 ### Pattern D: Browser $\rightarrow$ Client (Web UI User Interaction)
 
 **CEF Browser (`src/cef/app.ts`):**
-```javascript
+```javascript env=browser
 // User submits character customization form
 document.getElementById('save-char-btn')?.addEventListener('click', () => {
   const voice = document.getElementById('voice-select');
@@ -148,7 +148,7 @@ document.getElementById('save-char-btn')?.addEventListener('click', () => {
 ```
 
 **Client (`src/client/index.ts`):**
-```typescript
+```typescript env=client
 // Listen for events sent from CEF web view (mp.events is a global runtime object)
 mp.events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string }) => {
   console.log('Received customization from UI:', data);
@@ -164,29 +164,29 @@ mp.events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string })
 A CEF clock can request the current server time through the client bridge:
 
 1. **CEF Browser** requests a timestamp.
-   ```javascript
+   ```javascript env=browser
    mp.events.emit('clock:request');
    ```
 2. **Client** forwards the request to the server.
-   ```typescript
+   ```typescript env=client
    mp.events.onCef('clock:request', () => {
      mp.events.emitServer('clock:request');
    });
    ```
 3. **Server** replies to the player supplied by `onClient`.
-   ```typescript
+   ```typescript env=server
    mp.events.onClient('clock:request', (player) => {
      mp.events.emitClient(player, 'clock:result', Date.now());
    });
    ```
 4. **Client** forwards the timestamp to CEF.
-   ```typescript
+   ```typescript env=client
    mp.events.onServer('clock:result', (serverTime: number) => {
      mp.events.emitCef('clock:result', serverTime);
    });
    ```
 5. **CEF Browser** updates its view.
-   ```javascript
+   ```javascript env=browser
    mp.events.on('clock:result', (serverTime) => {
      const label = document.getElementById('server-time');
      if (label) label.textContent = new Date(serverTime).toISOString();

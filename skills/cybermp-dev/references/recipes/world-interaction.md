@@ -1,294 +1,92 @@
+---
+environment: client
+---
+
 # World Interaction Recipe: Native [F] Prompt & In-World Markers
 
-This recipe demonstrates how to create native Night City interaction prompts in CyberMP client scripts using REDengine's native UI and HUD subsystems.
+This game-client recipe uses `use_game_natives = true` to test one interaction point. Check the HUD prompt, coordinate marker and input separately. Each can succeed or fail independently in the target build.
 
-By combining `mp.game.SendInputHintData`, `MappinSystem.RegisterMappin`, and hardware key detection via `mp.game.onInputKeyEvent`, you can build immersive contextual interaction points (shops, garages, quest boards, doors, ATMs, apartment elevators) without needing heavy custom CEF web overlays.
+## 1. Interaction Flow
 
----
+- Show a coordinate marker through `MappinSystem.RegisterMappin`. `Mappins.DefaultStaticMappin` is used in Freeroam. The sample uses the `UseVariant` candidate for an interaction icon. Verify which map surfaces show the point. [Freeroam checkpoint code](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game-modes/modes/race/checkpoint.ts) · [INK HUD and minimap](../ui-ink-and-minimap.md)
+- Request a HUD hint with `SendInputHintData` and the `ChoiceApply` action. Check the shown binding and label. The separate `onInputKeyEvent` demonstration listens for the physical keyboard key `IK_F`. Check remapping, controller input and menu behavior before using the pattern outside a keyboard probe.
+- A real server interaction should send a stable resource point key with `mp.events.emitServer`. Validate the player, point, distance, dimension and eligibility on the server. [RPC flow reference](../rpc-flows.md)
 
-## 1. Architecture Overview
+## 2. Interaction Point Probe (`SendInputHintData`)
 
-A production-grade world interaction prompt in CyberMP consists of three coordinated elements:
+In the client resource, call `startInteractionProbe(x, y, z, radius)` after world load using a measured location and a positive radius. Add one point only for this check. The input handler logs an observation. It reads proximity again at press time and skips presses while CEF has focus. Use `stopInteractionProbe()` to remove the point, hint and timer, or stop the resource.
 
-1. **3D In-World Marker (`MappinSystem`)**: Displays an iconic marker in the 3D world indicating an interactable location or object.
-2. **Native HUD Button Hint (`mp.game.SendInputHintData`)**: Displays the official Cyberpunk 2077 interaction widget (e.g. `[F] Interact` or `[F] Open Garage`) at the bottom of the screen when the player is within range.
-3. **Hardware Input Handling (`mp.game.onInputKeyEvent`)**: Captures when the player presses the interaction key (`EInputKey.IK_F`, `EInputAction.IACT_Press`) while in proximity to trigger the client-to-server RPC.
+```typescript env=client checked=@cybermp/client-types@2.7.1
+import type { gameNewMappinID, Vector4 } from '@cybermp/client-types/game';
+import { EInputAction, EInputKey, gamedataMappinVariant } from '@cybermp/client-types/enums';
 
-```
-       [Player enters range]
-                 │
-                 ├──► Register 3D Mappin (MappinSystem.RegisterMappin)
-                 ├──► Show Native Prompt (mp.game.SendInputHintData)
-                 │
-       [Player presses 'F']
-                 │
-                 ├──► Catch via mp.game.onInputKeyEvent(action, key) (action === IACT_Press && key === IK_F)
-                 └──► Emit RPC to server: mp.events.emitServer('interaction:execute', id)
-```
+const hintSource = 'CyberMPKitInteractionProbe';
+let point: { position: Vector4; radius: number; marker: gameNewMappinID } | undefined;
+let timer: ReturnType<typeof setInterval> | undefined;
+let hintVisible = false;
 
----
+function isNearPoint(): boolean {
+  const player = mp.game.GetPlayer();
+  if (!point || !player) return false;
 
-## 2. Native HUD Button Hint (`SendInputHintData`)
-
-REDengine exposes `mp.game.SendInputHintData` to display official button hints on the HUD. The action `'ChoiceApply'` corresponds to the player's primary interaction key (default `[F]` on PC, `(X)` / `(Square)` on controllers).
-
-```typescript
-import type { gameuiInputHintData } from '@cybermp/client-types/game';
-import { inkInputHintHoldIndicationType } from '@cybermp/client-types/enums';
-
-let isHintVisible = false;
-
-/**
- * Shows or hides the native HUD interaction hint.
- *
- * @param show Whether to display or remove the button hint
- * @param label Text displayed next to the [F] prompt (e.g. "Enter Garage", "Talk")
- */
-export function setInteractionHint(show: boolean, label: string = 'Interact'): void {
-  if (show === isHintVisible) return;
-  isHintVisible = show;
-
-  const hintData = Object.assign(new mp.game.gameuiInputHintData(), {
-    action: 'ChoiceApply',
-    source: 'CyberMP',
-    localizedLabel: label,
-    queuePriority: 1,
-    sortingPriority: 1,
-    enableHoldAnimation: false,
-    holdIndicationType: inkInputHintHoldIndicationType.Press,
-  } satisfies Partial<gameuiInputHintData>);
-
-  mp.game.SendInputHintData(show, hintData);
+  const from = player.GetWorldPosition();
+  const to = point.position;
+  return Math.hypot(from.x - to.x, from.y - to.y, from.z - to.z) <= point.radius;
 }
-```
 
----
+function updateHint(show: boolean): void {
+  if (show === hintVisible) return;
 
-## 3. In-World 3D Marker (`MappinSystem`)
+  const hint = Object.assign(new mp.game.gameuiInputHintData(), {
+    action: 'ChoiceApply',
+    source: hintSource,
+    localizedLabel: 'Test interaction',
+  });
+  mp.game.SendInputHintData(show, hint);
+  hintVisible = show;
+}
 
-The `MappinSystem` is REDengine's subsystem for managing map icons, compass markers, and in-world 3D waypoints. By using `gamedataMappinVariant.UseVariant`, you display the standardized interaction icon floating directly over an object or position.
+export function stopInteractionProbe(): void {
+  if (timer !== undefined) clearInterval(timer);
+  timer = undefined;
 
-```typescript
-import type {
-  gamemappinsMappinData,
-  gameNewMappinID,
-  Vector4,
-} from '@cybermp/client-types/game';
-import { gamedataMappinVariant } from '@cybermp/client-types/enums';
+  const marker = point?.marker;
+  point = undefined;
+  try {
+    updateHint(false);
+  } finally {
+    if (marker != null) {
+      mp.game.ScriptGameInstance.GetMappinSystem()?.UnregisterMappin(marker);
+    }
+  }
+}
 
-const mappinSystem = mp.game.ScriptGameInstance.GetMappinSystem();
+export function startInteractionProbe(x: number, y: number, z: number, radius = 2): boolean {
+  if (![x, y, z, radius].every(Number.isFinite) || radius <= 0) return false;
+  const mappins = mp.game.ScriptGameInstance.GetMappinSystem();
+  if (!mappins) return false;
 
-/**
- * Registers an in-world 3D interaction marker.
- *
- * @param x World X coordinate
- * @param y World Y coordinate
- * @param z World Z coordinate
- * @param label Debug or accessible caption
- * @returns Mappin ID handle used to unregister the marker
- */
-export function createInteractionMarker(
-  x: number,
-  y: number,
-  z: number,
-  label: string = 'Interact',
-): gameNewMappinID {
-  const mappinData = Object.assign(new mp.game.gamemappinsMappinData(), {
+  stopInteractionProbe();
+  const position = Object.assign(new mp.game.Vector4(), { x, y, z, w: 1 });
+  const data = Object.assign(new mp.game.gamemappinsMappinData(), {
     active: true,
+    mappinType: 'Mappins.DefaultStaticMappin',
     variant: gamedataMappinVariant.UseVariant,
     visibleThroughWalls: false,
-    debugCaption: label,
-    localizedCaption: label,
-    mappinType: 'Default',
-  } satisfies Partial<gamemappinsMappinData>);
-
-  const position = Object.assign(new mp.game.Vector4(), {
-    x,
-    y,
-    z,
-    w: 1.0,
-  } satisfies Vector4);
-
-  return mappinSystem.RegisterMappin(mappinData, position);
+  });
+  const marker = mappins.RegisterMappin(data, position);
+  point = { position, radius, marker };
+  timer = setInterval(() => updateHint(isNearPoint() && !mp.cef.isInFocus()), 100);
+  return true;
 }
 
-/**
- * Removes an existing in-world marker.
- */
-export function removeInteractionMarker(mappinId: gameNewMappinID): void {
-  if (mappinSystem && mappinId) {
-    mappinSystem.UnregisterMappin(mappinId);
-  }
-}
-```
-
----
-
-## 4. Hardware Key Handling (`onInputKeyEvent`)
-
-To capture when the player presses `[F]`, subscribe to `mp.game.onInputKeyEvent`. Note that in CyberMP, the callback signature is `(action: EInputAction, key: EInputKey) => void`. Verify that the key corresponds to `EInputKey.IK_F` and the action is `EInputAction.IACT_Press`.
-
-```typescript
-import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
-
-let activeInteractionCallback: (() => void) | null = null;
-
-export function setActiveInteraction(callback: (() => void) | null, label?: string): void {
-  activeInteractionCallback = callback;
-  if (callback && label) {
-    setInteractionHint(true, label);
-  } else {
-    setInteractionHint(false);
-  }
-}
-
-// Hook hardware input keys: (action, key) callback order
-mp.game.onInputKeyEvent((action: EInputAction, key: EInputKey) => {
-  // Check if player pressed 'F' (Key Code 70 / IK_F, action IACT_Press)
-  if (key === EInputKey.IK_F && action === EInputAction.IACT_Press) {
-    if (activeInteractionCallback) {
-      activeInteractionCallback();
-    }
-  }
+mp.game.onInputKeyEvent((action, key) => {
+  if (action !== EInputAction.IACT_Press || key !== EInputKey.IK_F) return;
+  if (!mp.cef.isInFocus() && isNearPoint()) console.log('[interaction-probe] Press received');
 });
+mp.events.on('resourceStop', stopInteractionProbe);
 ```
 
----
+## 3. Testing Vanilla Devices
 
-## 5. Complete Interaction Point Manager
-
-Here is a full production-ready implementation that monitors proximity to multiple interaction points, renders 3D markers, presents HUD hints, and executes actions.
-
-```typescript
-import type { gameNewMappinID } from '@cybermp/client-types/game';
-import {
-  EInputAction,
-  EInputKey,
-  gamedataMappinVariant,
-  inkInputHintHoldIndicationType,
-} from '@cybermp/client-types/enums';
-
-export interface InteractionPoint {
-  id: string;
-  label: string;
-  position: { x: number; y: number; z: number };
-  radius: number;
-  onInteract: () => void;
-  mappinId?: gameNewMappinID;
-}
-
-class InteractionManager {
-  private points: Map<string, InteractionPoint> = new Map();
-  private currentActivePoint: InteractionPoint | null = null;
-  private checkInterval: NodeJS.Timeout | null = null;
-
-  constructor() {
-    this.registerInputListener();
-    this.startProximityLoop();
-  }
-
-  /**
-   * Registers a new world interaction point.
-   */
-  public addPoint(point: Omit<InteractionPoint, 'mappinId'>): void {
-    const mappinId = createInteractionMarker(
-      point.position.x,
-      point.position.y,
-      point.position.z,
-      point.label,
-    );
-
-    this.points.set(point.id, {
-      ...point,
-      mappinId,
-    });
-  }
-
-  /**
-   * Removes an interaction point and its marker.
-   */
-  public removePoint(id: string): void {
-    const point = this.points.get(id);
-    if (!point) return;
-
-    if (point.mappinId) {
-      removeInteractionMarker(point.mappinId);
-    }
-
-    if (this.currentActivePoint?.id === id) {
-      this.currentActivePoint = null;
-      setInteractionHint(false);
-    }
-
-    this.points.delete(id);
-  }
-
-  private registerInputListener(): void {
-    mp.game.onInputKeyEvent((action: EInputAction, key: EInputKey) => {
-      if (key === EInputKey.IK_F && action === EInputAction.IACT_Press) {
-        if (this.currentActivePoint) {
-          console.log(`[Interaction] Triggered: ${this.currentActivePoint.id}`);
-          this.currentActivePoint.onInteract();
-        }
-      }
-    });
-  }
-
-  private startProximityLoop(): void {
-    // Check distance every 100ms
-    this.checkInterval = setInterval(() => {
-      const player = mp.game.GetPlayer();
-      if (!player) return;
-
-      const playerPos = player.GetWorldPosition();
-      let nearestPoint: InteractionPoint | null = null;
-      let minDistance = Infinity;
-
-      for (const point of this.points.values()) {
-        const dx = point.position.x - playerPos.x;
-        const dy = point.position.y - playerPos.y;
-        const dz = point.position.z - playerPos.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (dist <= point.radius && dist < minDistance) {
-          minDistance = dist;
-          nearestPoint = point;
-        }
-      }
-
-      if (nearestPoint !== this.currentActivePoint) {
-        this.currentActivePoint = nearestPoint;
-        if (this.currentActivePoint) {
-          setInteractionHint(true, this.currentActivePoint.label);
-        } else {
-          setInteractionHint(false);
-        }
-      }
-    }, 100);
-  }
-
-  public destroy(): void {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-    }
-    for (const id of this.points.keys()) {
-      this.removePoint(id);
-    }
-  }
-}
-
-export const interactionManager = new InteractionManager();
-```
-
----
-
-## 6. Singleplayer Device Caveats (Avoiding Cutscene Traps)
-
-> [!WARNING]
-> **Singleplayer Scriptable Device Cutscene Hazards**
->
-> In singleplayer Cyberpunk 2077, interacting with certain static devices (such as `MirrorDevice`, quest terminals, or story intercoms) invokes deep story scripts and scene controllers.
->
-> 1. **Camera Hijacking & Input Lock**: Interacting with native singleplayer mirrors (`MirrorDevice`) or story computers triggers full-body animations and locks the local player's camera and control scheme into a scripted cutscene mode (`MenuScenario_CharacterCustomizationMirror` or conversation dialogues).
-> 2. **Multiplayer Desynchronization**: While in a singleplayer scene state, REDengine stops broadcasting player locomotion updates, leading other players to see the player frozen or desynced.
-> 3. **The Solution**: Do not rely on native singleplayer interactive device triggers for multiplayer gameplay. Instead, construct custom interaction zones using `MappinSystem`, `SendInputHintData`, and `onInputKeyEvent` on `EInputKey.IK_F`. For custom mirror or character customization, trigger the scenario explicitly via `mp.game.observeAfter('MenuScenario_PauseMenu', ...)` as documented in [player-mechanics.md](../player-mechanics.md).
+Identify the target device and its vanilla action first. A mirror, terminal or intercom can enter a scripted scene. Check UI and camera restoration, movement and stream-out in the target build. Compare the second client's view when that behavior matters. For a resource-owned interaction, decide explicitly which device behavior should trigger and what the server authorizes. [Devices](../doors-and-devices.md) · [Character customization](../player-mechanics.md)

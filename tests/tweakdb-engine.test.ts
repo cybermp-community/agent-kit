@@ -45,6 +45,7 @@ describe('TweakDB Lookup Engine', () => {
   it('respects limit and clamps between 1 and 50', () => {
     const limited = lookupTweakDb('', 'all', 2);
     expect(limited.results).toHaveLength(2);
+    expect(limited.formattedText).toMatch(/2 shown of \d+ matches/);
 
     const clampedMax = lookupTweakDb('', 'all', 100);
     expect(clampedMax.results.length).toBeLessThanOrEqual(50);
@@ -52,12 +53,14 @@ describe('TweakDB Lookup Engine', () => {
 
   it('reports evidence per identifier without treating mentions as runtime verification', () => {
     const burning = lookupTweakDb('BaseStatusEffect.Burning');
-    expect(burning.formattedText).toContain('ID found in source');
-    expect(burning.formattedText).toContain('tweakdb-BaseStatusEffect.txt');
+    expect(burning.formattedText).toContain('Exact record name in WolvenKit index');
+    expect(burning.formattedText).toContain('tweakdbstr.kark');
     expect(burning.formattedText).toContain('Runtime behavior is unverified');
 
     const workspot = lookupTweakDb('Workspot.SitChair');
     expect(workspot.formattedText).toContain('Unconfirmed ID');
+    expect(workspot.formattedText).toContain('Workspot search label');
+    expect(workspot.formattedText).toContain('PlayInDeviceSimple');
     expect(workspot.formattedText).not.toContain('ID found in source');
   });
 
@@ -66,5 +69,22 @@ describe('TweakDB Lookup Engine', () => {
     expect(result.results[0]?.id).toBe('Vehicle.v_sport2_porsche_911_turbo_player');
     expect(result.formattedText).toContain('ID needs recheck');
     expect(result.formattedText).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
+  });
+
+  it('finds a disputed quickhack by its candidate record name', () => {
+    const result = lookupTweakDb('Items.EMPOverloadLvl4Program', 'quickhacks');
+    expect(result.results[0]?.id).toBe('Items.ShortCircuitLvl4Program');
+    expect(result.formattedText).toContain('ID needs recheck');
+    expect(result.formattedText).toContain('Candidate: `Items.EMPOverloadLvl4Program`');
+  });
+
+  it.each([
+    ['ammo', 'Ammo.RifleAmmo'],
+    ['cyberware', 'Items.AdvancedMantisBladesLegendaryPlus'],
+    ['consumables', 'Items.HealthBooster'],
+  ])('finds an exact %s record with source evidence', (category, id) => {
+    const result = lookupTweakDb(id, category, 1);
+    expect(result.results[0]?.id).toBe(id);
+    expect(result.formattedText).toContain('Exact record name in WolvenKit index');
   });
 });

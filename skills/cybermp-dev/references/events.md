@@ -11,7 +11,7 @@ The tables are generated from the same declarations as `cybermp_get_event`. Bind
 
 Use `mp.events.on` for game events, `mp.events.onClient` for requests sent by a client, and `mp.events.emitClient` to target a player by ID or object. The client request handler receives the sender as a server-side `MpPlayer`.
 
-```typescript
+```typescript env=server
 mp.events.on('playerConnected', (playerId, tempId) => {
   console.log(playerId, tempId);
 });
@@ -28,7 +28,7 @@ For a `damage` callback, get the affected entity from `data.victimId` when handl
 
 Stream callbacks carry the network ID and the local game ID. Resolve the ID in the relevant environment when you need the entity. Wait for the right lifecycle callback before making native calls.
 
-```typescript
+```typescript env=client
 mp.events.on('remotePlayerStreamIn', (netID, gameID) => {
   console.log(netID, gameID);
 });
@@ -46,7 +46,7 @@ mp.events.onCef('domReady', (name) => {
 
 The CEF runtime injects `mp.events`. Browser event names come from your client/browser contract. Use the same function when unsubscribing.
 
-```typescript
+```typescript env=browser
 const showHealth = (health: number) => {
   const label = document.getElementById('health');
   if (label) label.textContent = String(health);

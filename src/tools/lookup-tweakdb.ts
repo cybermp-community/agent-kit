@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { lookupTweakDb } from '../engine/tweakdb-engine.js';
+import { lookupTweakDb, tweakDbCategories } from '../engine/tweakdb-engine.js';
 
 export const lookupTweakDbSchema = {
   query: z.string().optional().describe('Search query for TweakDB ID or name (e.g. "burning", "hellhound", "katana")'),
   category: z
-    .enum(['all', 'status_effects', 'weapons', 'vehicles', 'clothing', 'quickhacks', 'workspots'])
+    .enum(['all', ...tweakDbCategories])
     .optional()
     .describe('Filter records by category'),
   limit: z.number().optional().describe('Max records to return (default 10, max 50)'),
