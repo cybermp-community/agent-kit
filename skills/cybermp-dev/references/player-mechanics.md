@@ -364,6 +364,11 @@ REDengine includes native status effects for combat damage-over-time (burning, c
 | `BaseStatusEffect.Electrocuted` | EMP DoT | Tech weapons, EMP grenades, cyberware shock |
 | `BaseStatusEffect.Poisoned` | Chemical DoT | Biohazard grenades, venom knives, toxic pools |
 | `BaseStatusEffect.Bleeding` | Physical DoT | Blades, slashing melee, shrapnel |
+| `BaseStatusEffect.Overheat` | Thermal Netrunner DoT | Quickhack overheat, cyberware burn |
+| `BaseStatusEffect.CyberwareMalfunction` | Debuff / System Lock | Netrunner combat, cyberware EMP disable |
+| `BaseStatusEffect.Blind` | Sensory Disruption | Flashbang grenades, reboot optics |
+| `BaseStatusEffect.Crippled` | Mobility Lock | Leg shots, tendon slicing, slowing movement |
+| `BaseStatusEffect.Stun` | Hard Crowd Control | Heavy melee impact, concussion blast |
 
 ```typescript
 const activeTemporaryEffects = new Map<string, ReturnType<typeof setTimeout>>();

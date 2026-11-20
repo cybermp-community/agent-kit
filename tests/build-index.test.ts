@@ -145,11 +145,11 @@ describe('AST Type Indexer', () => {
     expect(typesJson.length).toBe(result.typesCount);
     expect(guidesJson.length).toBe(result.guidesCount);
 
-    // Verify total size < 500 KB
+    // Verify total size < 700 KB
     const totalSize =
       fs.statSync(eventsPath).size +
       fs.statSync(typesPath).size +
       fs.statSync(guidesPath).size;
-    expect(totalSize).toBeLessThan(500 * 1024);
+    expect(totalSize).toBeLessThan(700 * 1024);
   });
 });

@@ -1080,3 +1080,18 @@ export class ShowroomPreviewController {
   }
 }
 ```
+
+---
+
+## Related Guides & Deep-Dives
+
+For focused recipes and specialized native subsystems, see:
+- [World Interaction Recipe](recipes/world-interaction.md): Native `[F]` prompt via `SendInputHintData`, `MappinSystem`, and `onInputKeyEvent`.
+- [Doors & Scriptable Devices](doors-and-devices.md): Door manipulation and interior unlocks via `DoorControllerPS` (`ActionSetOpened`, `ActionToggleLock`).
+- [Object Spawning & World Streaming](object-spawning-and-streaming.md): Client-local props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` catalog, and interior occlusion.
+- [Animations & Workspots](animations-and-workspots.md): Contextual full-body animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`).
+- [Vehicles Tuning, Aesthetics & Combat 2.0](vehicles-tuning-combat.md): Apertures via `vehicleControllerPS` (hood, trunk, windows), ignition (`TurnEngineOn`), CrystalCoat shaders, and drive-by shooting.
+- [Vehicles & Physics Reference](vehicles-physics.md): Mounting, physical deformation repair, and nitro impulse physics.
+- [Player Mechanics & Inventory](player-mechanics.md): Teleportation, stat pools, status effects, and inventory spawning.
+- [Cameras, Input & CEF Integration](cameras-input-cef.md): Free cameras, spectator systems, and CEF focus.
+- [Server Mechanics & World Entities](server-mechanics.md): Virtual dimensions, 2D safezones, and server persistence.

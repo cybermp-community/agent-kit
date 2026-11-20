@@ -282,4 +282,48 @@ describe('Agent Skills & Plugins', () => {
       expect(mcpJson.mcpServers.cybermp.command).toBe('cybermp-agent-kit');
     });
   });
+
+  describe('CyberMP Skill Reference Files', () => {
+    const referencesDir = path.resolve(__dirname, '../skills/cybermp-dev/references');
+
+    const requiredFiles = [
+      'recipes/world-interaction.md',
+      'doors-and-devices.md',
+      'object-spawning-and-streaming.md',
+      'animations-and-workspots.md',
+      'vehicles-tuning-combat.md',
+      'player-mechanics.md',
+      'game-natives.md',
+    ];
+
+    for (const relPath of requiredFiles) {
+      it(`verifies existence of ${relPath}`, () => {
+        const fullPath = path.join(referencesDir, relPath);
+        expect(fs.existsSync(fullPath)).toBe(true);
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        expect(content.length).toBeGreaterThan(100);
+      });
+    }
+
+    it('verifies world-interaction.md includes SendInputHintData and ChoiceApply', () => {
+      const content = fs.readFileSync(path.join(referencesDir, 'recipes/world-interaction.md'), 'utf-8');
+      expect(content).toContain('SendInputHintData');
+      expect(content).toContain('ChoiceApply');
+      expect(content).toContain('MappinSystem');
+    });
+
+    it('verifies doors-and-devices.md includes DoorControllerPS and ActionSetOpened', () => {
+      const content = fs.readFileSync(path.join(referencesDir, 'doors-and-devices.md'), 'utf-8');
+      expect(content).toContain('DoorControllerPS');
+      expect(content).toContain('ActionSetOpened');
+    });
+
+    it('verifies vehicles-tuning-combat.md includes vehicleControllerPS and hood/trunk', () => {
+      const content = fs.readFileSync(path.join(referencesDir, 'vehicles-tuning-combat.md'), 'utf-8');
+      expect(content).toContain('vehicleControllerPS');
+      expect(content).toContain('hood');
+      expect(content).toContain('trunk');
+      expect(content).toContain('TurnEngineOn');
+    });
+  });
 });

@@ -252,6 +252,11 @@ If the MCP server is unavailable or running in a skill-only mode:
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
    - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
    - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
+   - [World Interaction Recipe](references/recipes/world-interaction.md): Native `[F]` prompt via `SendInputHintData`, `MappinSystem`, and `onInputKeyEvent`.
+   - [Doors & Scriptable Devices](references/doors-and-devices.md): Door manipulation and interior unlocks via `DoorControllerPS` (`ActionSetOpened`, `ActionToggleLock`).
+   - [Object Spawning & World Streaming](references/object-spawning-and-streaming.md): Client-local props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` catalog, and interior occlusion.
+   - [Animations & Workspots](references/animations-and-workspots.md): Contextual full-body animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`).
+   - [Vehicles Tuning, Aesthetics & Combat 2.0](references/vehicles-tuning-combat.md): Apertures via `vehicleControllerPS` (hood, trunk, windows), ignition (`TurnEngineOn`), CrystalCoat shaders, and drive-by shooting.
    - [Game Engine & World Natives](references/game-natives.md): REDengine initialization, world time/weather systems, loading screen suppression, 3D to 2D projections.
    - [Vehicles & Physics Reference](references/vehicles-physics.md): Low-level mounting requests, cosmetic/physical deformation repair, nitro impulses, and speedometer curves.
    - [Player Mechanics & Inventory Reference](references/player-mechanics.md): Safe coordinate teleportation, health/god mode, status effect gameplay restrictions, item spawning, and customization mirrors.
@@ -274,6 +279,11 @@ CyberMP client scripts have direct access to REDengine 4 natives when `use_game_
 
 ### Deep-Dive Reference Guides
 
+- **[World Interaction Recipe](references/recipes/world-interaction.md)**: Native HUD prompt on `[F]` (`mp.game.SendInputHintData`), 3D marker (`MappinSystem.RegisterMappin`), hardware key capture (`onInputKeyEvent`), and singleplayer device caveats.
+- **[Doors & Scriptable Devices](references/doors-and-devices.md)**: Interactive door manipulation (`ActionSetOpened`, `ActionSetClosed`, `ActionToggleLock`) via `DoorControllerPS` and unlocking locked Night City interiors.
+- **[Object Spawning & World Streaming](references/object-spawning-and-streaming.md)**: Client props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` depot paths, and interior occlusion culling.
+- **[Animations & Workspots](references/animations-and-workspots.md)**: Full-body native animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`) for sitting, smoking, leaning, drinking, and dancing.
+- **[Vehicles Tuning, Aesthetics & Combat 2.0](references/vehicles-tuning-combat.md)**: Aperture control via `vehicleControllerPS` (hood, trunk, windows), engine toggle (`TurnEngineOn`), CrystalCoat color shaders, body part detachment, and Vehicle Combat 2.0.
 - **[Game Engine & World Natives](references/game-natives.md)**: Engine lifecycle (`onceGameLoaded`), quest fact management (`vvc_visual_customization_unlocked`), weather and world time systems, loading screen suppression, and world 3D to screen 2D projections.
 - **[Vehicles & Physics Reference](references/vehicles-physics.md)**: Low-level vehicle mounting (`GetMountingFacility().Mount`), full 10-part deformation and glass repair (`DestructionResetGrid`), linear impulse physics (nitro boost), and true speedometer calculations via vehicle curve evaluation.
 - **[Player Mechanics & Inventory Reference](references/player-mechanics.md)**: Safe coordinate teleportation (`GetTeleportationFacility().Teleport`) vs physical respawning (`mp.local.spawnPlayer`), stat pool health/god mode, status effect gameplay restrictions, item spawning via `AddToInventory`, and appearance mirror customization.

@@ -31,14 +31,28 @@ DO NOT hallucinate APIs from FiveM, alt:V, RAGEMP, or SA-MP:
 ### REDengine Game Natives Guidance
 When `use_game_natives = true` is configured in `resource.toml`, client scripts gain direct access to `mp.game.*` for REDengine native classes, systems, and facilities.
 
-DO NOT hallucinate FiveM or GTA native methods for player, vehicle, or health manipulation:
+DO NOT hallucinate FiveM or GTA native methods for player, vehicle, door, prop, or animation manipulation:
 - Prohibited: `SetEntityCoords(ped, x, y, z)` → Mandated: `mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(player, targetPos, targetRot)`
 - Prohibited: `SetPedIntoVehicle(ped, veh, seat)` → Mandated: `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)`
 - Prohibited: `SetEntityHealth(ped, health)` → Mandated: `mp.game.ScriptGameInstance.GetStatPoolsSystem().RequestSettingStatPoolValueIgnoreChangeMode(...)`
+- Prohibited: `SetVehicleDoorOpen` / `SetVehicleDoorBroken` → Mandated: `vehicle.GetVehicleControllerPS().SetDoorState(door, state, immediate)`
+- Prohibited: `SetVehicleEngineOn` → Mandated: `vehicle.TurnEngineOn(engineOn)`
+- Prohibited: `TaskPlayAnim` / `PlayEntityAnim` → Mandated: `mp.game.ScriptGameInstance.GetWorkspotSystem().PlayInDeviceSimple(device, actor, allowCameraMov)`
+- Prohibited: `CreateObject` / `CreateObjectNoOffset` → Mandated: `mp.local.spawnObject(depotPath, pos, rot)` (client) or `mp.objects.create(model, pos, rot, dim)` (server)
 
 All REDengine native type instantiations must use `Object.assign(new mp.game.<Type>(), { ... })`.
 
 Always verify against CyberMP event and RPC signatures.
+
+### Reference Guides Suite
+Detailed native implementation patterns are documented in `skills/cybermp-dev/references/`:
+- Native [F] Prompt & Markers: `recipes/world-interaction.md`
+- Doors & Interior Unlocking: `doors-and-devices.md`
+- Props & Interior Streaming: `object-spawning-and-streaming.md`
+- Ambient Animations & Workspots: `animations-and-workspots.md`
+- Vehicle Tuning, Shaders & Combat 2.0: `vehicles-tuning-combat.md`
+- Engine Systems & Lifecycle: `game-natives.md`
+- Player Lifecycle & Restrictions: `player-mechanics.md`
 
 ## MCP Tools
 
