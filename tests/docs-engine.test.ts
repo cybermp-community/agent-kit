@@ -23,3 +23,30 @@ describe('Granular Docs Search Engine', () => {
     expect(result.formattedText).toMatch(/\[.*->.*\]|\.md#/);
   });
 });
+
+it('returns the relevant limitation past the first 500 characters', async () => {
+  const { parseMarkdownSections } = await import('../scripts/build-index.js');
+  const { formatGuide } = await import('../src/engine/docs-engine.js');
+  const content = [
+    '# Fixture', '## Color and geometry', 'filler '.repeat(100), '',
+    'Warning: tint cannot create a geometry resource.', '',
+    '```lua', 'print("tint")', '```', '',
+    '```toml', 'file = []', '```',
+  ].join('\n');
+  const guide = parseMarkdownSections(content, 'fixture', 'https://example.org/fixture', 'Fixture', '')[1];
+  expect(guide.plainText).toContain('tint cannot create a geometry resource');
+  expect(guide.codeLanguages).toEqual(['lua', 'toml']);
+  const answer = formatGuide(guide, 'tint');
+  expect(answer).toContain('tint cannot create a geometry resource');
+  expect(answer).toContain('```lua\nprint("tint")\n```');
+});
+
+it('keeps Markdown headings inside fenced code', async () => {
+  const { parseMarkdownSections } = await import('../scripts/build-index.js');
+  const guide = parseMarkdownSections(
+    '# Example\n## Shell\n```bash\n## a shell comment\necho safe\n```',
+    'fixture', 'https://example.org/fixture', 'Fixture', '',
+  );
+  expect(guide.map((record) => record.sectionTitle)).toEqual([undefined, 'Shell']);
+  expect(guide[1].codeSnippets).toEqual(['## a shell comment\necho safe']);
+});

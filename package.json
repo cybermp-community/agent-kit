@@ -41,9 +41,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && chmod +x dist/bin/cli.js",
     "build:native": "node --import tsx scripts/build-native-index.ts",
-    "build:index": "tsx scripts/build-index.ts",
-    "sync:docs": "tsx scripts/sync-docs.ts",
+    "build:index": "node --import tsx scripts/build-index.ts",
+    "sync:docs": "node --import tsx scripts/sync-docs.ts",
     "test": "vitest run",
+    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts",
     "test:packed": "vitest run --config vitest.packed.config.ts",
     "prepublishOnly": "pnpm run build",
     "prepare": "pnpm run build"

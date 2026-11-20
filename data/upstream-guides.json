@@ -1,0 +1,181 @@
+{
+  "repository": "https://github.com/mo3g666/CyberMP-Docs.git",
+  "revision": "909c0c08d7810ad136ab8b0ff2b8e0b4fdc6d569",
+  "contentRoot": "src/content/docs/guides",
+  "guides": [
+    {
+      "slug": "client/discord",
+      "title": "Discord Rich Presence & OAuth",
+      "summary": "Client Discord integration covers presence and OAuth. Keep gameplay state and account decisions on the server.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/events",
+      "title": "Working with Events",
+      "summary": "Select a client listener by origin: local events, messages from the server, and messages from the CEF browser use different entry points.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/first-cef-ui",
+      "title": "Creating Your First CEF UI",
+      "summary": "Build an HTML interface inside a CyberMP CEF browser. Bundle the page assets and exchange events across the client-to-browser bridge.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/lifecycle",
+      "title": "Client Lifecycle & Stages",
+      "summary": "Register handlers at resource startup and wait for the appropriate game state before operating on the world or player entity.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/local-entities",
+      "title": "Local Entities",
+      "summary": "Spawn preview vehicles, pedestrians, or props for one client. Local handles are distinct from server network identifiers.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/local-storage",
+      "title": "Local Storage",
+      "summary": "Use client local storage for preferences and interface state within a resource.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/network-ids",
+      "title": "Network IDs",
+      "summary": "Resolve the relationship between server network IDs and the underlying game entities as they stream in.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/observes",
+      "title": "Observing Game Methods",
+      "summary": "Use the client native bridge to observe game methods before or after the original call. The choice of queued or raw observer changes execution timing.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/overrides",
+      "title": "Overriding Game Methods",
+      "summary": "Use the native override API when changing the behavior of an engine call. Check callback shape and original-call handling before wiring an override.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/spawning-player",
+      "title": "Spawning the Player",
+      "summary": "Wait for the game world and player lifecycle stage before coordinating a spawn with the native bridge.",
+      "environment": "client"
+    },
+    {
+      "slug": "client/teleporting-player",
+      "title": "Teleporting the Player",
+      "summary": "Teleport the client player using native game facilities after the world is ready.",
+      "environment": "client"
+    },
+    {
+      "slug": "getting-started",
+      "title": "Getting started",
+      "summary": "Set up a dedicated CyberMP server, prepare server.toml and the resources directory, and confirm the server version from the console.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "introduction",
+      "title": "Introduction",
+      "summary": "CyberMP runs JavaScript and Lua resources across dedicated servers and game clients. Client-side code also connects to the embedded browser.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "recipes/hotreload",
+      "title": "Resource Hotreload",
+      "summary": "Use a resource watcher for script hotreload, refresh changed manifests, and restart the game client for changes to engine archives and compiled scripts.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "recipes/rpc",
+      "title": "Remote Procedure Calls (RPC)",
+      "summary": "Pair server and client event senders with listeners for the correct runtime. Carry browser traffic through the client.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "recipes/typescript",
+      "title": "Setting Up TypeScript",
+      "summary": "Install the CyberMP types for the intended runtime and build the JavaScript entry point declared by the resource.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "resources/adding-resource-files",
+      "title": "Adding resource files",
+      "summary": "List client assets in the resource manifest file array, including archives and CEF assets. Explicitly cover directories containing files.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "resources/creating-resource",
+      "title": "Creating resources",
+      "summary": "Declare script entry points and asset lists in resource.toml and register the resource with the server.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "resources/exports",
+      "title": "Resource Exports",
+      "summary": "Use resource exports to call APIs from another loaded resource. Coordinate dependency initialization and cleanup.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "resources/interacting-with-resources",
+      "title": "Interacting with resources",
+      "summary": "Use the server console to refresh resource discovery and start, stop, or restart a resource.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "resources/live-updates",
+      "title": "Live updates",
+      "summary": "Understand how server resources deliver updated client-side files and how that differs from engine asset loading.",
+      "environment": "mixed"
+    },
+    {
+      "slug": "server/cdn",
+      "title": "CDN",
+      "summary": "Host the packaged client resource files on a CDN when supported. Repack and upload after changing content or its manifest.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/commands",
+      "title": "Creating Commands",
+      "summary": "Register server commands with a player context and explicit argument and permission handling.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/entities",
+      "title": "World Entities: Objects, Peds, and Pickups",
+      "summary": "Manage authoritative world entities such as objects, pedestrians, and pickups and observe their lifecycle.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/events",
+      "title": "Working with Events",
+      "summary": "Use the server listener appropriate to a game event or message sent by a client.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/hashes",
+      "title": "Working with Hashes",
+      "summary": "Check the expected hash kind before resolving an appearance, native resource path, or TweakDB record on the server.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/meta",
+      "title": "Entity Metadata & Synchronization",
+      "summary": "Choose the scope and synchronization behavior of metadata for a player, entity, or server-global value.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/players",
+      "title": "Working with Players",
+      "summary": "Work with player connection, lookup, and lifecycle from the server runtime.",
+      "environment": "server"
+    },
+    {
+      "slug": "server/vehicles",
+      "title": "Working with Vehicles",
+      "summary": "Create and manage server vehicles and check seat and ownership behavior separately.",
+      "environment": "server"
+    }
+  ]
+}

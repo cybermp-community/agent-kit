@@ -244,7 +244,7 @@ describe('CyberMP MCP Server', () => {
   });
 
   describe('Tool Invocation: cybermp_search_docs', () => {
-    it('finds guides for rpc with code snippets and links', async () => {
+    it('finds guides for rpc with evidence and links', async () => {
       const result = await client.callTool({
         name: 'cybermp_search_docs',
         arguments: { query: 'rpc', limit: 2 },
@@ -252,8 +252,9 @@ describe('CyberMP MCP Server', () => {
 
       expect(result.isError).toBeFalsy();
       const text = (result.content as any)[0].text;
-      expect(text).toContain('CyberMP Documentation Guides');
-      expect(text).toContain('https://docs.cyber.mp/guides/');
+      expect(text).toContain('CyberMP documentation');
+      expect(text).toContain('**Evidence:**');
+      expect(text).toMatch(/https:\/\/(docs\.cyber\.mp|github\.com)\//);
     });
 
     it('returns anti-hallucination warning when querying foreign API in docs search', async () => {

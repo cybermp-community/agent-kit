@@ -68,6 +68,30 @@ it('serves the installed package with the locked production dependencies', async
         name: 'cybermp_get_type', arguments: { name: 'MpCef', env: 'server' },
       });
       expect(JSON.stringify(result.content)).not.toContain('Type: MpCef');
+      for (const query of [
+        'minimap', 'zone', 'polygon', 'AddBlipForArea', 'AddBlipForCoord',
+        'SetTintColor', 'зона миникарты', 'world map polygon',
+      ]) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain('INK HUD and minimap');
+        expect(answer, query).toContain('point marker');
+        expect(answer, query).toContain('world map');
+        expect(answer, query).toContain('server geometry');
+        expect(answer, query).toContain('SetTintColor');
+      }
+      for (const query of ['archive', 'WolvenKit', 'ArchiveXL']) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain('Build and load an archive prop');
+        expect(answer, query).toContain('resource.toml');
+        expect(answer, query).toContain('WolvenKit');
+        expect(answer, query).toContain('ArchiveXL');
+      }
     } finally {
       await client.close();
     }

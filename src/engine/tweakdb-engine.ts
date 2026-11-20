@@ -37,12 +37,14 @@ export function lookupTweakDb(query = '', category = 'all', limit = 10): TweakDb
   if (results.length === 0) {
     return {
       results: [],
-      formattedText: `No TweakDB records found matching query "${query}" in category "${category}".`,
+      formattedText: `No TweakDB records found in the curated catalog matching query "${query}" in category "${category}".`,
     };
   }
 
   const lines = [
     `## TweakDB Lookup Results (${results.length} found)`,
+    '',
+    'Curated subset. Confirm item availability and behavior for the target game version.',
     '',
     '| TweakDB ID | Category | Name | Description |',
     '| :--- | :--- | :--- | :--- |',

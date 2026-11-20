@@ -15,9 +15,9 @@ An offline-first Model Context Protocol (MCP) server, universal agent skills, an
 
 ## Key Features
 
-- 🛡️ **Anti-Hallucination Guard**: Intercepts foreign multiplayer API hallucinations (FiveM `SetEntityCoords`, alt:V `alt.emitServer`, SA-MP, RAGE:MP) in real-time and directs agents to authentic CyberMP and REDengine native facilities.
+- 🛡️ **Foreign API hints**: Flags selected FiveM, alt:V, SA-MP and RAGE:MP identifiers in lookup queries.
 - 🔍 **Native REDengine Introspection**: Versioned declarations and inheritance resolution for REDengine classes such as `ScriptGameInstance`, `TeleportationFacility`, and `inkCircleWidget`. The npm package includes the native index and identifies the source types version in responses.
-- 📚 **Offline Guides & Recipes Search**: Instant full-text search across **38 guides** covering vehicle mechanics, camera components, CEF UI integration, local storage (`mp.localStorage`), Discord Rich Presence, and 3D spatial math.
+- 📚 **Offline Guides & Recipes Search**: Full-text search across bundled references and upstream summaries covering vehicle mechanics, camera components, CEF UI integration, local storage (`mp.localStorage`), Discord Rich Presence, and 3D spatial math.
 - 🔄 **Cross-Boundary RPC Verification**: Generates paired, type-safe RPC flow templates across isolated execution environments: Server (Node.js), Client (in-game V8), and CEF (Chromium).
 - 🤖 **Universal AI Editor Support**: Pre-configured rules and skills for Cursor, Claude Code / Desktop, Google Antigravity, Cline / Roo Code, Windsurf, and Zed.
 
@@ -149,7 +149,7 @@ When connected, `cybermp-agent-kit` provides five specialized MCP tools:
 
 | Tool | Description | Example Query |
 |---|---|---|
-| `cybermp_search_docs` | Full-text search across 38 offline guides and recipes | `{"query": "vehicle seats"}` |
+| `cybermp_search_docs` | Find offline guidance with evidence and source links | `{"query": "vehicle seats"}` |
 | `cybermp_get_type` | Inspect TypeScript interfaces and 19k+ REDengine native classes | `{"name": "TeleportationFacility"}` |
 | `cybermp_get_event` | Fetch event callback signatures and execution context | `{"name": "playerEnterVehicle", "env": "server"}` |
 | `cybermp_get_rpc_flow` | Generate paired sender & receiver RPC boilerplate | `{"from": "client", "to": "browser"}` |
@@ -179,6 +179,12 @@ In CyberMP, all native engine calls and facilities run through the global `mp.*`
    - *Note: Server and CEF cannot communicate directly; all data must route through the Client.*
 
 ---
+
+## Updating the knowledge base
+
+`pnpm run build:index` generates the shipped index from the checked-in guide summaries, kit references and locked type packages. `pnpm run sync:docs` fetches the pinned upstream guide snapshot for comparison. Review that snapshot before changing `data/upstream-guides.json`. Release builds use the checked-in indices.
+
+See the [knowledge inventory](docs/knowledge-inventory.md) for the scope of the catalog and the status of the two pilot recipes.
 
 ## License
 

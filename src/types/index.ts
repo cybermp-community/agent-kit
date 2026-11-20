@@ -78,6 +78,14 @@ export interface GuideRecord {
   slug: string;
   url: string;
   codeSnippets: string[];
+  codeLanguages?: string[];
+  paragraphs?: string[];
+  aliases?: string[];
+  priorityAliases?: string[];
+  sourceKind?: 'cybermp-docs' | 'kit-reference';
+  sourceRevision?: string | null;
+  environment?: 'client' | 'server' | 'browser' | 'mixed' | 'tooling';
+  verificationStatus?: 'upstream-summary' | 'static-cross-check' | 'unreviewed';
   plainText: string;
 }
 

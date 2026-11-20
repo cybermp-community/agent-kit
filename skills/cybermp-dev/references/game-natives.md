@@ -369,6 +369,8 @@ export function world3dToScreen2d(worldPos: Vector3): ScreenCoord {
 
 In REDengine, world markers, quest objectives, player radar blips, and minimap icons are controlled by `gamemappinsMappinSystem` (`mp.game.ScriptGameInstance.GetMappinSystem()`).
 
+`RegisterMappin(data, position)` is the coordinate-marker path. A `QuestArea` variant produced a point icon in the Gangwar experiment. For a filled area, choose the target surface first. See [INK HUD and minimap](ui-ink-and-minimap.md).
+
 ### Mappin Architecture
 
 - **`gameNewMappinID`**: Unique identifier returned when registering a mappin.
@@ -976,7 +978,8 @@ export function createVector2(x: number, y: number): mp.game.Vector2 {
 | `SetWeatherTypePersist("CLEAR")` | `GetWeatherSystem().SetWeather(state, blendTime, priority)` |
 | `SetClockTime(12, 0, 0)` | `GetTimeSystem().SetGameTimeByHMS(hours, minutes, seconds)` |
 | `new mp.game.Vector3(x, y, z)` | `Object.assign(new mp.game.Vector3(), { x, y, z })` |
-| `AddBlipForCoord(x, y, z)` | `GetMappinSystem().RegisterMappin(data, pos)` |
+| `AddBlipForCoord(x, y, z)` | Point marker via `GetMappinSystem().RegisterMappin(data, pos)`. |
+| `AddBlipForArea(...)` | No direct equivalent verified. See [INK HUD and minimap](ui-ink-and-minimap.md) for the native HUD experiment and map options. |
 | `CreateObject(model, x, y, z)` | `mp.local.spawnObject(...)` or server `mp.objects.create(...)` |
 | `GetEntityForwardVector(ped)` | `ScriptGameInstance.GetCameraSystem().GetActiveCameraForward()` |
 

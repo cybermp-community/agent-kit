@@ -119,7 +119,7 @@ export function createServerProp(
 
 ## 4. Curated `.ent` Depot Paths Catalog
 
-Below is a verified catalog of standard Night City asset paths from the game's depot archives. These can be passed directly to `mp.local.spawnObject` or `mp.objects.create`.
+The following are candidate depot paths for standard Night City assets. Verify them in the target build. Resolve a path using the hash format expected by the selected spawn API. See the [archive prop recipe](recipes/archive-prop.md).
 
 ### Traffic, Barriers & Roadblocks
 ```

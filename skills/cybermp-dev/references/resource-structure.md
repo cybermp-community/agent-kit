@@ -4,6 +4,8 @@ This guide details the official server architecture, resource layout, and config
 
 ---
 
+For original game assets, follow the [archive prop recipe](recipes/archive-prop.md) from WolvenKit to a clean CyberMP client.
+
 ## 1. CyberMP Server Root Layout
 
 A CyberMP server directory is structured around `server.toml` and the `resources/` directory:
@@ -101,9 +103,10 @@ client_script = ["./client.js"]
 
 # Files and static assets sent to client (e.g. CEF browser UI and ArchiveXL archives):
 file = [
-  "./browser/**/*",
+  "./browser/*",
+  "./browser/assets/*",
   "./assets/in_world_navigation.archive",
-  "./assets/**/*.archive",
+  "./assets/custom-props/*",
   "./assets/**/*.xl"
 ]
 

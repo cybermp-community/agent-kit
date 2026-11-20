@@ -1,0 +1,2 @@
+client_script = ["./dist/client.js"]
+use_game_natives = true

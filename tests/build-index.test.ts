@@ -89,11 +89,7 @@ describe('AST Type Indexer', () => {
     const guides = parseGuides();
     expect(guides.length).toBeGreaterThan(0);
 
-    const guide =
-      guides.find((g) => g.slug === 'recipes/rpc') ||
-      guides.find((g) => g.slug === 'references/recipes/world-interaction') ||
-      guides[0];
-
+    const guide = guides.find((g) => g.codeSnippets.length > 0)!;
     expect(guide).toBeDefined();
     expect(guide.title.length).toBeGreaterThan(0);
     expect(guide.url.length).toBeGreaterThan(0);

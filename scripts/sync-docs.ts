@@ -1,46 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import upstream from '../data/upstream-guides.json' with { type: 'json' };
 
 export interface SyncDocsOptions {
   sourceDir?: string;
   targetDir?: string;
-  remoteUrl?: string;
   forceRemote?: boolean;
+  expectedFiles?: string[];
 }
 
-export const KNOWN_GUIDES: string[] = [
-  'getting-started.mdx',
-  'introduction.mdx',
-  'client/discord.mdx',
-  'client/events.mdx',
-  'client/first-cef-ui.mdx',
-  'client/lifecycle.mdx',
-  'client/local-entities.mdx',
-  'client/local-storage.mdx',
-  'client/network-ids.mdx',
-  'client/observes.mdx',
-  'client/overrides.mdx',
-  'client/spawning-player.mdx',
-  'client/teleporting-player.mdx',
-  'recipes/hotreload.mdx',
-  'recipes/rpc.mdx',
-  'recipes/typescript.mdx',
-  'resources/adding-resource-files.mdx',
-  'resources/creating-resource.mdx',
-  'resources/exports.mdx',
-  'resources/interacting-with-resources.mdx',
-  'resources/introduction.mdx',
-  'resources/live-updates.mdx',
-  'server/cdn.mdx',
-  'server/commands.mdx',
-  'server/entities.mdx',
-  'server/events.mdx',
-  'server/hashes.mdx',
-  'server/meta.mdx',
-  'server/players.mdx',
-  'server/vehicles.mdx',
-];
+export const KNOWN_GUIDES = upstream.guides.map(({ slug }) => `${slug}.mdx`);
 
 export function extractDocMetadata(content: string): { title: string; description: string } {
   const titleMatch = content.match(/^title:\s*(.*)$/m);
@@ -107,114 +77,96 @@ function findDocFiles(dir: string, baseDir = dir): { relativePath: string; fullP
 
 export async function syncDocs(options?: SyncDocsOptions): Promise<string[]> {
   const targetDir = path.resolve(options?.targetDir || 'tmp/docs');
-  fs.mkdirSync(targetDir, { recursive: true });
-
-  const potentialLocalDirs = [
-    options?.sourceDir,
-    process.env.CYBERMP_DOCS_DIR,
-  ].filter((p): p is string => Boolean(p));
-
-  let localSourceDir: string | null = null;
-  if (!options?.forceRemote) {
-    for (const candidate of potentialLocalDirs) {
-      if (fs.existsSync(candidate)) {
-        localSourceDir = candidate;
-        break;
-      }
-    }
+  const sourceDir = options?.forceRemote ? undefined : options?.sourceDir || process.env.CYBERMP_DOCS_DIR;
+  if (sourceDir && !fs.existsSync(sourceDir)) {
+    throw new Error(`Documentation directory does not exist: ${sourceDir}`);
+  }
+  if (sourceDir && path.resolve(sourceDir) === targetDir) {
+    throw new Error('The documentation source and destination must be different directories');
   }
 
-  const syncedFiles: string[] = [];
+  const available = sourceDir
+    ? new Map(findDocFiles(sourceDir).map((file) => [file.relativePath.split(path.sep).join('/'), file.fullPath]))
+    : undefined;
+  const expected = [...(options?.expectedFiles ?? (available ? [...available.keys()] : KNOWN_GUIDES))].sort();
+  if (expected.length === 0) throw new Error('No documentation inputs to sync');
+  const repository = new URL(upstream.repository).pathname.replace(/\.git$/, '');
+  const remoteBase = `https://raw.githubusercontent.com${repository}/${upstream.revision}/${upstream.contentRoot}`;
 
-  if (localSourceDir) {
-    const docFiles = findDocFiles(localSourceDir);
-    for (const file of docFiles) {
-      const raw = fs.readFileSync(file.fullPath, 'utf-8');
-      const cleaned = cleanMdxContent(raw);
-      const targetRelPath = file.relativePath.replace(/\.mdx$/, '.md');
-      const targetFilePath = path.join(targetDir, targetRelPath);
-
-      fs.mkdirSync(path.dirname(targetFilePath), { recursive: true });
-      fs.writeFileSync(targetFilePath, cleaned, 'utf-8');
-      syncedFiles.push(targetRelPath);
+  const responses = await Promise.allSettled(expected.map(async (relativePath) => {
+    if (!/^(?:[a-z0-9-]+\/)*[a-z0-9-]+\.mdx?$/i.test(relativePath)) {
+      throw new Error(`Invalid documentation path: ${relativePath}`);
     }
-    console.log(`Docs synced locally from ${localSourceDir} into ${targetDir} (${syncedFiles.length} files)`);
-    return syncedFiles;
+    const file = available?.get(relativePath);
+    let content: string;
+    if (available) {
+      if (!file) throw new Error('missing from checkout');
+      content = fs.readFileSync(file, 'utf8');
+    } else {
+      const response = await fetch(`${remoteBase}/${relativePath}`, { signal: AbortSignal.timeout(15_000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      content = await response.text();
+    }
+    const cleaned = cleanMdxContent(content);
+    if (!cleaned) throw new Error('empty document');
+    return { relativePath: relativePath.replace(/\.mdx$/, '.md'), cleaned };
+  }));
+
+  const files = responses.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+  if (files.length !== expected.length) {
+    const failures = responses.flatMap((result, index) =>
+      result.status === 'rejected' ? [`${expected[index]} (${result.reason.message})`] : [],
+    );
+    throw new Error(`Incomplete documentation snapshot: ${failures.join(', ')}`);
+  }
+  if (new Set(files.map(({ relativePath }) => relativePath)).size !== files.length) {
+    throw new Error('Multiple documentation inputs resolve to the same destination');
   }
 
-  // Fallback 1: Try shallow clone from Cyber-MP/CyberMP-Docs
-  const tempCloneDir = path.resolve(targetDir, '.git-clone-temp');
+  const parent = path.dirname(targetDir);
+  fs.mkdirSync(parent, { recursive: true });
+  const staging = fs.mkdtempSync(path.join(parent, '.cybermp-docs-'));
+  const next = path.join(staging, 'next');
+  const previous = path.join(staging, 'previous');
+  let keepBackup = false;
   try {
-    fs.rmSync(tempCloneDir, { recursive: true, force: true });
-    const repoUrl = options?.remoteUrl || 'https://github.com/Cyber-MP/CyberMP-Docs.git';
-    execSync(`git clone --depth 1 ${repoUrl} "${tempCloneDir}"`, { stdio: 'ignore' });
-    const clonedGuidesDir = path.join(tempCloneDir, 'src/content/docs/guides');
-    if (fs.existsSync(clonedGuidesDir)) {
-      const docFiles = findDocFiles(clonedGuidesDir);
-      for (const file of docFiles) {
-        const raw = fs.readFileSync(file.fullPath, 'utf-8');
-        const cleaned = cleanMdxContent(raw);
-        const targetRelPath = file.relativePath.replace(/\.mdx$/, '.md');
-        const targetFilePath = path.join(targetDir, targetRelPath);
-
-        fs.mkdirSync(path.dirname(targetFilePath), { recursive: true });
-        fs.writeFileSync(targetFilePath, cleaned, 'utf-8');
-        syncedFiles.push(targetRelPath);
-      }
-      console.log(`Docs synced via shallow clone from ${repoUrl} into ${targetDir} (${syncedFiles.length} files)`);
-      return syncedFiles;
+    for (const { relativePath, cleaned } of files) {
+      const target = path.join(next, relativePath);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, cleaned);
     }
-  } catch (err) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.warn('Shallow clone fallback failed, attempting raw GitHub fetch...', err);
+    if (fs.existsSync(targetDir)) fs.renameSync(targetDir, previous);
+    try {
+      fs.renameSync(next, targetDir);
+    } catch (error) {
+      try {
+        if (fs.existsSync(previous)) fs.renameSync(previous, targetDir);
+      } catch (restoreError) {
+        keepBackup = true;
+        throw new Error(`Could not restore the previous snapshot. It is available at ${previous}`, { cause: restoreError });
+      }
+      throw error;
     }
   } finally {
-    fs.rmSync(tempCloneDir, { recursive: true, force: true });
+    if (!keepBackup) fs.rmSync(staging, { recursive: true, force: true });
   }
 
-  // Fallback 2: Direct HTTP fetch from raw.githubusercontent.com
-  const rawBaseUrl = 'https://raw.githubusercontent.com/Cyber-MP/CyberMP-Docs/main/src/content/docs/guides';
-  for (const relPath of KNOWN_GUIDES) {
-    try {
-      const url = `${rawBaseUrl}/${relPath}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const raw = await res.text();
-        const cleaned = cleanMdxContent(raw);
-        const targetRelPath = relPath.replace(/\.mdx$/, '.md');
-        const targetFilePath = path.join(targetDir, targetRelPath);
-
-        fs.mkdirSync(path.dirname(targetFilePath), { recursive: true });
-        fs.writeFileSync(targetFilePath, cleaned, 'utf-8');
-        syncedFiles.push(targetRelPath);
-      }
-    } catch {
-      // Ignore individual fetch errors in fallback
-    }
-  }
-
-  if (syncedFiles.length === 0) {
-    throw new Error('Unable to sync docs: no local docs directory found and remote fetch failed.');
-  }
-
-  console.log(`Docs synced via GitHub raw fetch into ${targetDir} (${syncedFiles.length} files)`);
-  return syncedFiles;
+  console.log(`Synced ${files.length} guides from ${sourceDir || upstream.revision} into ${targetDir}`);
+  return files.map(({ relativePath }) => relativePath);
 }
 
-const isDirectExecution = Boolean(
-  process.argv[1] &&
-  (process.argv[1].endsWith('sync-docs.ts') || process.argv[1].endsWith('sync-docs.js'))
-);
-
-if (isDirectExecution) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const localFlagIndex = args.findIndex((arg) => arg === '--local' || arg === '-l');
-  let sourceDir: string | undefined;
-  if (localFlagIndex !== -1) {
-    sourceDir =
-      args[localFlagIndex + 1] && !args[localFlagIndex + 1].startsWith('-')
-        ? path.resolve(process.cwd(), args[localFlagIndex + 1])
-        : path.resolve(process.cwd(), '../CyberMP-Docs/src/content/docs/guides');
-  }
-  syncDocs({ sourceDir }).catch(console.error);
+  const nextArg = args[localFlagIndex + 1];
+  const sourceDir = localFlagIndex < 0
+    ? undefined
+    : nextArg && !nextArg.startsWith('-')
+      ? path.resolve(nextArg)
+      : path.resolve('../CyberMP-Docs/src/content/docs/guides');
+
+  syncDocs({ sourceDir, expectedFiles: KNOWN_GUIDES }).catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
 }

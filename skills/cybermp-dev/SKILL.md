@@ -97,7 +97,7 @@ Create `resource.toml` in your resource folder:
 
 server_script = ["./server.js"]
 client_script = ["./client.js"]
-file = ["./browser/**/*"]
+file = ["./browser/*", "./browser/assets/*"]
 cef_url = "./browser/index.html"
 use_game_natives = true
 hotreload = true
@@ -228,23 +228,12 @@ mp.commands.add('teleport', (player: MpPlayer, x: string, y: string, z: string) 
 
 ## 6. MCP Tool Call Instructions
 
-When this agent environment is connected to the `cybermp-agent-kit` MCP server, query the specialized tools before writing code:
-
-1. **`cybermp_get_event`**:
-   - Query exact event callback parameters and JSDocs.
-   - Example: `cybermp_get_event({ env: "server", name: "damage" })`
-2. **`cybermp_get_type`**:
-   - Look up class, interface, and enum definitions from `@cybermp/*-types`.
-   - Example: `cybermp_get_type({ name: "MpPlayer", env: "server" })`
-3. **`cybermp_get_rpc_flow`**:
-   - Obtain verified paired snippets for RPC transmission.
-   - Example: `cybermp_get_rpc_flow({ from: "client", to: "server" })`
-4. **`cybermp_search_docs`**:
-   - Search official guides for recipes and implementation patterns.
-   - Example: `cybermp_search_docs({ query: "live reload" })`
-5. **`cybermp_lookup_tweakdb`**:
-   - Query verified Cyberpunk 2077 TweakDB record IDs for status effects, weapons, armed vehicles, clothing, and workspots.
-   - Example: `cybermp_lookup_tweakdb({ query: "burning", category: "status_effects" })`
+<!-- cybermp-evidence:start -->
+1. Identify the runtime, CyberMP build, game build and installed type package versions.
+2. Use `cybermp_get_type` for declarations, `cybermp_get_event` for event signatures and `cybermp_get_rpc_flow` for cross-runtime event examples.
+3. Use `cybermp_search_docs` to check lifecycle, asset dependencies, and the evidence behind a recipe. `cybermp_lookup_tweakdb` searches a curated subset.
+4. Run a minimal check on the target build for any behavior the sources leave uncertain. Record the versions and observed result.
+<!-- cybermp-evidence:end -->
 
 ---
 
@@ -252,6 +241,8 @@ When this agent environment is connected to the `cybermp-agent-kit` MCP server, 
 
 If the MCP server is unavailable or running in a skill-only mode:
 1. **Consult Local References in `references/`**:
+   - [INK HUD and Minimap](references/ui-ink-and-minimap.md)
+   - [Archive Prop Workflow](references/recipes/archive-prop.md)
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
    - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
    - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.

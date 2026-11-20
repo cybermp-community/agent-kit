@@ -32,19 +32,14 @@ DO NOT hallucinate APIs from FiveM, alt:V, RAGEMP, or SA-MP:
 When `use_game_natives = true` is configured in `resource.toml`, client scripts gain direct access to `mp.game.*` for REDengine native classes, systems, and facilities.
 
 DO NOT hallucinate FiveM or GTA native methods for player, vehicle, door, prop, or animation manipulation:
-- Prohibited: `SetEntityCoords(ped, x, y, z)` → Mandated: `mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(player, targetPos, targetRot)`
-- Prohibited: `SetPedIntoVehicle(ped, veh, seat)` → Mandated: `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)`
-- Prohibited: `SetEntityHealth(ped, health)` → Mandated: `mp.game.ScriptGameInstance.GetStatPoolsSystem().RequestSettingStatPoolValueIgnoreChangeMode(...)`
-- Prohibited: `SetVehicleDoorOpen` / `SetVehicleDoorBroken` → Mandated: `vehicle.GetVehicleControllerPS().SetDoorState(door, state, immediate)`
-- Prohibited: `SetVehicleEngineOn` → Mandated: `vehicle.TurnEngineOn(engineOn)`
-- Prohibited: `TaskPlayAnim` / `PlayEntityAnim` → Mandated: `mp.game.ScriptGameInstance.GetWorkspotSystem().PlayInDeviceSimple(device, actor, allowCameraMov)`
-- Prohibited: `CreateObject` / `CreateObjectNoOffset` → Mandated: `mp.local.spawnObject(skinHash, appHash, x, y, z, roll, pitch, yaw, streaming)` (client) or `mp.objects.create({ model, position, dimension })` (server)
 
-All REDengine native type instantiations must use `Object.assign(new mp.game.<Type>(), { ... })`.
+When initializing native data, use the constructor and field assignments supported by the target binding.
 
 Always verify against CyberMP event and RPC signatures.
 
 ### Reference Guides Suite
+- Map tasks and HUD: `ui-ink-and-minimap.md`
+- Custom asset delivery: `recipes/archive-prop.md`
 Detailed native implementation patterns are documented in `skills/cybermp-dev/references/`:
 - Native [F] Prompt & Markers: `recipes/world-interaction.md`
 - Doors & Interior Unlocking: `doors-and-devices.md`
@@ -56,12 +51,12 @@ Detailed native implementation patterns are documented in `skills/cybermp-dev/re
 
 ## MCP Tools
 
-Consult the CyberMP MCP server whenever needed:
-- `cybermp_get_event`: Fetch verified event signatures, contexts, and payload details.
-- `cybermp_get_type`: Inspect TypeScript interfaces, properties, and methods.
-- `cybermp_get_rpc_flow`: Generate paired RPC code across Server, Client, and CEF.
-- `cybermp_search_docs`: Search guides, architecture patterns, and setup instructions.
-- `cybermp_lookup_tweakdb`: Lookup verified Cyberpunk 2077 TweakDB record IDs for status effects, armed vehicles, weapons, and workspots.
+<!-- cybermp-evidence:start -->
+1. Identify the runtime, CyberMP build, game build and installed type package versions.
+2. Use `cybermp_get_type` for declarations, `cybermp_get_event` for event signatures and `cybermp_get_rpc_flow` for cross-runtime event examples.
+3. Use `cybermp_search_docs` to check lifecycle, asset dependencies, and the evidence behind a recipe. `cybermp_lookup_tweakdb` searches a curated subset.
+4. Run a minimal check on the target build for any behavior the sources leave uncertain. Record the versions and observed result.
+<!-- cybermp-evidence:end -->
 
 ## Resource Architecture
 
@@ -78,7 +73,7 @@ resources = ["my-resource"]
 
 server_script = ["./server.js"]
 client_script = ["./client.js"]
-file = ["./browser/**/*"]
+file = ["./browser/*", "./browser/assets/*"]
 cef_url = "./browser/index.html"
 use_game_natives = true
 hotreload = true

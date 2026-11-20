@@ -1,0 +1,3 @@
+client_script = ["./dist/client.js"]
+file = ["./assets/cybermp_kit_cube.archive"]
+use_game_natives = true

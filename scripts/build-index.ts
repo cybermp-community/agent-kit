@@ -9,6 +9,7 @@ import {
   EnumDeclaration,
   Node,
 } from 'ts-morph';
+import { parse as parseYaml } from 'yaml';
 import { buildNativeIndex } from './build-native-index.js';
 import { extractDocMetadata } from './sync-docs.js';
 import type {
@@ -105,10 +106,9 @@ export function toKebabCase(str: string): string {
   return str
     .toLowerCase()
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{L}\p{M}\p{N}_\s-]/gu, '')
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+    .replace(/\s/g, '-');
 }
 
 export function extractCodeSnippets(markdown: string): string[] {
@@ -675,97 +675,66 @@ export function parseMarkdownSections(
   docTitle: string,
   docDescription: string,
 ): GuideRecord[] {
-  const allCodeSnippets = extractCodeSnippets(content);
-  const allPlainText = extractPlainText(content);
-  const rawChunks = content.split(/\r?\n(?=#{2,3} )/);
-  const records: GuideRecord[] = [];
-  const usedAnchors = new Set<string>();
+  const sections: Array<{ title?: string; lines: string[] }> = [{ lines: [] }];
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  const metadata = (frontmatter ? parseYaml(frontmatter[1]) : {}) ?? {};
+  let fence: string | undefined;
 
-  for (let i = 0; i < rawChunks.length; i++) {
-    const chunk = rawChunks[i];
-    const trimmed = chunk.trim();
-    if (!trimmed) continue;
-
-    const headingMatch = chunk.match(/^#{2,3}\s+(.+)$/m);
-
-    // If chunk does not start with ##+, it's the preamble / root overview
-    if (!headingMatch || i === 0) {
-      if (!headingMatch) {
-        const introPlainText = extractPlainText(chunk);
-        const rawSnippets = extractCodeSnippets(chunk);
-        const introSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 1500 ? s.slice(0, 1500) : s));
-        const fallbackSnippet = allCodeSnippets[0]
-          ? [allCodeSnippets[0].length > 1500 ? allCodeSnippets[0].slice(0, 1500) : allCodeSnippets[0]]
-          : [];
-
-        if (introPlainText.length > 0 || introSnippets.length > 0 || rawChunks.length === 1) {
-          records.push({
-            title: docTitle,
-            guideTitle: docTitle,
-            description: docDescription,
-            slug: baseSlug,
-            url: baseUrl,
-            codeSnippets: introSnippets.length > 0 ? introSnippets : fallbackSnippet,
-            plainText: introPlainText.length > 0
-              ? (introPlainText.length > 500 ? introPlainText.slice(0, 500) : introPlainText)
-              : (docDescription || (allPlainText.length > 500 ? allPlainText.slice(0, 500) : allPlainText)),
-          });
-        }
-        continue;
+  for (const line of content.slice(frontmatter?.[0].length ?? 0).split(/\r?\n/)) {
+    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) {
+        fence = undefined;
       }
+      sections.at(-1)!.lines.push(line);
+      continue;
     }
+    if (marker) fence = marker[1];
+    const heading = /^#{2,3}\s+(.+?)\s*#*\s*$/.exec(line)?.[1];
+    if (heading) {
+      sections.push({ title: heading.replace(/`([^`]+)`/g, '$1'), lines: [] });
+    } else {
+      sections.at(-1)!.lines.push(line);
+    }
+  }
 
-    // Heading section (##, ###)
-    const rawHeading = headingMatch[1];
-    const sectionTitle = rawHeading
-      .replace(/\s*#+$/, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .trim();
-
-    if (!sectionTitle) continue;
-
-    const baseAnchor = toKebabCase(sectionTitle) || `section-${i}`;
+  const anchors = new Set<string>();
+  return sections.map(({ title: sectionTitle, lines }, index) => {
+    const blocks: Array<{ language: string; code: string }> = [];
+    const prose = lines.join('\n').replace(
+      /^[ \t]*([`~])\1{2,}([^\s`~]*)[^\n]*\n([\s\S]*?)\n[ \t]*\1{3,}[ \t]*$/gm,
+      (_, _marker: string, language: string, code: string) => {
+        if (language.toLowerCase() !== 'mermaid' && code.trim()) {
+          blocks.push({ language, code: code.trim() });
+        }
+        return '\n\n';
+      },
+    );
+    const paragraphs = prose.split(/\n[ \t]*\n/).map(extractPlainText).filter(Boolean);
+    const baseAnchor = sectionTitle ? toKebabCase(sectionTitle) || `section-${index}` : '';
     let anchor = baseAnchor;
-    let count = 1;
-    while (usedAnchors.has(anchor)) {
-      anchor = `${baseAnchor}-${count++}`;
-    }
-    usedAnchors.add(anchor);
+    for (let suffix = 1; anchors.has(anchor); suffix++) anchor = `${baseAnchor}-${suffix}`;
+    anchors.add(anchor);
+    const suffix = sectionTitle ? `#${anchor}` : '';
 
-    const sectionSlug = `${baseSlug}#${anchor}`;
-    const sectionUrl = `${baseUrl}#${anchor}`;
-    const rawSnippets = extractCodeSnippets(chunk);
-    const codeSnippets = rawSnippets.slice(0, 1).map((s) => (s.length > 1500 ? s.slice(0, 1500) : s));
-    const plainText = extractPlainText(chunk);
-
-    records.push({
+    return {
       title: docTitle,
       guideTitle: docTitle,
-      sectionTitle,
-      slug: sectionSlug,
-      url: sectionUrl,
-      codeSnippets,
-      plainText: plainText.length > 500 ? plainText.slice(0, 500) : plainText,
-    });
-  }
-
-  // Fallback if no records created
-  if (records.length === 0) {
-    const fallbackSnippet = allCodeSnippets[0]
-      ? [allCodeSnippets[0].length > 1500 ? allCodeSnippets[0].slice(0, 1500) : allCodeSnippets[0]]
-      : [];
-    records.push({
-      title: docTitle,
-      guideTitle: docTitle,
-      description: docDescription,
-      slug: baseSlug,
-      url: baseUrl,
-      codeSnippets: fallbackSnippet,
-      plainText: allPlainText.length > 500 ? allPlainText.slice(0, 500) : allPlainText,
-    });
-  }
-
-  return records;
+      ...(sectionTitle ? { sectionTitle } : {
+        description: docDescription,
+        ...(Array.isArray(metadata.aliases) ? { aliases: metadata.aliases } : {}),
+        ...(Array.isArray(metadata.priorityAliases) ? { priorityAliases: metadata.priorityAliases } : {}),
+      }),
+      slug: baseSlug + suffix,
+      url: baseUrl + suffix,
+      codeSnippets: blocks.map((block) => block.code),
+      codeLanguages: blocks.map((block) => block.language),
+      plainText: paragraphs.join(' '),
+      paragraphs,
+      ...(metadata.environment ? { environment: metadata.environment } : {}),
+      ...(metadata.verificationStatus ? { verificationStatus: metadata.verificationStatus } : {}),
+    };
+  });
 }
 
 export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT): GuideRecord[] {
@@ -775,7 +744,9 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
   const hasDocs = fs.existsSync(targetDir);
   const hasReferences = fs.existsSync(referencesDir);
 
-  if (!hasDocs && !hasReferences) {
+  const upstreamPath = path.join(projectRoot, 'data/upstream-guides.json');
+  const hasUpstream = docsDir === undefined && fs.existsSync(upstreamPath);
+  if (!hasDocs && !hasReferences && !hasUpstream) {
     throw new Error(`Docs directory does not exist: ${targetDir}. Run sync:docs first.`);
   }
 
@@ -794,8 +765,27 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
     return files;
   }
 
-  const docFiles = hasDocs ? findDocFiles(targetDir) : [];
+  const docFiles = hasDocs && (docsDir !== undefined || !hasUpstream) ? findDocFiles(targetDir) : [];
   const guides: GuideRecord[] = [];
+  if (hasUpstream) {
+    const upstream = JSON.parse(fs.readFileSync(upstreamPath, 'utf8'));
+    for (const guide of upstream.guides) {
+      guides.push({
+        slug: guide.slug,
+        title: guide.title,
+        guideTitle: guide.title,
+        url: guide.slug === 'introduction' ? 'https://docs.cyber.mp/' : `https://docs.cyber.mp/guides/${guide.slug}/`,
+        plainText: guide.summary,
+        paragraphs: [guide.summary],
+        codeSnippets: [],
+        sourceKind: 'cybermp-docs',
+        sourceRevision: upstream.revision,
+        environment: guide.environment,
+        verificationStatus: 'upstream-summary',
+      });
+    }
+  }
+
 
   for (const doc of docFiles) {
     const content = fs.readFileSync(doc.fullPath, 'utf-8');
@@ -820,7 +810,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
     for (const doc of refFiles) {
       const content = fs.readFileSync(doc.fullPath, 'utf-8');
       const slug = `references/${doc.relPath.replace(/\.md$/, '').replace(/\\/g, '/')}`;
-      const url = `skills/cybermp-dev/references/${doc.relPath.replace(/\\/g, '/')}`;
+      const url = `https://github.com/mo3g666/cybermp-agent-kit/blob/main/skills/cybermp-dev/references/${doc.relPath.replace(/\\/g, '/')}`;
       let { title, description } = extractDocMetadata(content);
       const baseName = path.basename(doc.relPath, path.extname(doc.relPath));
       if (!title || title === 'Untitled') {
@@ -836,7 +826,13 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
         title || baseName,
         description,
       );
-      guides.push(...sectionRecords);
+      guides.push(...sectionRecords.map((record): GuideRecord => ({
+        ...record,
+        environment: record.environment ?? 'mixed',
+        sourceKind: 'kit-reference',
+        sourceRevision: null,
+        verificationStatus: record.verificationStatus ?? 'unreviewed',
+      })));
     }
   }
 
@@ -853,14 +849,13 @@ export async function buildIndex(options?: {
   const projectRoot = options?.projectRoot || PROJECT_ROOT;
   const project = options?.project || createAstProject(projectRoot);
   const outDir = path.resolve(options?.outDir || path.join(projectRoot, 'src/data'));
-  const docsDir = path.resolve(options?.docsDir || path.join(projectRoot, 'tmp/docs'));
 
   fs.mkdirSync(outDir, { recursive: true });
 
   console.log('Building index from AST and documentation...');
   const events = parseEventsFromAst({ project, projectRoot });
   const types = parseTypesFromAst({ project, projectRoot });
-  const guides = parseGuides(docsDir, projectRoot);
+  const guides = parseGuides(options?.docsDir, projectRoot);
 
   const eventsPath = path.join(outDir, 'events.json');
   const typesPath = path.join(outDir, 'types.json');

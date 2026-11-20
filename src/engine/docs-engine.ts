@@ -9,121 +9,89 @@ export interface SearchDocsResult {
 }
 
 const allGuides = guidesData as GuideRecord[];
-const guideMap = new Map<string, GuideRecord>(allGuides.map((g) => [g.slug, g]));
+const guidesBySlug = new Map(allGuides.map((guide) => [guide.slug, guide]));
+const priorityAliases = new Map<string, GuideRecord>();
+for (const guide of allGuides) {
+  for (const alias of guide.priorityAliases ?? []) priorityAliases.set(alias.toLowerCase(), guide);
+}
 
-const miniSearch = new MiniSearch<GuideRecord>({
-  fields: ['sectionTitle', 'title', 'description', 'plainText'],
-  storeFields: ['slug'],
+const index = new MiniSearch<GuideRecord>({
+  fields: ['sectionTitle', 'title', 'description', 'plainText', 'aliases'],
+  extractField(record, fieldName) {
+    if (fieldName === 'aliases') return record.aliases?.join(' ');
+    return record[fieldName as keyof GuideRecord];
+  },
   idField: 'slug',
   searchOptions: {
-    boost: { sectionTitle: 5, title: 2, description: 1, plainText: 1 },
+    boost: { sectionTitle: 5, title: 2, aliases: 8 },
     fuzzy: 0.2,
     prefix: true,
   },
 });
+index.addAll(allGuides);
 
-miniSearch.addAll(allGuides);
+const verificationLabels = {
+  'upstream-summary': 'Summary of upstream documentation',
+  'static-cross-check': 'Cross-checked in sources. Runtime behavior requires separate evidence.',
+  unreviewed: 'Community reference. Runtime and version applicability have not been independently verified.',
+};
 
-/**
- * Fast offline full-text search across official CyberMP guides,
- * recipes, and tutorials using MiniSearch.
- */
-export function searchDocs(query: string, limit: number = 3): SearchDocsResult {
-  const foreignWarning = query ? checkForeignApi(query) : null;
-  const q = query ? query.trim() : '';
-  const maxLimit = Math.max(1, limit);
+function excerpt(guide: GuideRecord, terms: string[]): string {
+  const paragraphs = guide.paragraphs ?? [guide.plainText];
+  const score = (paragraph: string) => terms.filter((term) => paragraph.toLowerCase().includes(term)).length;
+  const ranked = [...paragraphs].sort((left, right) => score(right) - score(left));
+  const matching = ranked[0];
+  const warning = paragraphs.find((paragraph) => /^(?:⚠️\s*)?(warning|limitation|caution|important)\b/i.test(paragraph));
+  return [...new Set([matching, warning])].filter(Boolean).map((paragraph) => {
+    const position = terms.reduce((first, term) => {
+      const index = paragraph!.toLowerCase().indexOf(term);
+      return index < 0 ? first : Math.min(first, index);
+    }, Infinity);
+    const text = paragraph!;
+    const start = Number.isFinite(position) && position > 550 ? Math.max(0, position - 100) : 0;
+    return (start > 0 ? '…' : '') + text.slice(start, start + 680) + (text.length > start + 680 ? '…' : '');
+  }).join('\n\n');
+}
 
-  let results: GuideRecord[] = [];
-
-  if (q) {
-    const qLower = q.toLowerCase();
-    const qTerms = qLower.split(/\s+/).filter(Boolean);
-
-    const rawResults = miniSearch.search(q, {
-      boostDocument(docId) {
-        if (!docId.includes('#')) {
-          const g = guideMap.get(docId);
-          if (g && qTerms.length > 1) {
-            const tLower = g.title.toLowerCase();
-            if (qTerms.every((term) => tLower.includes(term))) {
-              return 2.0;
-            }
-          }
-        }
-        return 1;
-      },
-    });
-    const seen = new Set<string>();
-
-    for (const r of rawResults) {
-      const guide = guideMap.get(r.id);
-      if (guide && !seen.has(guide.slug)) {
-        seen.add(guide.slug);
-        results.push(guide);
-        if (results.length >= maxLimit) break;
-      }
+export function formatGuide(guide: GuideRecord, query: string): string {
+  const terms = query.toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+  const heading = guide.sectionTitle ? `${guide.title} -> ${guide.sectionTitle}` : guide.title;
+  const source = guide.sourceKind === 'cybermp-docs' ? 'CyberMP Docs' : 'CyberMP Agent Kit';
+  const lines = [
+    `### [${heading}](${guide.url})`,
+    `**Source:** ${source} · **Environment:** ${guide.environment ?? 'unspecified'} · **Revision:** ${guide.sourceRevision ?? 'unspecified'}`,
+    `**Evidence:** ${verificationLabels[guide.verificationStatus ?? 'unreviewed']}`,
+  ];
+  if (guide.description) lines.push(guide.description);
+  const relevant = excerpt(guide, terms);
+  if (relevant && relevant !== guide.description) lines.push(relevant);
+  const bestExample = guide.codeSnippets.findIndex((code) => terms.some((term) => code.toLowerCase().includes(term)));
+  const selected = Math.max(0, bestExample);
+  const code = guide.codeSnippets[selected];
+  if (code) {
+    if (code.length <= 850) {
+      const fence = code.includes('```') ? '~~~~' : '```';
+      lines.push(`${fence}${guide.codeLanguages?.[selected] ?? ''}\n${code}\n${fence}`);
+    } else {
+      lines.push(`[Full example](${guide.url})`);
     }
-
-    // Substring fallback if MiniSearch returned fewer than requested limit
-    if (results.length < maxLimit) {
-      const qLower = q.toLowerCase();
-      for (const guide of allGuides) {
-        if (!seen.has(guide.slug)) {
-          if (
-            (guide.sectionTitle && guide.sectionTitle.toLowerCase().includes(qLower)) ||
-            guide.title.toLowerCase().includes(qLower) ||
-            (guide.description && guide.description.toLowerCase().includes(qLower)) ||
-            guide.plainText.toLowerCase().includes(qLower)
-          ) {
-            seen.add(guide.slug);
-            results.push(guide);
-            if (results.length >= maxLimit) break;
-          }
-        }
-      }
-    }
-  } else {
-    results = allGuides.slice(0, maxLimit);
   }
+  return lines.join('\n\n');
+}
 
-  const sections: string[] = [];
-
-  if (foreignWarning) {
-    sections.push(foreignWarning);
-  }
-
-  if (results.length > 0) {
-    const lines: string[] = [
-      `## CyberMP Documentation Guides (${results.length} found for "${query}")`,
-      '',
-    ];
-
-    for (const guide of results) {
-      const heading = guide.sectionTitle
-        ? `${guide.title} -> ${guide.sectionTitle}`
-        : guide.title;
-      lines.push(`### [${heading}](${guide.url})`);
-      if (guide.description) {
-        lines.push(`**Description:** ${guide.description}`);
-      }
-      lines.push(`**URL:** ${guide.url}`);
-
-      if (guide.codeSnippets && guide.codeSnippets.length > 0) {
-        lines.push('\n**Example:**');
-        lines.push('```typescript');
-        lines.push(guide.codeSnippets[0]);
-        lines.push('```');
-      }
-      lines.push('');
-    }
-
-    sections.push(lines.join('\n'));
-  } else {
-    sections.push(`No CyberMP documentation guides found matching "${query}".`);
-  }
-
-  return {
-    results,
-    formattedText: sections.join('\n\n'),
-  };
+export function searchDocs(query: string, limit = 3): SearchDocsResult {
+  const normalized = query.trim().toLowerCase().replace(/\s+/g, ' ');
+  const maxResults = Math.min(10, Math.max(1, limit));
+  const preferred = priorityAliases.get(normalized);
+  const results = normalized
+    ? [
+      ...(preferred ? [preferred] : []),
+      ...index.search(normalized).map((match) => guidesBySlug.get(match.id)!).filter((guide) => guide !== preferred),
+    ].slice(0, maxResults)
+    : allGuides.slice(0, maxResults);
+  const warning = checkForeignApi(query);
+  const body = results.length
+    ? `## CyberMP documentation (${results.length} results)\n\n${results.map((guide) => formatGuide(guide, query)).join('\n\n')}`
+    : `No matching CyberMP documentation for "${query}". This index covers a limited set of guides and recipes.`;
+  return { results, formattedText: warning ? `${warning}\n\n${body}` : body };
 }

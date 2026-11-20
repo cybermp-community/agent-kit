@@ -79,6 +79,20 @@ describe('Agent Skills & Plugins', () => {
     });
   });
 
+  it('keeps all editor rules and the skill on the same evidence workflow', () => {
+    const canonical = fs.readFileSync('rules/evidence.md', 'utf8').trim();
+    const files = [
+      'rules/AGENTS.md', 'rules/cybermp.md', skillPath,
+      ...fs.readdirSync('templates').map((name) => path.join('templates', name)),
+    ];
+    for (const file of files) {
+      const block = fs.readFileSync(file, 'utf8').match(
+        /<!-- cybermp-evidence:start -->[\s\S]*?<!-- cybermp-evidence:end -->/,
+      );
+      expect(block?.[0], file).toBe(canonical);
+    }
+  });
+
   describe('Offline References', () => {
     it('provides core events catalog in events.md', () => {
       expect(fs.existsSync(eventsRefPath)).toBe(true);

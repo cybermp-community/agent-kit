@@ -234,7 +234,7 @@ describe('Types Engine', () => {
     expect(result.formattedText).toContain('MpPlayer');
   });
 
-  it('resolves native REDengine classes from game.d.ts on demand', () => {
+  it('resolves native REDengine classes from the bundled declaration index', () => {
     const result = getTypeInfo('TeleportationFacility');
     expect(result.type).toBeDefined();
     expect(result.type?.name).toBe('TeleportationFacility');
@@ -305,6 +305,14 @@ describe('Types Engine', () => {
     expect(result.matches.every((match) => match.env !== 'client')).toBe(true);
   });
 
+  it('shows both names when a native alias is ambiguous', () => {
+    const result = getTypeInfo('CameraShakeEvent', 'client');
+    expect(result.type).toBeUndefined();
+    expect(result.matches.map((record) => record.name)).toEqual([
+      'gameCameraShakeEvent', 'gameeventsCameraShakeEvent',
+    ]);
+  });
+
   it('does not resolve client REDengine classes when environment filter is server', () => {
     const result = getTypeInfo('TeleportationFacility', 'server');
     expect(result.type).toBeUndefined();
@@ -326,7 +334,7 @@ describe('Docs Search Engine', () => {
     expect(results.length).toBeGreaterThan(0);
     const refGuide = results.find((r) => r.slug.startsWith('references/vehicles'));
     expect(refGuide).toBeDefined();
-    expect(refGuide?.url).toBe('skills/cybermp-dev/references/vehicles-physics.md');
+    expect(refGuide?.url).toMatch(/^https:\/\/github\.com\/.*\/skills\/cybermp-dev\/references\/vehicles-physics\.md/);
     expect(formattedText).toContain('Vehicles & Physics Reference');
   });
 

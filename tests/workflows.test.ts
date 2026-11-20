@@ -169,6 +169,8 @@ describe('GitHub Actions Workflows', () => {
       const steps = job.steps as any[];
       const stepRuns = steps.map((s: any) => s.run || '').join('\n');
 
+      expect(stepRuns).not.toMatch(/sync:docs|build:index/);
+      expect(stepRuns).toContain('pnpm run test:packed');
       expect(stepRuns).toMatch(/pnpm\s+(install|i)/);
       expect(stepRuns).toMatch(/pnpm\s+test/);
       expect(stepRuns).toMatch(/pnpm\s+(run\s+)?build/);

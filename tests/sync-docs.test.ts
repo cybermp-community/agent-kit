@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -185,44 +186,35 @@ import { Steps } from '@astrojs/starlight/components';
     expect(fs.existsSync(path.join(testTmpDir, 'resources/live-updates.md'))).toBe(true);
   });
 
-  it('falls back to raw GitHub fetch when local docs are absent and git clone fails', async () => {
+  it('keeps the previous snapshot when a pinned fetch is partial', async () => {
+    fs.mkdirSync(testTmpDir, { recursive: true });
+    const sentinel = path.join(testTmpDir, 'existing.md');
+    fs.writeFileSync(sentinel, 'previous');
     const originalFetch = global.fetch;
-    const mockMdx = `---
-title: Remote Guide
-description: Fetched remotely
----
-import { Tabs } from '@astrojs/starlight/components';
-
-# Remote Guide Content
-<Tabs>
-Tab Content
-</Tabs>`;
-
-    global.fetch = async (url: string | URL | Request) => {
-      if (url.toString().includes('getting-started.mdx')) {
-        return {
-          ok: true,
-          text: async () => mockMdx,
-        } as unknown as Response;
-      }
-      return { ok: false, status: 404 } as unknown as Response;
+    const urls: string[] = [];
+    global.fetch = async (url) => {
+      urls.push(String(url));
+      return String(url).endsWith('getting-started.mdx')
+        ? new Response('---\ntitle: Test\n---\n# Fetched')
+        : new Response('', { status: 404 });
     };
-
     try {
-      const synced = await syncDocs({
+      await expect(syncDocs({
         forceRemote: true,
-        remoteUrl: 'file:///nonexistent-git-repo',
         targetDir: testTmpDir,
-      });
-
-      expect(synced).toContain('getting-started.md');
-      const savedFile = path.join(testTmpDir, 'getting-started.md');
-      expect(fs.existsSync(savedFile)).toBe(true);
-      const content = fs.readFileSync(savedFile, 'utf-8');
-      expect(content).not.toContain('<Tabs>');
-      expect(content).toContain('# Remote Guide Content');
+        expectedFiles: ['getting-started.mdx', 'missing.mdx'],
+      })).rejects.toThrow(/missing\.mdx/);
+      expect(fs.readdirSync(testTmpDir)).toEqual(['existing.md']);
+      expect(fs.readFileSync(sentinel, 'utf8')).toBe('previous');
+      expect(urls.every((url) => url.includes('/909c0c08d7810ad136ab8b0ff2b8e0b4fdc6d569/'))).toBe(true);
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  it('exits nonzero when an explicit source is missing', () => {
+    const run = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/sync-docs.ts', '--local', testFixturesDir + '-missing']);
+    expect(run.status).toBe(1);
+    expect(run.stderr.toString()).toContain(testFixturesDir + '-missing');
   });
 });

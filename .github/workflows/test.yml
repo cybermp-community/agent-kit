@@ -39,5 +39,8 @@ jobs:
       - name: Run build
         run: pnpm run build
 
+      - name: Check diagnostic example types
+        run: pnpm run check:examples
+
       - name: Verify installed MCP package
         run: pnpm run test:packed
