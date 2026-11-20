@@ -26,40 +26,50 @@ CyberMP provides two distinct mechanisms for spawning world objects, each suited
 import type { Vector3, EulerAngles } from '@cybermp/client-types/game';
 
 // Store spawned local props for lifecycle management
-const activeLocalObjects: any[] = [];
+const activeLocalObjects: number[] = [];
 
 /**
- * Spawns a decorative prop locally on the client.
+ * Spawns a decorative prop locally on the client without network overhead.
  *
- * @param depotPath REDengine depot path to the .ent template
+ * @param skinHash Numeric or BigInt asset hash (e.g. BigInt('0x...'))
  * @param x World X coordinate
  * @param y World Y coordinate
  * @param z World Z coordinate
  * @param yaw Rotation in degrees
+ * @param appHash Appearance hash (default: 0)
+ * @param streaming Enable background streaming (default: true)
+ * @returns Numeric object handle
  */
 export function spawnClientProp(
-  depotPath: string,
+  skinHash: bigint | number,
   x: number,
   y: number,
   z: number,
   yaw: number = 0,
-): any {
-  const position = Object.assign(new mp.game.Vector3(), { x, y, z });
-  const rotation = Object.assign(new mp.game.EulerAngles(), { roll: 0, pitch: 0, yaw });
-
-  const prop = mp.local.spawnObject(depotPath, position, rotation);
-  activeLocalObjects.push(prop);
-  return prop;
+  appHash: bigint | number = 0,
+  streaming: boolean = true,
+): number {
+  const handle = mp.local.spawnObject(
+    skinHash,
+    appHash,
+    x,
+    y,
+    z,
+    0, // roll
+    0, // pitch
+    yaw,
+    streaming,
+  );
+  activeLocalObjects.push(handle);
+  return handle;
 }
 
 /**
  * Cleans up and despawns all locally created objects.
  */
 export function clearAllLocalProps(): void {
-  for (const obj of activeLocalObjects) {
-    if (obj && typeof obj.destroy === 'function') {
-      obj.destroy();
-    }
+  for (const handle of activeLocalObjects) {
+    mp.local.despawnObject(handle);
   }
   activeLocalObjects.length = 0;
 }
@@ -78,18 +88,23 @@ import type { MpObject } from '@cybermp/server-types';
 /**
  * Spawns a server-synchronized object across all connected clients.
  *
- * @param depotPath Entity depot path or numeric model hash
+ * @param model Model hash (BigInt or number)
  * @param position 3D coordinates
- * @param rotation Euler rotation
+ * @param yaw Rotation in degrees (default: 0)
  * @param dimension Virtual dimension (default: 0 for global)
  */
 export function createServerProp(
-  depotPath: string,
+  model: bigint | number,
   position: Vector3,
-  rotation: Vector3 = new Vector3(0, 0, 0),
+  yaw: number = 0,
   dimension: number = 0,
 ): MpObject {
-  const prop = mp.objects.create(depotPath, position, rotation, dimension);
+  const prop = mp.objects.create({
+    model: BigInt(model),
+    position,
+    yaw,
+    dimension,
+  });
 
   // Attach metadata if needed
   prop.setMeta('isCustomProp', true);

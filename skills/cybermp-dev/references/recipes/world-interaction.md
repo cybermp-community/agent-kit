@@ -12,7 +12,7 @@ A production-grade world interaction prompt in CyberMP consists of three coordin
 
 1. **3D In-World Marker (`MappinSystem`)**: Displays an iconic marker in the 3D world indicating an interactable location or object.
 2. **Native HUD Button Hint (`mp.game.SendInputHintData`)**: Displays the official Cyberpunk 2077 interaction widget (e.g. `[F] Interact` or `[F] Open Garage`) at the bottom of the screen when the player is within range.
-3. **Hardware Input Handling (`mp.game.onInputKeyEvent`)**: Captures when the player presses the interaction key (`EInputKey.IK_F`) while in proximity to trigger the client-to-server RPC.
+3. **Hardware Input Handling (`mp.game.onInputKeyEvent`)**: Captures when the player presses the interaction key (`EInputKey.IK_F`, `EInputAction.IACT_Press`) while in proximity to trigger the client-to-server RPC.
 
 ```
        [Player enters range]
@@ -22,7 +22,7 @@ A production-grade world interaction prompt in CyberMP consists of three coordin
                  │
        [Player presses 'F']
                  │
-                 ├──► Catch via mp.game.onInputKeyEvent(EInputKey.IK_F)
+                 ├──► Catch via mp.game.onInputKeyEvent(action, key) (action === IACT_Press && key === IK_F)
                  └──► Emit RPC to server: mp.events.emitServer('interaction:execute', id)
 ```
 
@@ -34,6 +34,7 @@ REDengine exposes `mp.game.SendInputHintData` to display official button hints o
 
 ```typescript
 import type { gameuiInputHintData } from '@cybermp/client-types/game';
+import { inkInputHintHoldIndicationType } from '@cybermp/client-types/enums';
 
 let isHintVisible = false;
 
@@ -54,7 +55,7 @@ export function setInteractionHint(show: boolean, label: string = 'Interact'): v
     queuePriority: 1,
     sortingPriority: 1,
     enableHoldAnimation: false,
-    holdIndicationType: mp.game.CyberEnums.inkInputHintHoldIndicationType.None,
+    holdIndicationType: inkInputHintHoldIndicationType.Press,
   } satisfies Partial<gameuiInputHintData>);
 
   mp.game.SendInputHintData(show, hintData);
@@ -73,6 +74,7 @@ import type {
   gameNewMappinID,
   Vector4,
 } from '@cybermp/client-types/game';
+import { gamedataMappinVariant } from '@cybermp/client-types/enums';
 
 const mappinSystem = mp.game.ScriptGameInstance.GetMappinSystem();
 
@@ -93,7 +95,7 @@ export function createInteractionMarker(
 ): gameNewMappinID {
   const mappinData = Object.assign(new mp.game.gamemappinsMappinData(), {
     active: true,
-    variant: mp.game.CyberEnums.gamedataMappinVariant.UseVariant,
+    variant: gamedataMappinVariant.UseVariant,
     visibleThroughWalls: false,
     debugCaption: label,
     localizedCaption: label,
@@ -124,10 +126,10 @@ export function removeInteractionMarker(mappinId: gameNewMappinID): void {
 
 ## 4. Hardware Key Handling (`onInputKeyEvent`)
 
-To capture when the player presses `[F]`, subscribe to `mp.game.onInputKeyEvent`. Verify that the key corresponds to `EInputKey.IK_F` and the action is a key-down event (`EInputAction.IA_Press`).
+To capture when the player presses `[F]`, subscribe to `mp.game.onInputKeyEvent`. Note that in CyberMP, the callback signature is `(action: EInputAction, key: EInputKey) => void`. Verify that the key corresponds to `EInputKey.IK_F` and the action is `EInputAction.IACT_Press`.
 
 ```typescript
-import { EInputKey, EInputAction } from '@cybermp/client-types/enums';
+import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
 
 let activeInteractionCallback: (() => void) | null = null;
 
@@ -140,10 +142,10 @@ export function setActiveInteraction(callback: (() => void) | null, label?: stri
   }
 }
 
-// Hook hardware input keys
-mp.game.onInputKeyEvent((key: number, action: number) => {
-  // Check if player pressed 'F' (Key Code 70 / IK_F)
-  if (key === EInputKey.IK_F && action === EInputAction.IA_Press) {
+// Hook hardware input keys: (action, key) callback order
+mp.game.onInputKeyEvent((action: EInputAction, key: EInputKey) => {
+  // Check if player pressed 'F' (Key Code 70 / IK_F, action IACT_Press)
+  if (key === EInputKey.IK_F && action === EInputAction.IACT_Press) {
     if (activeInteractionCallback) {
       activeInteractionCallback();
     }
@@ -158,8 +160,13 @@ mp.game.onInputKeyEvent((key: number, action: number) => {
 Here is a full production-ready implementation that monitors proximity to multiple interaction points, renders 3D markers, presents HUD hints, and executes actions.
 
 ```typescript
-import type { gameNewMappinID, Vector3 } from '@cybermp/client-types/game';
-import { EInputKey, EInputAction } from '@cybermp/client-types/enums';
+import type { gameNewMappinID } from '@cybermp/client-types/game';
+import {
+  EInputAction,
+  EInputKey,
+  gamedataMappinVariant,
+  inkInputHintHoldIndicationType,
+} from '@cybermp/client-types/enums';
 
 export interface InteractionPoint {
   id: string;
@@ -217,8 +224,8 @@ class InteractionManager {
   }
 
   private registerInputListener(): void {
-    mp.game.onInputKeyEvent((key: number, action: number) => {
-      if (key === EInputKey.IK_F && action === EInputAction.IA_Press) {
+    mp.game.onInputKeyEvent((action: EInputAction, key: EInputKey) => {
+      if (key === EInputKey.IK_F && action === EInputAction.IACT_Press) {
         if (this.currentActivePoint) {
           console.log(`[Interaction] Triggered: ${this.currentActivePoint.id}`);
           this.currentActivePoint.onInteract();
@@ -233,7 +240,7 @@ class InteractionManager {
       const player = mp.game.GetPlayer();
       if (!player) return;
 
-      const playerPos: Vector3 = player.GetWorldPosition();
+      const playerPos = player.GetWorldPosition();
       let nearestPoint: InteractionPoint | null = null;
       let minDistance = Infinity;
 
