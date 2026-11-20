@@ -5,6 +5,9 @@ export interface TweakDbRecord {
   category: 'status_effects' | 'weapons' | 'vehicles' | 'clothing' | 'quickhacks' | 'workspots';
   name: string;
   description: string;
+  evidence?:
+    | { status: 'source-match'; sourceUrl: string }
+    | { status: 'needs-recheck'; sourceUrl: string; candidateId?: string };
 }
 
 export interface TweakDbLookupResult {
@@ -44,14 +47,22 @@ export function lookupTweakDb(query = '', category = 'all', limit = 10): TweakDb
   const lines = [
     `## TweakDB Lookup Results (${results.length} found)`,
     '',
-    'Curated subset. Confirm item availability and behavior for the target game version.',
+    'Curated candidates. Runtime behavior is unverified. A source match establishes an ID mention, with game version and description still subject to verification.',
     '',
-    '| TweakDB ID | Category | Name | Description |',
-    '| :--- | :--- | :--- | :--- |',
+    '| TweakDB ID | Category | Name | Evidence | Catalog note (unverified) |',
+    '| :--- | :--- | :--- | :--- | :--- |',
   ];
 
   for (const r of results) {
-    lines.push(`| \`${r.id}\` | \`${r.category}\` | **${r.name}** | ${r.description} |`);
+    const evidence = r.evidence;
+    let evidenceText = 'Unconfirmed ID';
+    if (evidence?.status === 'source-match') {
+      evidenceText = `[ID found in source](${evidence.sourceUrl})`;
+    } else if (evidence?.status === 'needs-recheck') {
+      evidenceText = `[ID needs recheck](${evidence.sourceUrl})`;
+      if (evidence.candidateId) evidenceText += `. Candidate: \`${evidence.candidateId}\``;
+    }
+    lines.push(`| \`${r.id}\` | \`${r.category}\` | **${r.name}** | ${evidenceText} | ${r.description.replace(/\|/g, '\\|')} |`);
   }
 
   return {

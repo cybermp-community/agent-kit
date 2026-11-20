@@ -10,7 +10,7 @@ CyberMP code is strictly isolated into three runtimes. Never mix their APIs:
    - `mp.events.on(eventName, callback)` - Native engine events.
    - `mp.events.onClient(eventName, (player: MpPlayer, ...args) => ...)` - RPC from client.
    - `mp.events.emitClient(player, eventName, ...args)` - RPC to client.
-   - `mp.commands.add(commandName, (player: MpPlayer, ...args) => ...)` - Chat/console commands.
+   - `mp.commands.add(commandName, (player: MpPlayer | null, args: string[]) => ...)` - Chat/console commands.
 
 2. **Client (`@cybermp/client-types`)**:
    - `mp.events.onServer(eventName, (...args) => ...)` - RPC from server.

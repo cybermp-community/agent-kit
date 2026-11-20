@@ -10,7 +10,7 @@ All calls to CyberMP native methods and systems run through the global `mp.*` na
    - Listen to engine events: `mp.events.on(name, callback)`
    - Listen to client RPCs: `mp.events.onClient(name, (player: MpPlayer, ...args) => ...)`
    - Send to client: `mp.events.emitClient(player, name, ...args)`
-   - Register commands: `mp.commands.add(name, (player: MpPlayer, ...args) => ...)`
+   - Register commands: `mp.commands.add(name, (player: MpPlayer | null, args: string[]) => ...)`
 2. **Client** (`@cybermp/client-types`): In-game V8 environment inside Cyberpunk 2077. Local entities, camera, sound, and input.
    - Listen to server: `mp.events.onServer(name, callback)`
    - Send to server: `mp.events.emitServer(name, ...args)`

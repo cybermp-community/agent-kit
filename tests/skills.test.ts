@@ -69,6 +69,13 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('[Client Starter Example](examples/basic-resource/client.ts)');
     });
 
+    it('teaches the typed lifecycle signatures in the agent entry point', () => {
+      const content = fs.readFileSync(skillPath, 'utf8');
+      expect(content).toContain("mp.events.on('playerConnecting', (tempId, name)");
+      expect(content).toContain("mp.events.on('playerDeath', (playerId, { killerId })");
+      expect(content).toContain("mp.commands.add('teleport', (player, args)");
+    });
+
     it('indexes all real-world mechanics reference guides in SKILL.md', () => {
       const skillContent = fs.readFileSync(skillPath, 'utf-8');
       expect(skillContent).toContain('references/game-natives.md');
@@ -147,6 +154,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('@cybermp/server-types');
       expect(content).toContain('@cybermp/client-types');
       expect(content).toContain('in_world_navigation.archive');
+      expect(content).toContain('files = []');
+      expect(content).not.toContain('Mandatory core files');
+      expect(content).not.toContain('ui_page');
+      expect(content).not.toContain('./assets/**/*.xl');
     });
 
     it('provides comprehensive game-natives reference', () => {

@@ -1,4 +1,6 @@
-import type { MpPlayer } from '@cybermp/server-types';
+import type { MpPlayer, MpServer } from '@cybermp/server-types';
+
+declare const mp: MpServer;
 
 /**
  * Minimal CyberMP Starter Resource - Server Script
@@ -12,26 +14,28 @@ mp.events.on('playerConnected', (playerId: number, tempId: string) => {
   console.log(`[Server] Player connected with ID ${playerId} (tempId: ${tempId})`);
 });
 
-mp.events.on('playerDisconnected', (playerId: number, reason: number) => {
+mp.events.on('playerDisconnected', (playerId, reason) => {
   console.log(`[Server] Player ID ${playerId} disconnected (reason: ${reason})`);
 });
 
 // 2. Listen for Client-to-Server RPC events
 // In CyberMP, the sending player's MpPlayer instance is ALWAYS the first argument
 mp.events.onClient('chat:sendMessage', (player: MpPlayer, message: string) => {
-  console.log(`[Chat] ${player.name} (${player.id}): ${message}`);
+  console.log(`[Chat] ${player.nickname} (${player.id}): ${message}`);
 
   // Echo notification back to the client
   mp.events.emitClient(player, 'chat:receiveMessage', {
-    sender: player.name,
+    sender: player.nickname,
     text: message,
     timestamp: Date.now(),
   });
 });
 
 // 3. Register a custom chat/console command
-mp.commands.add('heal', (player: MpPlayer) => {
-  console.log(`[Command] Healing player ${player.name}`);
+mp.commands.add('heal', (player) => {
+  if (!player) return;
+  // Demonstrates a client notification. Apply game state in your server logic.
+  console.log(`[Command] Heal requested by ${player.nickname}`);
   mp.events.emitClient(player, 'player:healed', 100);
 });
 

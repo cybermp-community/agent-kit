@@ -59,18 +59,8 @@ disable_drop_points = true
 disable_location_dependent_quests = true
 disable_garage = true
 
-# Mandatory core files required for clients:
-files = [
-  "final.redscript",
-  "new_gamedef.archive",
-  "basegame_no_intro_videos.archive",
-  "CyberMP_PlayerModel.archive",
-  "flatline2dlods.archive",
-  "ReducedLoot.archive",
-  "ReducedLoot.archive.xl",
-  "GenderAbuseWorld.archive",
-  "ArchiveXL",
-]
+# Optional files bundled with cybermp_core on this server build.
+files = []
 
 [core.overrides]
 change_player_on_death_logic = true
@@ -87,6 +77,8 @@ disable_no_combat = true
 ```
 
 ---
+
+Keep the `[core]` table for the CyberMP runtime configuration. Populate `core.files` only with files supplied by the installed `cybermp_core` that your configuration needs. [Server configuration](https://docs.cyber.mp/reference/server/configuration/#core-gameplay-runtime-settings)
 
 ## 3. Resource Manifest: `resource.toml`
 
@@ -106,14 +98,11 @@ file = [
   "./browser/*",
   "./browser/assets/*",
   "./assets/in_world_navigation.archive",
-  "./assets/custom-props/*",
-  "./assets/**/*.xl"
+  "./assets/custom-props/*"
 ]
 
 # URL or local relative path to CEF HTML entrypoint:
 cef_url = "./browser/index.html"
-# Alternatively during UI development:
-# ui_page = "http://localhost:5173"
 
 # Allow client script to invoke game natives (mp.game.*):
 use_game_natives = true
@@ -127,6 +116,8 @@ description = "My CyberMP Gamemode"
 version = "1.0.0"
 ```
 
+Use explicit paths or a directory-local wildcard for client assets. Include nested directories with their own entries. For local CEF development, the client can change the URL with `mp.cef.setUrl`. [Adding resource files](https://docs.cyber.mp/guides/resources/adding-resource-files/) · [CEF client API](https://docs.cyber.mp/reference/client/api/global/mpcef/)
+
 ### Key `resource.toml` Fields
 
 | Field | Type | Description |
@@ -135,7 +126,6 @@ version = "1.0.0"
 | `client_script` | `string[]` or `string` | Relative path(s) to client-side script(s) executed inside the game V8 client. |
 | `file` | `string[]` or `string` | Glob patterns or paths for files served to clients (CEF UI HTML/CSS/JS, textures, fonts). |
 | `cef_url` | `string` | Path to the local HTML file loaded in the CEF browser (e.g. `"./browser/index.html"`). |
-| `ui_page` | `string` | Remote or local dev server URL for CEF UI (e.g. `"http://localhost:5173"`). |
 | `use_game_natives`| `boolean` | Set to `true` to enable access to native game functions (`mp.game.*`) on the client. |
 | `hotreload` | `boolean` | Set to `true` to reload scripts live without restarting the server process. |
 | `author` / `version` | `string` | Metadata identifying author and semantic version. |

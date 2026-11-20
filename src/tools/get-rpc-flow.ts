@@ -13,7 +13,7 @@ export const getRpcFlowSchema = {
 export function registerGetRpcFlowTool(server: McpServer): void {
   server.tool(
     'cybermp_get_rpc_flow',
-    'Generate verified paired RPC communication code and listener patterns between CyberMP runtimes (Server, Client, CEF Browser).',
+    'Generate paired RPC communication examples and listener patterns between CyberMP runtimes (Server, Client, CEF Browser).',
     getRpcFlowSchema,
     async (args) => {
       try {

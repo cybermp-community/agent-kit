@@ -45,7 +45,7 @@
     "build:index": "node --import tsx scripts/build-index.ts",
     "sync:docs": "node --import tsx scripts/sync-docs.ts",
     "test": "vitest run",
-    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts",
+    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts skills/cybermp-dev/examples/basic-resource/server.ts skills/cybermp-dev/examples/basic-resource/client.ts",
     "test:packed": "vitest run --config vitest.packed.config.ts",
     "prepublishOnly": "pnpm run build",
     "prepare": "pnpm run build"

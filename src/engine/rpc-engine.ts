@@ -39,16 +39,16 @@ export function parseRpcFlowArgs(args: Record<string, any>): { from: string; to:
 }
 
 /**
- * Returns exact verified paired RPC code snippets and guidance between
+ * Returns paired RPC code snippets and guidance between
  * CyberMP execution environments (Server, Client, CEF Browser).
  */
 export function getRpcFlow(from: RpcRuntime, to: RpcRuntime): RpcFlowResult {
   if (from === 'server' && to === 'client') {
     return {
       title: 'Server to Client RPC',
-      senderCode: `// Server:\nmp.events.emitClient(player, 'customEvent', { score: 100 });`,
+      senderCode: `// Server:\nmp.events.on('playerSpawn', (playerId) => {\n  mp.events.emitClient(playerId, 'customEvent', { score: 100 });\n});`,
       receiverCode: `// Client:\nmp.events.onServer('customEvent', (data) => {\n  console.log('Received:', data);\n});`,
-      notes: 'Server emits to a specific player instance. Client listens with mp.events.onServer.',
+      notes: 'Server emits to a specific player by ID. Client listens with mp.events.onServer.',
     };
   }
 
@@ -56,7 +56,7 @@ export function getRpcFlow(from: RpcRuntime, to: RpcRuntime): RpcFlowResult {
     return {
       title: 'Client to Server RPC',
       senderCode: `// Client:\nmp.events.emitServer('requestScore', 42);`,
-      receiverCode: `// Server:\nmp.events.onClient('requestScore', (player, payload) => {\n  console.log(player.name, 'sent:', payload);\n});`,
+      receiverCode: `// Server:\nmp.events.onClient('requestScore', (player, payload) => {\n  console.log(player.nickname, 'sent:', payload);\n});`,
       notes: 'Client emits to server. Server callback receives the sending MpPlayer instance as the first argument.',
     };
   }
@@ -65,7 +65,7 @@ export function getRpcFlow(from: RpcRuntime, to: RpcRuntime): RpcFlowResult {
     return {
       title: 'Client to Browser (CEF) Bridge',
       senderCode: `// Client:\nmp.events.emitCef('updateHealth', 95);`,
-      receiverCode: `// CEF Web UI:\nmp.events.on('updateHealth', (hp) => {\n  document.getElementById('hp').innerText = hp;\n});`,
+      receiverCode: `// CEF Web UI:\nmp.events.on('updateHealth', (hp) => {\n  const healthLabel = document.getElementById('hp');\n  if (healthLabel) healthLabel.textContent = String(hp);\n});`,
       notes: 'Client emits to CEF browser using mp.events.emitCef. CEF listens using mp.events.on.',
     };
   }

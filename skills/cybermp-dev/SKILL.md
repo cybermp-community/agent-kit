@@ -182,8 +182,8 @@ document.getElementById('submit-btn').addEventListener('click', () => {
 ### Player Lifecycle Events on Server
 ```typescript
 // 1. Connection negotiation
-mp.events.on('playerConnecting', (tempId: string, ip: string) => {
-  console.log(`Connecting: ${tempId} from ${ip}`);
+mp.events.on('playerConnecting', (tempId, name) => {
+  console.log(`Connecting: ${tempId} (${name})`);
 });
 
 // 2. Fully connected and assigned an ID
@@ -197,30 +197,32 @@ mp.events.on('playerSpawn', (playerId: number) => {
 });
 
 // 4. Damage handling (authoritative, return false to cancel damage)
-mp.events.on('damage', (playerId: number, data: DamageEventData) => {
-  console.log(`Player ${playerId} took ${data.totalDamage} damage from ${data.killerId}`);
+mp.events.on('damage', (_playerId, data) => {
+  console.log(`Player ${data.victimId} took ${data.totalDamage} damage`);
 });
 
 // 5. Player death
-mp.events.on('playerDeath', (playerId: number, killerId: number, reason: number) => {
-  console.log(`Player ${playerId} killed by ${killerId} (reason: ${reason})`);
+mp.events.on('playerDeath', (playerId, { killerId }) => {
+  console.log(`Player ${playerId} died (killer: ${killerId ?? 'unknown'})`);
 });
 
 // 6. Disconnect
-mp.events.on('playerDisconnected', (playerId: number, reason: number) => {
-  console.log(`Player ${playerId} disconnected (code: ${reason})`);
+mp.events.on('playerDisconnected', (playerId, reason) => {
+  console.log(`Player ${playerId} disconnected (reason: ${reason})`);
 });
 ```
 
 ### Custom Chat & Console Commands
 Register commands using `mp.commands.add`:
 ```typescript
-mp.commands.add('teleport', (player: MpPlayer, x: string, y: string, z: string) => {
-  if (!x || !y || !z) {
+mp.commands.add('teleport', (player, args) => {
+  if (!player) return;
+  const [x, y, z] = args.map(Number);
+  if (args.length !== 3 || ![x, y, z].every(Number.isFinite)) {
     mp.events.emitClient(player, 'chat:notify', 'Usage: /teleport <x> <y> <z>');
     return;
   }
-  player.position = new Vector3(parseFloat(x), parseFloat(y), parseFloat(z));
+  player.position = [x, y, z];
 });
 ```
 

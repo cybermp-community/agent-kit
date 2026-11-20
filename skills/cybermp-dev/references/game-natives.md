@@ -21,8 +21,8 @@ mp.game.onInit(() => {
 });
 
 // 2. mp.game.onceGameLoaded: World ready entrypoint
-// Called once when the game world and local player entity are fully loaded.
-// All ScriptGameInstance systems (QuestsSystem, WeatherSystem, etc.) are available.
+// Called once when the world is ready. Check the particular system you need.
+// The player puppet may still be absent.
 mp.game.onceGameLoaded(() => {
   console.log('[Client] World loaded. ScriptGameInstance systems ready.');
 });
@@ -32,19 +32,24 @@ mp.game.onceGameLoaded(() => {
 mp.game.onGameLoaded(() => {
   console.log('[Client] World load triggered.');
 });
+// Use the spawn callback for work that needs the local player puppet.
+mp.game.onLocalPlayerSpawned(() => {
+  const player = mp.game.GetPlayer();
+  if (player) console.log('[Client] Local player is available.');
+});
 ```
 
 ### Script Observers & Method Interception
 
-CyberMP provides three ways to intercept or observe REDscript methods:
+The regular observers queue callbacks on the script thread. The raw variants may execute synchronously on an engine thread. Use queued observers for work that needs normal script runtime access. [CyberMP observers](https://docs.cyber.mp/guides/client/observes/) · [Client lifecycle](https://docs.cyber.mp/guides/client/lifecycle/)
 
 ```typescript
-// mp.game.observe: Intercepts before or during REDscript method execution
+// mp.game.observe: Queues a callback from the before-method observation point
 mp.game.observe('LoadingScreenSystem', 'OnLoadingScreenStateChange', (self, newState) => {
   console.log(`Loading screen state changed to: ${newState}`);
 });
 
-// mp.game.observeAfter: Triggers immediately AFTER the target method finishes
+// mp.game.observeAfter: Queues a callback after the target method finishes
 mp.game.observeAfter('MenuScenario_PauseMenu', 'OnEnterScenario', (self) => {
   // Useful for redirecting pause menus (e.g. into character customization mirror)
   self.SwitchToScenario('MenuScenario_CharacterCustomizationMirror');
@@ -529,6 +534,8 @@ Beyond server-synchronized objects (`mp.objects.create`), the CyberMP client run
 
 ### Spawning Client-Side Objects
 
+Use the returned handle for `mp.local.despawnObject`. Keep it for resource cleanup. If the resource needs the engine entity, look it up separately and handle a missing result while the object is loading. See [object spawning and cleanup](object-spawning-and-streaming.md) and the [archive prop recipe](recipes/archive-prop.md).
+
 ```typescript
 /**
  * Spawns a local REDengine mesh object on the client.
@@ -537,7 +544,7 @@ Beyond server-synchronized objects (`mp.objects.create`), the CyberMP client run
  * @param position [x, y, z] world coordinates
  * @param rotation [roll, pitch, yaw] Euler angles in degrees
  * @param streaming Whether the object participates in world streaming
- * @returns Numeric entity ID (hash) of the spawned local object
+ * @returns Numeric local object handle
  */
 export function spawnLocalObject(
   depotPath: string,
@@ -546,7 +553,7 @@ export function spawnLocalObject(
   streaming = true,
 ): number {
   const skinHash = mp.game.redResourceReferenceScriptToken.GetHash(depotPath);
-  const appHash = 0; // 0 for default mesh appearance
+  const appHash = 0; // Verify the default appearance for this template.
 
   const [x, y, z] = position;
   const [roll, pitch, yaw] = rotation;
@@ -565,10 +572,10 @@ export function spawnLocalObject(
 }
 
 /**
- * Despawns and frees a local object by its hash ID.
+ * Despawns a local object using the handle returned by spawnLocalObject.
  */
-export function despawnLocalObject(objectHash: number): void {
-  mp.local.despawnObject(objectHash);
+export function despawnLocalObject(handle: number): void {
+  mp.local.despawnObject(handle);
 }
 
 /**

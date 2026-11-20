@@ -92,6 +92,53 @@ it('serves the installed package with the locked production dependencies', async
         expect(answer, query).toContain('WolvenKit');
         expect(answer, query).toContain('ArchiveXL');
       }
+      const cefReadiness = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'ui:ready' },
+      });
+      const cefText = (cefReadiness.content as Array<{ text: string }>)[0].text;
+      expect(cefText).toContain("mp.events.onCef('ui:ready'");
+      expect(cefText).toContain("mp.events.emit('ui:ready')");
+      const camera = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'simple_free_camera.ent', limit: 1 },
+      });
+      const cameraText = (camera.content as Array<{ text: string }>)[0].text;
+      expect(cameraText).toContain('polls for the entity with a deadline');
+      const interior = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'interior streaming', limit: 1 },
+      });
+      const interiorText = (interior.content as Array<{ text: string }>)[0].text;
+      expect(interiorText).toContain('collision-readiness signal');
+      expect(interiorText).not.toContain('enterInteriorSafely');
+      for (const [name, env, signature, method] of [
+        ['vehicleStreamIn', 'client', 'vehicleStreamIn(netID: number, gameID: number)', 'mp.events.on'],
+        ['playerConnecting', 'server', 'playerConnecting(tempId: number, name: string)', 'mp.events.on'],
+        ['resourceStart', 'client', 'resourceStart(): void', 'mp.events.on'],
+        ['domReady', 'client', 'domReady(name: string)', 'mp.events.onCef'],
+      ]) {
+        const event = await client.callTool({ name: 'cybermp_get_event', arguments: { name, env } });
+        const docs = await client.callTool({ name: 'cybermp_search_docs', arguments: { query: name, limit: 10 } });
+        const eventText = (event.content as Array<{ text: string }>)[0].text;
+        const docsText = (docs.content as Array<{ text: string }>)[0].text;
+        expect(eventText, name).toContain(signature);
+        expect(eventText, name).toContain(`${method}('${name}'`);
+        expect(docsText, name).toContain(signature);
+        expect(docsText, name).not.toContain('vehicleStreamIn (vehicle: MpVehicle)');
+        expect(docsText, name).not.toContain('resourceStart (name: string)');
+      }
+      const dropped = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'playerQuit' },
+      });
+      expect((dropped.content as Array<{ text: string }>)[0].text).not.toContain('playerQuit (player: MpPlayer)');
+      const rpc = await client.callTool({
+        name: 'cybermp_get_rpc_flow', arguments: { from: 'client', to: 'server' },
+      });
+      expect((rpc.content as Array<{ text: string }>)[0].text).toContain('player.nickname');
+      const disputedId = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'porsche', category: 'vehicles' },
+      });
+      const evidence = (disputedId.content as Array<{ text: string }>)[0].text;
+      expect(evidence).toContain('ID needs recheck');
+      expect(evidence).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
     } finally {
       await client.close();
     }

@@ -50,7 +50,7 @@ function notifyPlayer(player: MpPlayer, message: string) {
 
 // Broadcast to all connected players
 function broadcastMessage(message: string) {
-  for (const player of mp.players.all) {
+  for (const player of mp.players.toArray()) {
     mp.events.emitClient(player, 'chat:notify', {
       type: 'broadcast',
       text: message,
@@ -88,20 +88,11 @@ import type { MpPlayer } from '@cybermp/server-types';
 
 // Notice: player is ALWAYS prepended by the engine as the first parameter
 mp.events.onClient('dealership:purchaseVehicle', (player: MpPlayer, modelId: string) => {
-  console.log(`Purchase request from player: ${player.name} (ID: ${player.id}) for ${modelId}`);
+  console.log(`Purchase request from player: ${player.nickname} (ID: ${player.id}) for ${modelId}`);
 
-  // Validate server-authoritative state (e.g., money check)
-  const playerCash = getPlayerCash(player);
-  const cost = getVehicleCost(modelId);
-
-  if (playerCash < cost) {
-    mp.events.emitClient(player, 'dealership:purchaseFailed', 'Insufficient funds in account');
-    return;
-  }
-
-  deductCash(player, cost);
-  spawnVehicleForPlayer(player, modelId);
-  mp.events.emitClient(player, 'dealership:purchaseSuccess', modelId);
+  // Acknowledge receipt. Validate model, price, and player permissions
+  // on the server before implementing a purchase.
+  mp.events.emitClient(player, 'dealership:purchaseReceived', modelId);
 });
 ```
 
@@ -125,9 +116,12 @@ function syncHud(health: number, armor: number, eddies: number) {
 ```javascript
 // Web UI JavaScript (window.mp.events is injected into DOM by game engine)
 mp.events.on('hud:updateStats', (stats) => {
-  document.getElementById('hp-bar').style.width = `${stats.hp}%`;
-  document.getElementById('ap-bar').style.width = `${stats.ap}%`;
-  document.getElementById('eddies-counter').innerText = `$${stats.money.toLocaleString()}`;
+  const healthBar = document.getElementById('hp-bar');
+  const armorBar = document.getElementById('ap-bar');
+  const counter = document.getElementById('eddies-counter');
+  if (healthBar) healthBar.style.width = `${stats.hp}%`;
+  if (armorBar) armorBar.style.width = `${stats.ap}%`;
+  if (counter) counter.textContent = `$${stats.money.toLocaleString()}`;
 });
 ```
 
@@ -138,9 +132,13 @@ mp.events.on('hud:updateStats', (stats) => {
 **CEF Browser (`src/cef/app.ts`):**
 ```javascript
 // User submits character customization form
-document.getElementById('save-char-btn').addEventListener('click', () => {
-  const selectedVoice = document.getElementById('voice-select').value;
-  const hairColor = document.getElementById('hair-color-picker').value;
+document.getElementById('save-char-btn')?.addEventListener('click', () => {
+  const voice = document.getElementById('voice-select');
+  const hair = document.getElementById('hair-color-picker');
+  if (!(voice instanceof HTMLSelectElement) || !(hair instanceof HTMLInputElement)) return;
+
+  const selectedVoice = voice.value;
+  const hairColor = hair.value;
 
   mp.events.emit('ui:saveCharacter', {
     voice: selectedVoice,
@@ -163,35 +161,35 @@ mp.events.onCef('ui:saveCharacter', (data: { voice: string; hairColor: string })
 
 ### Pattern E: Full 3-Tier Roundtrip (CEF UI $\leftrightarrow$ Client $\leftrightarrow$ Server)
 
-When a web UI requests persistent server data (e.g., banking withdrawal):
+A CEF clock can request the current server time through the client bridge:
 
-1. **CEF Browser** emits user intent:
+1. **CEF Browser** requests a timestamp.
    ```javascript
-   mp.events.emit('bank:withdraw', { amount: 500 });
+   mp.events.emit('clock:request');
    ```
-2. **Client** catches event and forwards to server:
+2. **Client** forwards the request to the server.
    ```typescript
-   mp.events.onCef('bank:withdraw', (payload) => {
-     mp.events.emitServer('bank:processWithdrawal', payload.amount);
+   mp.events.onCef('clock:request', () => {
+     mp.events.emitServer('clock:request');
    });
    ```
-3. **Server** validates authority and responds:
+3. **Server** replies to the player supplied by `onClient`.
    ```typescript
-   mp.events.onClient('bank:processWithdrawal', (player, amount) => {
-     const success = withdraw(player, amount);
-     mp.events.emitClient(player, 'bank:withdrawalResult', { success, newBalance: getBalance(player) });
+   mp.events.onClient('clock:request', (player) => {
+     mp.events.emitClient(player, 'clock:result', Date.now());
    });
    ```
-4. **Client** receives result and pushes into UI:
+4. **Client** forwards the timestamp to CEF.
    ```typescript
-   mp.events.onServer('bank:withdrawalResult', (result) => {
-     mp.events.emitCef('bank:displayResult', result);
+   mp.events.onServer('clock:result', (serverTime: number) => {
+     mp.events.emitCef('clock:result', serverTime);
    });
    ```
-5. **CEF Browser** renders confirmation:
+5. **CEF Browser** updates its view.
    ```javascript
-   mp.events.on('bank:displayResult', (result) => {
-     alert(result.success ? 'Withdrawal successful!' : 'Transaction rejected');
+   mp.events.on('clock:result', (serverTime) => {
+     const label = document.getElementById('server-time');
+     if (label) label.textContent = new Date(serverTime).toISOString();
    });
    ```
 

@@ -49,4 +49,22 @@ describe('TweakDB Lookup Engine', () => {
     const clampedMax = lookupTweakDb('', 'all', 100);
     expect(clampedMax.results.length).toBeLessThanOrEqual(50);
   });
+
+  it('reports evidence per identifier without treating mentions as runtime verification', () => {
+    const burning = lookupTweakDb('BaseStatusEffect.Burning');
+    expect(burning.formattedText).toContain('ID found in source');
+    expect(burning.formattedText).toContain('tweakdb-BaseStatusEffect.txt');
+    expect(burning.formattedText).toContain('Runtime behavior is unverified');
+
+    const workspot = lookupTweakDb('Workspot.SitChair');
+    expect(workspot.formattedText).toContain('Unconfirmed ID');
+    expect(workspot.formattedText).not.toContain('ID found in source');
+  });
+
+  it('keeps a suspect ID searchable and labels the alternative as a candidate', () => {
+    const result = lookupTweakDb('v_sport2_porsche_911_turbo_player');
+    expect(result.results[0]?.id).toBe('Vehicle.v_sport2_porsche_911_turbo_player');
+    expect(result.formattedText).toContain('ID needs recheck');
+    expect(result.formattedText).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
+  });
 });

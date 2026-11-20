@@ -20,7 +20,7 @@ export const getEventSchema = {
 export function registerGetEventTool(server: McpServer): void {
   server.tool(
     'cybermp_get_event',
-    'Query CyberMP server, client, or CEF browser events by name, environment, or category. Returns signatures, parameter descriptions, listener syntax, and anti-hallucination guidance.',
+    'Query CyberMP server and client events or CEF browser transport methods by name, environment, or category. Returns signatures, parameter descriptions, listener syntax, and anti-hallucination guidance.',
     getEventSchema,
     async ({ env, name, category }) => {
       const result = getEventInfo({ env, name, category });

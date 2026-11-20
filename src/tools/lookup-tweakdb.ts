@@ -14,7 +14,7 @@ export const lookupTweakDbSchema = {
 export function registerLookupTweakDbTool(server: McpServer): void {
   server.tool(
     'cybermp_lookup_tweakdb',
-    'Lookup verified Cyberpunk 2077 TweakDB IDs for status effects, armed vehicles, weapons, workspots, and gear.',
+    'Search a curated set of Cyberpunk 2077 TweakDB candidates and view the evidence and any known ID discrepancies.',
     lookupTweakDbSchema,
     async ({ query, category, limit }) => {
       const result = lookupTweakDb(query, category, limit);

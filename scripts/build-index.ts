@@ -10,6 +10,7 @@ import {
   Node,
 } from 'ts-morph';
 import { parse as parseYaml } from 'yaml';
+import { eventReferenceWithCatalog } from './event-reference.js';
 import { buildNativeIndex } from './build-native-index.js';
 import { extractDocMetadata } from './sync-docs.js';
 import type {
@@ -846,6 +847,7 @@ export async function buildIndex(options?: {
   docsDir?: string;
   projectRoot?: string;
   project?: Project;
+  writeEventReference?: boolean;
 }): Promise<BuildIndexResult> {
   const projectRoot = options?.projectRoot || PROJECT_ROOT;
   const project = options?.project || createAstProject(projectRoot);
@@ -855,6 +857,12 @@ export async function buildIndex(options?: {
 
   console.log('Building index from AST and documentation...');
   const events = parseEventsFromAst({ project, projectRoot });
+  if (options?.writeEventReference) {
+    const reference = path.join(projectRoot, 'skills/cybermp-dev/references/events.md');
+    const source = fs.readFileSync(reference, 'utf8');
+    const updated = eventReferenceWithCatalog(source, events);
+    if (updated !== source) fs.writeFileSync(reference, updated, 'utf8');
+  }
   const types = parseTypesFromAst({ project, projectRoot });
   const guides = parseGuides(options?.docsDir, projectRoot);
 
@@ -900,7 +908,7 @@ const isDirectExecution = Boolean(
 );
 
 if (isDirectExecution) {
-  buildIndex().then(() => buildNativeIndex()).catch((err) => {
+  buildIndex({ writeEventReference: true }).then(() => buildNativeIndex()).catch((err) => {
     console.error('buildIndex failed:', err);
     process.exit(1);
   });

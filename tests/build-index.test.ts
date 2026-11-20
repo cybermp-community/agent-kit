@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeAll, describe, it, expect } from 'vitest';
+import { eventReferenceWithCatalog } from '../scripts/event-reference.js';
 import type { Project } from 'ts-morph';
 import {
   createAstProject,
@@ -16,6 +17,11 @@ describe('AST Type Indexer', () => {
 
   beforeAll(() => {
     project = createAstProject();
+  });
+
+  it('keeps the checked-in event catalog synchronized with the installed declarations', () => {
+    const source = fs.readFileSync('skills/cybermp-dev/references/events.md', 'utf8');
+    expect(eventReferenceWithCatalog(source, parseEventsFromAst({ project }))).toBe(source);
   });
 
   it('extracts server damage events and types correctly', () => {
