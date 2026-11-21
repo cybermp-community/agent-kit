@@ -51,7 +51,7 @@ describe('Reference examples', () => {
     }
 
     const virtualFiles = new Map(selected.map((example, index) => [
-      path.join(root, `reference-example-${environment}-${index}.ts`),
+      path.join(root, `reference-example-${environment}-${index}.ts`).replace(/\\/g, '/'),
       { label: example.label, source: `${declaration}export {};\n${example.code}\n` },
     ]));
     const options: ts.CompilerOptions = {
@@ -66,12 +66,12 @@ describe('Reference examples', () => {
     };
     const host = ts.createCompilerHost(options);
     const { readFile, fileExists } = host;
-    host.readFile = (file) => virtualFiles.get(file)?.source ?? readFile(file);
-    host.fileExists = (file) => virtualFiles.has(file) || fileExists(file);
+    host.readFile = (file) => virtualFiles.get(file.replace(/\\/g, '/'))?.source ?? readFile(file);
+    host.fileExists = (file) => virtualFiles.has(file.replace(/\\/g, '/')) || fileExists(file);
     const program = ts.createProgram([...virtualFiles.keys()], options, host);
     const diagnostics = ts.getPreEmitDiagnostics(program).map((diagnostic) => {
       const file = diagnostic.file;
-      const example = file && virtualFiles.get(file.fileName);
+      const example = file && virtualFiles.get(file.fileName.replace(/\\/g, '/'));
       const line = file && diagnostic.start !== undefined
         ? file.getLineAndCharacterOfPosition(diagnostic.start).line + 1 - (runtime ? 2 : 1)
         : undefined;
@@ -80,7 +80,7 @@ describe('Reference examples', () => {
       return `${location}: TS${diagnostic.code}: ${message}`;
     });
     expect(diagnostics).toEqual([]);
-  });
+  }, 20_000);
 
   it('ships the same reference sections and example metadata that are checked', () => {
     const checked = new Map(guides.map((guide) => [guide.slug, JSON.stringify(guide)]));

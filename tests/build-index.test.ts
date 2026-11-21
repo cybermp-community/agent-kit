@@ -22,6 +22,18 @@ describe('AST Type Indexer', () => {
   it('keeps the checked-in event catalog synchronized with the installed declarations', () => {
     const source = fs.readFileSync('skills/cybermp-dev/references/events.md', 'utf8');
     expect(eventReferenceWithCatalog(source, parseEventsFromAst({ project }))).toBe(source);
+  }, 20_000);
+
+  it.each(['\n', '\r\n'])('preserves %j line endings when generating the event catalog', (eol) => {
+    const source = ['Introduction', '<!-- event-catalog:start -->', '', '<!-- event-catalog:end -->', ''].join(eol);
+    const generated = eventReferenceWithCatalog(source, []);
+    expect(generated.replaceAll(eol, '')).not.toMatch(/[\r\n]/);
+    expect(eventReferenceWithCatalog(generated, [])).toBe(generated);
+  });
+
+  it('uses portable relative paths in fallback guide descriptions', () => {
+    const guide = parseGuides().find((guide) => guide.slug === 'references/recipes/world-interaction');
+    expect(guide?.description).toBe('Offline reference guide for recipes/world-interaction.md');
   });
 
   it('extracts server damage events and types correctly', () => {

@@ -1,6 +1,6 @@
 {
   "name": "cybermp-agent-kit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "GPL-3.0-or-later",
   "description": "CyberMP AI Agent Toolkit & MCP Server",
   "type": "module",
@@ -40,7 +40,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/bin/cli.js",
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/cli.js', 0o755)\"",
     "build:native": "node --import tsx scripts/build-native-index.ts",
     "build:index": "node --import tsx scripts/build-index.ts",
     "sync:docs": "node --import tsx scripts/sync-docs.ts",

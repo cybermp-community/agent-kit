@@ -14,4 +14,5 @@ export const events = {
   local: 'kit-archive-probe:local',
   clear: 'kit-archive-probe:clear',
   status: 'kit-archive-probe:status',
+  track: 'kit-archive-probe:track',
 } as const;

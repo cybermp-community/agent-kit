@@ -775,7 +775,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
       if (entry.isDirectory()) {
         files.push(...findDocFiles(fullPath, baseDir));
       } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
-        const relPath = path.relative(baseDir, fullPath);
+        const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         files.push({ fullPath, relPath });
       }
     }

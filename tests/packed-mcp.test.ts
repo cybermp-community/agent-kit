@@ -10,11 +10,20 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
+function pack(destination: string): string {
+  const packageManager = process.env.npm_execpath || 'pnpm';
+  const args = ['pack', '--pack-destination', destination];
+  const isScript = /\.[cm]?js$/i.test(packageManager);
+  return execFileSync(isScript ? process.execPath : packageManager,
+    isScript ? [packageManager, ...args] : args,
+    { cwd: root, encoding: 'utf8' }).trim().split('\n').at(-1)!;
+}
+
 it('serves the installed package with the locked production dependencies', async () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-pack-'));
   try {
     const tarball = process.env.CYBERMP_AUDIT_TARBALL
-      || execFileSync('pnpm', ['pack', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }).trim().split('\n').at(-1)!;
+      || pack(temp);
     execFileSync('tar', ['-xzf', tarball, '-C', temp]);
     const installed = path.join(temp, 'package');
     const metadata = JSON.parse(fs.readFileSync(path.join(installed, 'package.json'), 'utf8'));

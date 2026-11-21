@@ -5,9 +5,21 @@ declare const mp: MpServer;
 
 let shared: MpObject | undefined;
 
+function broadcastTracking(id: number | null): void {
+  for (const player of mp.players.toArray()) mp.events.emitClient(player, events.track, id);
+}
+
+function syncTracking(playerId: number): void {
+  mp.events.emitClient(playerId, events.track, shared?.exist ? shared.id : null);
+}
+
+mp.events.on('playerSpawn', syncTracking);
+
 function clearSharedObject(): void {
   if (shared?.exist) {
     const id = shared.id;
+    // Disable notifications before intentional deletion or replacement.
+    broadcastTracking(null);
     shared.destroy();
     console.log(`[kitprop] removed shared Network ID=${id}`);
   }
@@ -40,10 +52,12 @@ mp.commands.add(commandName, (player, [action, asset]) => {
   const path = propPaths[asset];
   clearSharedObject();
   shared = mp.objects.create({ model: mp.hashes.resref(path), position, dimension: player.dimension, dynamic: false });
+  broadcastTracking(shared.id);
   console.log(`[kitprop] shared request ${asset}, ${path}, Network ID=${shared.id}, dimension=${player.dimension}, position=${position.join(',')}`);
 });
 
 mp.events.on('resourceStop', () => {
+  mp.events.off('playerSpawn', syncTracking);
   mp.commands.remove(commandName);
   clearSharedObject();
 });

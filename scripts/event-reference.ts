@@ -40,5 +40,5 @@ export function eventReferenceWithCatalog(source: string, events: EventRecord[])
     '',
     ...tables,
     source.slice(after),
-  ].join('\n');
+  ].join(source.includes('\r\n') ? '\r\n' : '\n');
 }
