@@ -1,6 +1,6 @@
 # Object Spawning & World Streaming Reference
 
-This reference covers physical object and prop spawning in CyberMP, comparing client-local (`mp.local.spawnObject`) versus server-authoritative (`mp.objects.create`) spawning, providing a curated catalog of verified `.ent` entity depot paths, and documenting interior streaming and occlusion handling.
+Use the client-local API for props visible to one client and the server API for props shared through CyberMP streaming. The depot paths below are candidates for inspection in the target game build.
 
 ---
 
@@ -11,20 +11,20 @@ CyberMP provides two distinct mechanisms for spawning world objects, each suited
 | Feature | Client-Local (`mp.local.spawnObject`) | Server-Authoritative (`mp.objects.create`) |
 |---|---|---|
 | **Environment** | Client (`@cybermp/client-types`) | Server (`@cybermp/server-types`) |
-| **Network Replication** | ❌ Local to executing client only | ✅ Synced to all clients in dimension |
+| **Network Replication** | Local to the executing client | Streamed to eligible clients in range and in the assigned dimension |
 | **Network Cost** | Zero bandwidth / RPC overhead | Synchronized state updates |
-| **Persistence** | Resets on resource reload / client quit | Persists on server across reconnects |
+| **Removal** | Pass the local handle to `mp.local.despawnObject` when done or on resource stop | Destroy the object through `prop.destroy()` or `mp.objects.destroy` when the server resource no longer needs it |
 | **Use Cases** | Decorative props, personal garage previews, client-only VFX markers, temporary scene staging | Shared barricades, public furniture, racing tracks, custom buildings, drops |
+
+A user-run base-game prop test on 21 November 2026 confirmed shared visibility on two clients, visibility after a late connection, and removal on both clients when the resource stopped. In the subsequent streaming test, the same live server object kept its Network ID, `mp.network.getObjectGameId(networkId)` returned `0` outside streaming, and returning assigned a new local Game ID. Treat that ID as a temporary client-side mapping: resolve it again after `objectStreamIn` rather than caching it across `objectStreamOut`. Filter both events by the tracked Network ID; their arguments are `(netID, gameID)`. These observations cover the tested base-game asset and stand, not custom archive delivery or all game builds. See the [portable probe](../examples/archive-probe/README.md) and [audit](https://github.com/mo3g666/cybermp-agent-kit/blob/main/docs/audits/2026-11-20-knowledge-base.md).
 
 ---
 
 ## 2. Client-Local Spawning (`mp.local.spawnObject`)
 
-`mp.local.spawnObject` instantiates an entity purely inside the local player's REDengine world instance.
+Use the model and appearance hashes expected by the client API. Use a `bigint` for a 64-bit hash obtained as a string, since converting it to `number` can lose precision. The numeric return value is the local handle used for cleanup. Check entity and appearance resolution in the target client. [Local entities guide](https://docs.cyber.mp/guides/client/local-entities/) · [Archive prop recipe](recipes/archive-prop.md)
 
-```typescript
-import type { Vector3, EulerAngles } from '@cybermp/client-types/game';
-
+```typescript env=client
 // Store spawned local props for lifecycle management
 const activeLocalObjects: number[] = [];
 
@@ -73,42 +73,40 @@ export function clearAllLocalProps(): void {
   }
   activeLocalObjects.length = 0;
 }
+
+mp.events.on('resourceStop', clearAllLocalProps);
 ```
 
 ---
 
 ## 3. Server-Authoritative Spawning (`mp.objects.create`)
 
-On the server, `mp.objects.create` instantiates an entity that is automatically streamed and synchronized to all players within network range and the assigned dimension.
+On the server, resolve a prop depot path as a resource reference with `mp.hashes.resref`. Test visibility with clients inside and outside the streaming range and in different dimensions. Every client that should render a custom prop needs its asset and dependencies. [Server object guide](https://docs.cyber.mp/guides/server/entities/#spawning-objects) · [Archive prop recipe](recipes/archive-prop.md)
 
-```typescript
-import { Vector3 } from '@cybermp/server-types';
-import type { MpObject } from '@cybermp/server-types';
+```typescript env=server
+import type { MpObject, Vector3 } from '@cybermp/server-types';
 
 /**
- * Spawns a server-synchronized object across all connected clients.
+ * Creates a server object eligible for streaming.
  *
- * @param model Model hash (BigInt or number)
+ * @param depotPath Resource path of the prop
  * @param position 3D coordinates
  * @param yaw Rotation in degrees (default: 0)
- * @param dimension Virtual dimension (default: 0 for global)
+ * @param dimension Virtual dimension (default: 0)
  */
 export function createServerProp(
-  model: bigint | number,
+  depotPath: string,
   position: Vector3,
   yaw: number = 0,
   dimension: number = 0,
 ): MpObject {
   const prop = mp.objects.create({
-    model: BigInt(model),
+    model: mp.hashes.resref(depotPath),
     position,
     yaw,
+    dynamic: false,
     dimension,
   });
-
-  // Attach metadata if needed
-  prop.setMeta('isCustomProp', true);
-  prop.setMeta('createdAt', Date.now());
 
   console.log(`[Server] Spawned synchronized prop (ID: ${prop.id}) in dimension ${dimension}`);
   return prop;
@@ -167,41 +165,8 @@ base\props\industrial\barrels\metal_barrel_yellow_a.ent
 
 ## 5. Interior Streaming & Occlusion Handling
 
-REDengine divides Night City into a hierarchy of world sectors (`worldStreamingSector`) and utilizes strict occlusion culling to optimize rendering performance.
+Treat an interior transition as three separate checks.
 
-### Understanding Streaming Traps
-
-1. **Sector Unloading**: If a player teleports into an interior that is far away from their current position, exterior world geometry and collision sectors may take 200–500ms to stream in.
-2. **Occlusion Culling (Black Voids)**: When outside a building looking in, REDengine hides interior rooms behind solid exterior walls using "occluder meshes". If you open an exterior door programmatically, the occluder might still cull the interior until the camera crosses the portal boundary.
-
-### Best Practices for Interior Custom Staging
-
-```typescript
-/**
- * Safe teleport into an interior with streaming delay to prevent falling through collision.
- */
-export function enterInteriorSafely(
-  x: number,
-  y: number,
-  z: number,
-  yaw: number = 0,
-): void {
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  // 1. Temporarily enable god mode or disable falling damage during streaming
-  const statPools = mp.game.ScriptGameInstance.GetStatPoolsSystem();
-
-  // 2. Teleport using TeleportationFacility
-  const targetPos = Object.assign(new mp.game.Vector4(), { x, y, z, w: 1.0 });
-  const targetRot = Object.assign(new mp.game.EulerAngles(), { roll: 0, pitch: 0, yaw });
-
-  mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
-    player,
-    targetPos,
-    targetRot,
-  );
-
-  console.log(`[Streaming] Player teleported to interior (${x}, ${y}, ${z}). Streaming sectors...`);
-}
-```
+1. **Player movement.** Verify the target coordinates, close interfering game menus, and use the documented native teleport flow. If the transition also changes dimension, coordinate that state with the server. [Player teleportation guide](https://docs.cyber.mp/guides/client/teleporting-player/)
+2. **World streaming.** Test the destination from nearby and from far away. Check whether the floor collision and required geometry are available before releasing the player. A fixed timeout provides no collision-readiness signal. Establish a fallback destination for failed transitions.
+3. **Asset visibility.** If a prop fails to render, first test the same asset at a known outdoor location to check the archive, depot path and appearance. At the interior, test the player's position and camera placement separately. Use a second client to verify shared object visibility where relevant. [Archive prop recipe](recipes/archive-prop.md)

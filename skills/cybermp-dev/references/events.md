@@ -1,192 +1,153 @@
+---
+title: CyberMP Core Events Reference
+description: Event signatures generated from the CyberMP type packages used by the MCP event index.
+verificationStatus: static-cross-check
+---
 # CyberMP Core Events Reference
 
-This offline reference documents the event system and core events available across the three CyberMP execution environments: **Server**, **Client**, and **CEF Browser**.
+The tables are generated from the same declarations as `cybermp_get_event`. Bind built-in events in the runtime shown below. A signature describes callback arguments and return type. For engine timing and effect, check the target build.
 
----
+## Server listeners
 
-## 1. Listener Syntaxes by Environment
+Use `mp.events.on` for game events, `mp.events.onClient` for requests sent by a client, and `mp.events.emitClient` to target a player by ID or object. The client request handler receives the sender as a server-side `MpPlayer`.
 
-### Server Environment (`@cybermp/server-types`)
-The server environment runs on Node.js. Event listeners are registered through the global `events` object:
-
-```typescript
-// 1. Internal & Game Engine Events (Strongly typed)
-events.on('playerConnected', (playerId: number, tempId: string) => {
-  console.log(`Player connected with ID ${playerId} (tempId: ${tempId})`);
+```typescript env=server
+mp.events.on('playerConnected', (playerId, tempId) => {
+  console.log(playerId, tempId);
 });
 
-// 2. Client-to-Server RPC Events (First argument is ALWAYS the sending MpPlayer instance)
-mp.events.onClient('buyItem', (player: MpPlayer, itemId: string, amount: number) => {
-  console.log(`Player ${player.name} requested to buy ${amount}x ${itemId}`);
+mp.events.onClient('inventory:request', (player) => {
+  console.log(`${player.nickname} requested inventory`);
+  mp.events.emitClient(player, 'inventory:requestAcknowledged');
 });
-
-// 3. Emitting to Client
-mp.events.emitClient(player, 'purchaseSuccess', { itemId, balance: 5000 });
-
-// 4. Deregistering listeners
-mp.events.off('playerConnected', handler);
 ```
 
-### Client Environment (`@cybermp/client-types`)
-The client environment runs within the Cyberpunk 2077 V8 runtime. Event listeners are registered through the global `mp.events` object:
+For a `damage` callback, get the affected entity from `data.victimId` when handling player damage. Freeroam uses the first callback argument for the offender. Check cancellation in the target build. [Freeroam safe zone](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/server/src/modules/greenzones/greenzones.service.ts) · [CyberMP server events](https://docs.cyber.mp/guides/server/events/)
 
-```typescript
-// 1. Engine & Streaming Events
-mp.events.on('remotePlayerStreamIn', (player: MpPlayer) => {
-  console.log(`Remote player streamed in: ${player.name}`);
+## Client listeners
+
+Stream callbacks carry the network ID and the local game ID. Resolve the ID in the relevant environment when you need the entity. Wait for the right lifecycle callback before making native calls.
+
+```typescript env=client
+mp.events.on('remotePlayerStreamIn', (netID, gameID) => {
+  console.log(netID, gameID);
 });
-
-// 2. Server-to-Client RPC Events (Triggered by mp.events.emitClient on server)
-mp.events.onServer('purchaseSuccess', (data: { itemId: string; balance: number }) => {
-  console.log(`Purchased ${data.itemId}, new balance: ${data.balance}`);
+mp.events.onServer('inventory:requestAcknowledged', () => {
+  console.log('Server received the request');
 });
-
-// 3. Browser (CEF) to Client Events (Triggered by mp.events.emit in CEF)
-mp.events.onCef('submitLogin', (username: string, passHash: string) => {
-  mp.events.emitServer('authLogin', username, passHash);
+mp.events.onCef('domReady', (name) => {
+  console.log(`CEF ready: ${name}`);
 });
-
-// 4. Emitting to Server
-mp.events.emitServer('requestInventory');
-
-// 5. Emitting to Browser (CEF)
-mp.events.emitCef('updateHealth', 85);
 ```
 
-### Browser Environment (`@cybermp/browser-types`)
-The CEF browser runs inside Chromium for web UIs. Events communicate with the game client via `window.mp.events`:
+[Network IDs](https://docs.cyber.mp/guides/client/network-ids/) · [CyberMP client events](https://docs.cyber.mp/guides/client/events/)
 
-```javascript
-// 1. Listen for messages from client-side script
-mp.events.on('updateHealth', (health) => {
-  document.getElementById('health-bar').style.width = `${health}%`;
-});
+## Browser listeners
 
-// 2. Send messages back to client-side script
-mp.events.emit('uiReady');
+The CEF runtime injects `mp.events`. Browser event names come from your client/browser contract. Use the same function when unsubscribing.
 
-// 3. Remove listener
-mp.events.off('updateHealth', handler);
+```typescript env=browser
+const showHealth = (health: number) => {
+  const label = document.getElementById('health');
+  if (label) label.textContent = String(health);
+};
+
+mp.events.on('hud:update', showHealth);
+
+// During teardown:
+// mp.events.off('hud:update', showHealth);
 ```
 
----
+<!-- event-catalog:start -->
 
-## 2. Server Events Catalog (`events.on`)
+## Server game and resource events
 
-### Player Lifecycle
-| Event | Signature | Description |
-|---|---|---|
-| `playerConnecting` | `(tempId: string, ip: string): void` | Triggered when a player begins connection negotiation. |
-| `playerConnected` | `(playerId: number, tempId: string): void` | Triggered when a player has fully joined and received an entity ID. |
-| `playerSpawn` | `(playerId: number): void` | Triggered when a player's character spawns into the world. |
-| `playerRespawn` | `(playerId: number): void` | Triggered when a player respawns after death. |
-| `playerDespawn` | `(playerId: number): void` | Triggered when a player entity is despawned from the world. |
-| `playerDeath` | `(playerId: number, data: PlayerDeathEventData): void` | Triggered when a player character dies (`data.killerId?: number`). |
-| `playerDisconnected` | `(playerId: number, reason: string): void` | Triggered when a player disconnects from the server. |
-| `playerQuit` | `(player: MpPlayer): void` | Triggered when a player quits, providing the complete `MpPlayer` instance. |
-| `playerAppearanceChange` | `(playerId: number, data: PlayerAppearanceChangeEventData): void \| boolean` | Triggered when player clothing/morph attributes update. |
+| Signature | API |
+| --- | --- |
+| `entitySpawn(id: number, type: EntityType): void` | `mp.events.on` |
+| `entityDespawn(id: number, type: EntityType): void` | `mp.events.on` |
+| `objectSpawn(id: number): void` | `mp.events.on` |
+| `objectDespawn(id: number): void` | `mp.events.on` |
+| `gameObjectSpawn(id: number): void` | `mp.events.on` |
+| `gameObjectDespawn(id: number): void` | `mp.events.on` |
+| `entityMetaChange(id: string, key: string, oldValue: any, newValue: any): void` | `mp.events.on` |
+| `pedSpawn(id: number): void` | `mp.events.on` |
+| `pedDespawn(id: number): void` | `mp.events.on` |
+| `pickupChange(playerId: number, data: PickupChangeEventData): void \| boolean` | `mp.events.on` |
+| `pickupRaise(playerId: number, data: PickupDespawnEventData): void \| boolean` | `mp.events.on` |
+| `pickupDrop(playerId: number, data: PickupCreateEventData): void \| boolean` | `mp.events.on` |
+| `pickupSpawn(id: number): void` | `mp.events.on` |
+| `pickupDespawn(id: number): void` | `mp.events.on` |
+| `vehicleCustomizationChange(playerId: number, data: VehicleCustomizationChangeEventData): void` | `mp.events.on` |
+| `vehicleDestructionChange(playerId: number, data: VehicleDestructionChangeEventData): void` | `mp.events.on` |
+| `vehicleSpawn(id: number): void` | `mp.events.on` |
+| `vehicleDespawn(id: number): void` | `mp.events.on` |
+| `vehicleWeaponShoot(id: number, data: VehicleWeaponShootEventData): void \| boolean` | `mp.events.on` |
+| `vehicleHittedByPlayer(id: number, data: VehicleHittedByPlayerEventData): void \| boolean` | `mp.events.on` |
+| `doorStateChange(playerId: number, data: DoorStateChangeEventData): void \| boolean` | `mp.events.on` |
+| `liftStateChange(playerId: number, data: LiftStateChangeEventData): void \| boolean` | `mp.events.on` |
+| `fire(playerId: number, data: FireEventData): void \| boolean` | `mp.events.on` |
+| `explosion(playerId: number, data: ExplosionEventData): void \| boolean` | `mp.events.on` |
+| `globalMetaChange(id: string, key: string, oldValue: any, newValue: any): void` | `mp.events.on` |
+| `playerConnecting(tempId: number, name: string): void` | `mp.events.on` |
+| `playerConnected(playerId: number, tempId: string): void` | `mp.events.on` |
+| `playerSpawn(playerId: number): void` | `mp.events.on` |
+| `playerRespawn(playerId: number, data: Vector3Object): void` | `mp.events.on` |
+| `playerDespawn(playerId: number): void` | `mp.events.on` |
+| `playerDeath(playerId: number, data: PlayerDeathEventData): void` | `mp.events.on` |
+| `playerDisconnected(playerId: number, reason: string): void` | `mp.events.on` |
+| `playerAppearanceChange(playerId: number, data: PlayerAppearanceChangeEventData): void \| boolean` | `mp.events.on` |
+| `playerHealing(playerId: number): void \| boolean` | `mp.events.on` |
+| `playerKnockdown(playerId: number): void \| boolean` | `mp.events.on` |
+| `playerExitVehicle(playerId: number, vehicleId: number): void` | `mp.events.on` |
+| `playerEnterVehicle(playerId: number, vehicleId: number, seat: VehicleSeat): void` | `mp.events.on` |
+| `damage(playerId: number, data: DamageEventData): void \| boolean` | `mp.events.on` |
+| `meleeAction(playerId: number, data: MeleeActionEventData): void \| boolean` | `mp.events.on` |
+| `shootAction(playerId: number, data: ShootActionEventData): void \| boolean` | `mp.events.on` |
+| `weaponReload(playerId: number, weaponHash: GameHash): void \| boolean` | `mp.events.on` |
+| `throwGrenade(playerId: number, data: ThrowGrenadeEventData): void \| boolean` | `mp.events.on` |
+| `playerMetaChange(id: string, key: string, oldValue: any, newValue: any): void` | `mp.events.on` |
+| `anyResourceStart(resourceName: string): void` | `mp.events.on` |
+| `anyResourceStop(resourceName: string): void` | `mp.events.on` |
+| `anyServerResourceStart(resourceName: string): void` | `mp.events.on` |
+| `anyServerResourceStop(resourceName: string): void` | `mp.events.on` |
+| `resourceStart(): void` | `mp.events.on` |
+| `resourceStop(): void` | `mp.events.on` |
+| `resourcesRefresh(): void` | `mp.events.on` |
 
-### Combat & Actions
-| Event | Signature | Description |
-|---|---|---|
-| `damage` | `(playerId: number, data: DamageEventData): void \| boolean` | Triggered when a player takes damage. Return `false` to cancel. |
-| `meleeAction` | `(playerId: number, actionType: MeleeActionType): void` | Triggered when a player executes a melee attack/combo. |
-| `shootAction` | `(playerId: number, weaponHash: GameHash): void` | Triggered when a weapon is fired. |
-| `weaponReload` | `(playerId: number): void` | Triggered when a player reloads their weapon. |
-| `throwGrenade` | `(playerId: number, grenadeHash: GameHash): void` | Triggered when a grenade projectile is thrown. |
-| `playerHealing` | `(playerId: number, amount: number): void` | Triggered when healing items/boosters are used. |
-| `playerKnockdown` | `(playerId: number): void` | Triggered when player enters knockdown state. |
+## Client game and resource events
 
-### Vehicles
-| Event | Signature | Description |
-|---|---|---|
-| `playerEnterVehicle` | `(playerId: number, vehicleId: number, seatIndex: number): void` | Player starts occupying vehicle seat. |
-| `playerExitVehicle` | `(playerId: number, vehicleId: number, seatIndex: number): void` | Player exits vehicle. |
-| `vehicleSpawn` | `(vehicleId: number): void` | Server creates a vehicle entity. |
-| `vehicleDespawn` | `(vehicleId: number): void` | Server removes a vehicle entity. |
-| `vehicleWeaponShoot` | `(vehicleId: number, data: VehicleWeaponShootEventData): void \| boolean` | Vehicle-mounted weaponry is discharged. |
-| `vehicleHittedByPlayer` | `(vehicleId: number, data: VehicleHittedByPlayerEventData): void \| boolean` | Player collides with or damages a vehicle. |
-| `vehicleCustomizationChange` | `(playerId: number, data: VehicleCustomizationChangeEventData): void` | CrystalCoat or vehicle appearance altered. |
-| `vehicleDestructionChange` | `(playerId: number, data: VehicleDestructionChangeEventData): void` | Vehicle body deformation or blowout updated. |
+| Signature | API |
+| --- | --- |
+| `anyResourceStart(resourceName: string): void` | `mp.events.on` |
+| `anyResourceStop(resourceName: string): void` | `mp.events.on` |
+| `anyServerResourceStart(resourceName: string): void` | `mp.events.on` |
+| `anyServerResourceStop(resourceName: string): void` | `mp.events.on` |
+| `resourceStart(): void` | `mp.events.on` |
+| `resourceStop(): void` | `mp.events.on` |
+| `resourcesRefresh(): void` | `mp.events.on` |
+| `objectStreamOut(netID: number, gameID: number): void` | `mp.events.on` |
+| `objectStreamIn(netID: number, gameID: number): void` | `mp.events.on` |
+| `pedStreamOut(netID: number, gameID: number): void` | `mp.events.on` |
+| `pedStreamIn(netID: number, gameID: number): void` | `mp.events.on` |
+| `remotePlayerStreamOut(netID: number, gameID: number): void` | `mp.events.on` |
+| `remotePlayerStreamIn(netID: number, gameID: number): void` | `mp.events.on` |
+| `vehicleStreamOut(netID: number, gameID: number): void` | `mp.events.on` |
+| `vehicleStreamIn(netID: number, gameID: number): void` | `mp.events.on` |
 
-### In-World Pickups & Loot
-| Event | Signature | Description |
-|---|---|---|
-| `pickupSpawn` | `(pickupId: number): void` | In-world loot pickup spawned. |
-| `pickupDespawn` | `(pickupId: number): void` | In-world loot pickup removed. |
-| `pickupRaise` | `(playerId: number, data: PickupDespawnEventData): void \| boolean` | Player picks up loot item. |
-| `pickupDrop` | `(playerId: number, data: PickupCreateEventData): void \| boolean` | Player drops item onto the ground. |
-| `pickupChange` | `(playerId: number, data: PickupChangeEventData): void \| boolean` | State of pickup altered. |
+## Client CEF lifecycle events
 
-### Peds & Static Entities
-| Event | Signature | Description |
-|---|---|---|
-| `pedSpawn` | `(pedId: number): void` | Synced NPC ped spawned. |
-| `pedDespawn` | `(pedId: number): void` | Synced NPC ped despawned. |
-| `objectSpawn` | `(objectId: number): void` | Synced static object spawned. |
-| `objectDespawn` | `(objectId: number): void` | Synced static object despawned. |
-| `gameObjectSpawn` | `(gameObjectId: number): void` | Synced game object spawned. |
-| `gameObjectDespawn` | `(gameObjectId: number): void` | Synced game object despawned. |
+| Signature | API |
+| --- | --- |
+| `domReady(name: string): void` | `mp.events.onCef` |
+| `loadingFailed(error: CefLoadingFailedError): void` | `mp.events.onCef` |
 
-### World & Metadata
-| Event | Signature | Description |
-|---|---|---|
-| `entitySpawn` | `(entityId: number, entityType: EntityType): void` | Any generic entity spawns. |
-| `entityDespawn` | `(entityId: number, entityType: EntityType): void` | Any generic entity despawns. |
-| `entityMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Synced metadata updated on an entity. |
-| `globalMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Server-wide shared metadata updated. |
-| `playerMetaChange` | `(id: string, key: string, oldValue: any, newValue: any): void` | Player-specific metadata altered. |
-| `doorStateChange` | `(playerId: number, data: DoorStateChangeEventData): void \| boolean` | World doors opened or locked. |
-| `liftStateChange` | `(playerId: number, data: LiftStateChangeEventData): void \| boolean` | Elevators/lifts moving between floors. |
-| `fire` | `(playerId: number, data: FireEventData): void \| boolean` | Environmental fire ignited. |
-| `explosion` | `(playerId: number, data: ExplosionEventData): void \| boolean` | Explosion triggered in world coordinates. |
+## Browser transport methods
 
-### Resource Management
-| Event | Signature | Description |
-|---|---|---|
-| `resourceStart` | `(name: string): void` | Triggered when this resource starts. |
-| `resourceStop` | `(name: string): void` | Triggered when this resource stops. |
-| `anyResourceStart` | `(name: string): void` | Any resource in the server started. |
-| `anyResourceStop` | `(name: string): void` | Any resource in the server stopped. |
-| `anyServerResourceStart` | `(resourceName: string): void` | Dedicated server resource started (useful for dev watchers / hotreload). |
-| `anyServerResourceStop` | `(resourceName: string): void` | Dedicated server resource stopped. |
-| `resourcesRefresh` | `(): void` | Resource system refreshed. |
-| `__coreConfig` | `(config: any): void` | Internal core sync event delivering `server.toml` core configuration to client. |
+| Signature | API |
+| --- | --- |
+| `on(eventName: string, callback: (...args: any[]) => void): void` | `mp.events.on` |
+| `off(eventName: string, func: (...args: any[]) => void): void` | `mp.events.off` |
+| `emit(eventName: string, ...args: any[]): void` | `mp.events.emit` |
 
----
-
-## 3. Client Events Catalog (`events.on`)
-
-### Streaming (Entity Proximity)
-| Event | Signature | Description |
-|---|---|---|
-| `remotePlayerStreamIn` | `(player: MpPlayer): void` | Remote player entered local streaming distance (~250m). |
-| `remotePlayerStreamOut` | `(player: MpPlayer): void` | Remote player left local streaming distance. |
-| `vehicleStreamIn` | `(vehicle: MpVehicle): void` | Vehicle entered client streaming grid. |
-| `vehicleStreamOut` | `(vehicle: MpVehicle): void` | Vehicle departed client streaming grid. |
-| `pedStreamIn` | `(ped: MpPed): void` | Synced NPC/ped streamed into client. |
-| `pedStreamOut` | `(ped: MpPed): void` | Synced NPC/ped streamed out. |
-| `objectStreamIn` | `(obj: MpObject): void` | World object streamed in. |
-| `objectStreamOut` | `(obj: MpObject): void` | World object streamed out. |
-
-### Web UI (CEF) Lifecycle
-| Event | Signature | Description |
-|---|---|---|
-| `domReady` | `(browserName: string): void` | HTML DOM tree has completely rendered inside the CEF browser. |
-| `loadingFailed` | `(error: CefLoadingFailedError): void` | Web view failed to load URL or asset. |
-
-### Resource Lifecycle
-| Event | Signature | Description |
-|---|---|---|
-| `resourceStart` | `(name: string): void` | Client resource started and initialized. |
-| `resourceStop` | `(name: string): void` | Client resource stopped and teardown started. |
-
----
-
-## 4. Browser (CEF) Events Catalog (`mp.events.on`)
-
-| Method | Parameters | Description |
-|---|---|---|
-| `mp.events.on(name, cb)` | `(name: string, callback: (...args: any[]) => void)` | Listens for events sent by client via `mp.events.emitCef`. |
-| `mp.events.emit(name, ...args)` | `(name: string, ...args: any[])` | Sends event to client, received by `mp.events.onCef`. |
-| `mp.events.off(name, cb)` | `(name: string, func: (...args: any[]) => void)` | Removes an active CEF listener. |
+<!-- event-catalog:end -->

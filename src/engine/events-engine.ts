@@ -22,21 +22,19 @@ const EVENT_ALIASES: Record<string, string> = {
 
 const allEvents = eventsData as EventRecord[];
 
-function generateListenerSyntax(event: EventRecord): string {
-  const paramNames = event.parameters.map((p) => p.name).join(', ');
-  if (event.env === 'server') {
-    return `// Server listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
-  }
-  if (event.env === 'client') {
-    if (event.source === 'MpCefEventsMap') {
-      return `// Client listener for CEF event:\nmp.events.onCef('${event.name}', (${paramNames}) => {\n  // Handle CEF event\n});`;
-    }
-    return `// Client listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
-  }
+function generateUsage(event: EventRecord): string {
   if (event.env === 'browser') {
-    return `// CEF Web UI listener:\nmp.events.on('${event.name}', (${paramNames}) => {\n  // Browser handler\n});`;
+    if (event.name === 'emit') return "mp.events.emit('hud:update', 75);";
+    const registration = "const handler = (health: number) => console.log(health);\nmp.events.on('hud:update', handler);";
+    return event.name === 'off'
+      ? registration + "\n// Run during teardown.\nmp.events.off('hud:update', handler);"
+      : registration;
   }
-  return `mp.events.on('${event.name}', (${paramNames}) => {});`;
+
+  const paramNames = event.parameters.map((parameter) => parameter.name).join(', ');
+  const cefEvent = event.env === 'client' && event.source === 'MpCefEventsMap';
+  const method = cefEvent ? 'onCef' : 'on';
+  return `mp.events.${method}('${event.name}', (${paramNames}) => {\n  // Handler implementation\n});`;
 }
 
 function formatParametersTable(parameters: EventParameter[]): string {
@@ -119,7 +117,7 @@ export function getEventInfo(options: GetEventInfoOptions = {}): GetEventInfoRes
 
   if (exactMatch) {
     const lines: string[] = [
-      `## Event: ${exactMatch.name} [${exactMatch.env}]`,
+      `## ${exactMatch.env === 'browser' ? 'CEF transport method' : 'Event'}: ${exactMatch.name} [${exactMatch.env}]`,
       `- **Category:** ${exactMatch.category || 'General'}`,
       `- **Source Interface:** ${exactMatch.source || 'N/A'}`,
       `- **Environment:** ${exactMatch.env}`,
@@ -135,9 +133,9 @@ export function getEventInfo(options: GetEventInfoOptions = {}): GetEventInfoRes
     lines.push(exactMatch.signature);
     lines.push('```');
 
-    lines.push('\n### Listener Syntax');
+    lines.push(exactMatch.env === 'browser' ? '\n### Example' : '\n### Listener Syntax');
     lines.push('```typescript');
-    lines.push(generateListenerSyntax(exactMatch));
+    lines.push(generateUsage(exactMatch));
     lines.push('```');
 
     lines.push('\n### Parameters');

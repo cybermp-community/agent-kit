@@ -10,6 +10,7 @@ import {
   Node,
 } from 'ts-morph';
 import { parse as parseYaml } from 'yaml';
+import { eventReferenceWithCatalog } from './event-reference.js';
 import { buildNativeIndex } from './build-native-index.js';
 import { extractDocMetadata } from './sync-docs.js';
 import type {
@@ -20,6 +21,7 @@ import type {
   MethodRecord,
   EnumMemberRecord,
   TypeRecord,
+  GuideExampleContext,
   GuideRecord,
   BuildIndexResult,
 } from '../src/types/index.js';
@@ -700,13 +702,26 @@ export function parseMarkdownSections(
 
   const anchors = new Set<string>();
   return sections.map(({ title: sectionTitle, lines }, index) => {
-    const blocks: Array<{ language: string; code: string }> = [];
-    const prose = lines.join('\n').replace(
-      /^[ \t]*([`~])\1{2,}([^\s`~]*)[^\n]*\n([\s\S]*?)\n[ \t]*\1{3,}[ \t]*$/gm,
-      (_, _marker: string, language: string, code: string) => {
+    const blocks: Array<{ language: string; code: string; context: GuideExampleContext }> = [];
+    const sectionText = lines.join('\n');
+    let previousFenceEnd = 0;
+    const prose = sectionText.replace(
+      /^[ \t]*([`~])\1{2,}([^\s`~]*)([^\n]*)\n([\s\S]*?)\n[ \t]*\1{3,}[ \t]*$/gm,
+      (block: string, _marker: string, language: string, attributes: string, code: string, offset: number) => {
         if (language.toLowerCase() !== 'mermaid' && code.trim()) {
-          blocks.push({ language, code: code.trim() });
+          const context: GuideExampleContext = {};
+          const [, environment] = /(?:^|\s)env=(client|server|browser|tooling)(?=\s|$)/.exec(attributes) ?? [];
+          if (environment === 'client' || environment === 'server' || environment === 'browser' || environment === 'tooling') {
+            context.environment = environment;
+          }
+          const checked = /(?:^|\s)checked=(@cybermp\/(client|server|browser)-types@[^\s]+)(?=\s|$)/.exec(attributes);
+          if (checked && checked[2] === environment) context.checkedAgainst = checked[1];
+          const notes = sectionText.slice(previousFenceEnd, offset).trim()
+            .split(/\n[ \t]*\n/).map(extractPlainText).filter((paragraph) => paragraph && !/^[-*_]{3,}$/.test(paragraph)).at(-1);
+          if (notes) context.notes = notes;
+          blocks.push({ language, code: code.trim(), context });
         }
+        previousFenceEnd = offset + block.length;
         return '\n\n';
       },
     );
@@ -716,6 +731,7 @@ export function parseMarkdownSections(
     for (let suffix = 1; anchors.has(anchor); suffix++) anchor = `${baseAnchor}-${suffix}`;
     anchors.add(anchor);
     const suffix = sectionTitle ? `#${anchor}` : '';
+    const priorityAliases = sectionTitle ? metadata.sectionPriorityAliases?.[anchor] : metadata.priorityAliases;
 
     return {
       title: docTitle,
@@ -723,12 +739,13 @@ export function parseMarkdownSections(
       ...(sectionTitle ? { sectionTitle } : {
         description: docDescription,
         ...(Array.isArray(metadata.aliases) ? { aliases: metadata.aliases } : {}),
-        ...(Array.isArray(metadata.priorityAliases) ? { priorityAliases: metadata.priorityAliases } : {}),
       }),
+      ...(Array.isArray(priorityAliases) ? { priorityAliases } : {}),
       slug: baseSlug + suffix,
       url: baseUrl + suffix,
       codeSnippets: blocks.map((block) => block.code),
       codeLanguages: blocks.map((block) => block.language),
+      ...(blocks.length ? { exampleContexts: blocks.map((block) => block.context) } : {}),
       plainText: paragraphs.join(' '),
       paragraphs,
       ...(metadata.environment ? { environment: metadata.environment } : {}),
@@ -758,7 +775,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
       if (entry.isDirectory()) {
         files.push(...findDocFiles(fullPath, baseDir));
       } else if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
-        const relPath = path.relative(baseDir, fullPath);
+        const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         files.push({ fullPath, relPath });
       }
     }
@@ -846,6 +863,7 @@ export async function buildIndex(options?: {
   docsDir?: string;
   projectRoot?: string;
   project?: Project;
+  writeEventReference?: boolean;
 }): Promise<BuildIndexResult> {
   const projectRoot = options?.projectRoot || PROJECT_ROOT;
   const project = options?.project || createAstProject(projectRoot);
@@ -855,6 +873,12 @@ export async function buildIndex(options?: {
 
   console.log('Building index from AST and documentation...');
   const events = parseEventsFromAst({ project, projectRoot });
+  if (options?.writeEventReference) {
+    const reference = path.join(projectRoot, 'skills/cybermp-dev/references/events.md');
+    const source = fs.readFileSync(reference, 'utf8');
+    const updated = eventReferenceWithCatalog(source, events);
+    if (updated !== source) fs.writeFileSync(reference, updated, 'utf8');
+  }
   const types = parseTypesFromAst({ project, projectRoot });
   const guides = parseGuides(options?.docsDir, projectRoot);
 
@@ -900,7 +924,7 @@ const isDirectExecution = Boolean(
 );
 
 if (isDirectExecution) {
-  buildIndex().then(() => buildNativeIndex()).catch((err) => {
+  buildIndex({ writeEventReference: true }).then(() => buildNativeIndex()).catch((err) => {
     console.error('buildIndex failed:', err);
     process.exit(1);
   });

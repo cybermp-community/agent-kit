@@ -10,11 +10,20 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
+function pack(destination: string): string {
+  const packageManager = process.env.npm_execpath || 'pnpm';
+  const args = ['pack', '--pack-destination', destination];
+  const isScript = /\.[cm]?js$/i.test(packageManager);
+  return execFileSync(isScript ? process.execPath : packageManager,
+    isScript ? [packageManager, ...args] : args,
+    { cwd: root, encoding: 'utf8' }).trim().split('\n').at(-1)!;
+}
+
 it('serves the installed package with the locked production dependencies', async () => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-pack-'));
   try {
     const tarball = process.env.CYBERMP_AUDIT_TARBALL
-      || execFileSync('pnpm', ['pack', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }).trim().split('\n').at(-1)!;
+      || pack(temp);
     execFileSync('tar', ['-xzf', tarball, '-C', temp]);
     const installed = path.join(temp, 'package');
     const metadata = JSON.parse(fs.readFileSync(path.join(installed, 'package.json'), 'utf8'));
@@ -92,6 +101,141 @@ it('serves the installed package with the locked production dependencies', async
         expect(answer, query).toContain('WolvenKit');
         expect(answer, query).toContain('ArchiveXL');
       }
+      for (const query of ['archive compatibility', 'mod dependencies', 'CET Lua', 'совместимость модов']) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain('CyberMP archive mod compatibility');
+        expect(answer, query).toContain('file delivery, engine loading, local behavior and multiplayer replication');
+      }
+      const luaEvents = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'mp.events.add', limit: 1 },
+      });
+      const luaText = (luaEvents.content as Array<{ text: string }>)[0].text;
+      expect(luaText).toContain('CyberMP Lua events and runtime');
+      expect(luaText).toContain('mp.events.on for local events in CyberMP JavaScript and TypeScript');
+      expect(luaText).not.toContain('is from RAGEMP');
+      for (const [query, heading, detail] of [
+        ['resource.toml', 'Resource Manifest', 'client_script'],
+        ['core.files', 'Core file delivery', 'cybermp_core/files/'],
+      ]) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain(heading);
+        expect(answer, query).toContain(detail);
+      }
+      const referenceId = 'Vehicle.v_sport2_porsche_911turbo_player';
+      const vehicle = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: referenceId, category: 'vehicles', limit: 1 },
+      });
+      const vehicleText = (vehicle.content as Array<{ text: string }>)[0].text;
+      expect(vehicleText).toContain(referenceId);
+      expect(vehicleText).toContain('Exact record name in WolvenKit index');
+      const nativeBridge = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'Working with Game Natives', limit: 1 },
+      });
+      const nativeBridgeText = (nativeBridge.content as Array<{ text: string }>)[0].text;
+      expect(nativeBridgeText).toContain('CyberMP native bridge');
+      expect(nativeBridgeText).toContain('use_game_natives = true');
+      expect(nativeBridgeText).toContain('Game.GetPlayer()');
+      expect(nativeBridgeText).toContain('https://docs.cyber.mp/reference/client/working-with-game-natives/');
+      const cefReadiness = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'ui:ready' },
+      });
+      const cefText = (cefReadiness.content as Array<{ text: string }>)[0].text;
+      expect(cefText).toContain("mp.events.onCef('ui:ready'");
+      expect(cefText).toContain("mp.events.emit('ui:ready')");
+      expect(cefText).toContain('Example environment:** browser');
+      expect(cefText).toContain('Example environment:** client');
+      expect(cefText).toContain('Type-checked against @cybermp/browser-types@2.0.1');
+      const camera = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'simple_free_camera.ent', limit: 1 },
+      });
+      const cameraText = (camera.content as Array<{ text: string }>)[0].text;
+      expect(cameraText).toContain('polls for the entity with a deadline');
+      const interior = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'interior streaming', limit: 1 },
+      });
+      const interiorText = (interior.content as Array<{ text: string }>)[0].text;
+      expect(interiorText).toContain('collision-readiness signal');
+      expect(interiorText).not.toContain('enterInteriorSafely');
+      for (const [query, expected] of [
+        ['coordinate teleportation', ['close', 'GetPlayerObject()', 'puppet.GetMountedVehicle()']],
+        ['health max health god mode', ['perc argument', 'units of the current value']],
+        ['EquipCyberwareByTDBID', ['takes a PlayerPuppet', 'equipmentSystem.EquipCyberwareByTDBID(player, itemKey)']],
+        ['door manipulation helper', ['state.IsSealed()', 'door.OpenDoor()', 'door.CloseDoor()']],
+        ['PlayInDeviceSimple', ['GetPlayerObject()', 'system.PlayInDeviceSimple(device, actor']],
+        ['speedometer cef bridge', ['vehicle.GetCurrentSpeed()', 'kmh: null', 'RPM and gear require']],
+        ['controlling doors hood and trunk', ['vehicle.GetVehiclePS()?.GetVehicleControllerPS()', 'controller.SetDoorState']],
+        ['TrackMappin', ['Environment:** client', "typeof system?.TrackMappin !== 'function'"]],
+        ['GetSlotTransform', ['success flag', 'if (found) return']],
+        ['SendInputHintData', ['Interaction Point Probe', 'after world load', 'remove the point, hint and timer']],
+        ['authoritative server damage protection', ['Environment:** server', 'data.victimId', 'mp.cancelEvent() synchronously']],
+        ['cross-resource exports pipeline', ['@cybermp/server-types@3.2.8', 'has no MpServer.exports member']],
+      ] as const) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        for (const text of expected) expect(answer, query).toContain(text);
+      }
+      for (const [name, env, signature, method] of [
+        ['vehicleStreamIn', 'client', 'vehicleStreamIn(netID: number, gameID: number)', 'mp.events.on'],
+        ['playerConnecting', 'server', 'playerConnecting(tempId: number, name: string)', 'mp.events.on'],
+        ['resourceStart', 'client', 'resourceStart(): void', 'mp.events.on'],
+        ['domReady', 'client', 'domReady(name: string)', 'mp.events.onCef'],
+      ]) {
+        const event = await client.callTool({ name: 'cybermp_get_event', arguments: { name, env } });
+        const docs = await client.callTool({ name: 'cybermp_search_docs', arguments: { query: name, limit: 10 } });
+        const eventText = (event.content as Array<{ text: string }>)[0].text;
+        const docsText = (docs.content as Array<{ text: string }>)[0].text;
+        expect(eventText, name).toContain(signature);
+        expect(eventText, name).toContain(`${method}('${name}'`);
+        expect(docsText, name).toContain(signature);
+        expect(docsText, name).not.toContain('vehicleStreamIn (vehicle: MpVehicle)');
+        expect(docsText, name).not.toContain('resourceStart (name: string)');
+      }
+      const dropped = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'playerQuit' },
+      });
+      expect((dropped.content as Array<{ text: string }>)[0].text).not.toContain('playerQuit (player: MpPlayer)');
+      const rpc = await client.callTool({
+        name: 'cybermp_get_rpc_flow', arguments: { from: 'client', to: 'server' },
+      });
+      expect((rpc.content as Array<{ text: string }>)[0].text).toContain('player.nickname');
+      const disputedId = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'porsche', category: 'vehicles' },
+      });
+      const evidence = (disputedId.content as Array<{ text: string }>)[0].text;
+      expect(evidence).toContain('ID needs recheck');
+      expect(evidence).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
+      const quickhack = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'Items.DisableCyberwareLvl4Program', category: 'quickhacks' },
+      });
+      const quickhackText = (quickhack.content as Array<{ text: string }>)[0].text;
+      expect(quickhackText).toContain('Items.CyberwareMalfunctionLvl4Program');
+      expect(quickhackText).toContain('Candidate: `Items.DisableCyberwareLvl4Program`');
+      for (const [category, query] of [
+        ['ammo', 'Ammo.RifleAmmo'],
+        ['cyberware', 'Items.AdvancedMantisBladesLegendaryPlus'],
+        ['consumables', 'Items.HealthBooster'],
+      ]) {
+        const response = await client.callTool({
+          name: 'cybermp_lookup_tweakdb', arguments: { category, query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, category).toContain(`\`${query}\``);
+        expect(answer, category).toContain('Exact record name in WolvenKit index');
+      }
+      const workspot = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: 'Workspot.SitChair' },
+      });
+      const workspotText = (workspot.content as Array<{ text: string }>)[0].text;
+      expect(workspotText).toContain('Workspot search label');
+      expect(workspotText).toContain('PlayInDeviceSimple');
     } finally {
       await client.close();
     }

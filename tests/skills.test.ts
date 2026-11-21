@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
+import ts from 'typescript';
 import { describe, it, expect } from 'vitest';
 
 describe('Agent Skills & Plugins', () => {
@@ -67,6 +69,13 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('[Resource Structure & Toolchain](references/resource-structure.md)');
       expect(content).toContain('[Server Starter Example](examples/basic-resource/server.ts)');
       expect(content).toContain('[Client Starter Example](examples/basic-resource/client.ts)');
+    });
+
+    it('teaches the typed lifecycle signatures in the agent entry point', () => {
+      const content = fs.readFileSync(skillPath, 'utf8');
+      expect(content).toContain("mp.events.on('playerConnecting', (tempId, name)");
+      expect(content).toContain("mp.events.on('playerDeath', (playerId, { killerId })");
+      expect(content).toContain("mp.commands.add('teleport', (player, args)");
     });
 
     it('indexes all real-world mechanics reference guides in SKILL.md', () => {
@@ -147,6 +156,10 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('@cybermp/server-types');
       expect(content).toContain('@cybermp/client-types');
       expect(content).toContain('in_world_navigation.archive');
+      expect(content).toContain('files = []');
+      expect(content).not.toContain('Mandatory core files');
+      expect(content).not.toContain('ui_page');
+      expect(content).not.toContain('./assets/**/*.xl');
     });
 
     it('provides comprehensive game-natives reference', () => {
@@ -242,7 +255,7 @@ describe('Agent Skills & Plugins', () => {
       expect(content.length).toBeGreaterThan(500);
       expect(content).toContain('mp.objects.create');
       expect(content).toContain('player.dimension');
-      expect(content).toContain('player.setMeta');
+      expect(content).toContain('mp.meta.setPlayerMeta');
       expect(content).toContain('isPointInPolygon2D');
       expect(content).toContain('Safezone');
       expect(content).toContain('mp.cancelEvent');
@@ -257,6 +270,63 @@ describe('Agent Skills & Plugins', () => {
       expect(content).toContain('vehicle.seats.driver');
       expect(content).toContain('player.mute');
       expect(content).toContain('entity.owner');
+    });
+
+    it('evaluates the documented safezone at hit time and unregisters its listener', () => {
+      const reference = fs.readFileSync(path.join(rootDir, 'skills/cybermp-dev/references/server-mechanics.md'), 'utf8');
+      const snippet = reference.split('### Authoritative Server Damage Protection')[1]
+        ?.match(/```typescript[^\r\n]*\r?\n([\s\S]*?)\r?\n```/)?.[1];
+      expect(snippet).toBeDefined();
+
+      type Player = { position: [number, number, number]; dimension: number };
+      type DamageHandler = (offenderId: number, data: { victimId: number }) => void;
+      const players = new Map<number, Player>([
+        [1, { position: [3, 3, 1], dimension: 0 }],
+        [2, { position: [20, 20, 1], dimension: 0 }],
+      ]);
+      const handlers = new Map<string, DamageHandler>();
+      let cancellations = 0;
+      const exports: {
+        registerSafezoneCombatProtection?: (zones: {
+          footprint: [number, number][]; minZ: number; maxZ: number; dimension: number;
+        }[]) => () => void;
+      } = {};
+      const script = ts.transpileModule(snippet!, { compilerOptions: { module: ts.ModuleKind.CommonJS } });
+      vm.runInNewContext(script.outputText, {
+        exports,
+        mp: {
+          players: { exists: players.has.bind(players), at: players.get.bind(players) },
+          events: {
+            on: (name: string, handler: DamageHandler) => handlers.set(name, handler),
+            off: (name: string, handler: DamageHandler) => {
+              if (handlers.get(name) === handler) handlers.delete(name);
+            },
+          },
+          cancelEvent: () => { cancellations++; },
+        },
+      });
+
+      const stop = exports.registerSafezoneCombatProtection!([
+        { footprint: [[0, 0], [4, 0], [4, 4], [0, 4]], minZ: 0, maxZ: 2, dimension: 0 },
+        { footprint: [[2, 2], [6, 2], [6, 6], [2, 6]], minZ: 0, maxZ: 2, dimension: 0 },
+      ]);
+      const hit = (offenderId: number, victimId: number) => handlers.get('damage')?.(offenderId, { victimId });
+      const first = players.get(1)!;
+      hit(1, 2); // Both zones overlap.
+      first.position = [6, 6, 2];
+      hit(2, 1); // Edge vertex and upper Z are inclusive.
+      expect(cancellations).toBe(2);
+      first.position = [5, 5, 3];
+      hit(1, 2);
+      first.position = [5, 5, 1];
+      first.dimension = 1;
+      hit(2, 1);
+      first.dimension = 0;
+      players.delete(2);
+      hit(1, 2);
+      expect(cancellations).toBe(2);
+      stop();
+      expect(handlers.has('damage')).toBe(false);
     });
   });
 

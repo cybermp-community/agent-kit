@@ -1,6 +1,6 @@
 {
   "name": "cybermp-agent-kit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "GPL-3.0-or-later",
   "description": "CyberMP AI Agent Toolkit & MCP Server",
   "type": "module",
@@ -40,12 +40,12 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/bin/cli.js",
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/cli.js', 0o755)\"",
     "build:native": "node --import tsx scripts/build-native-index.ts",
     "build:index": "node --import tsx scripts/build-index.ts",
     "sync:docs": "node --import tsx scripts/sync-docs.ts",
     "test": "vitest run",
-    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts",
+    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/archive-probe/client.ts skills/cybermp-dev/examples/archive-probe/server.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts skills/cybermp-dev/examples/basic-resource/server.ts skills/cybermp-dev/examples/basic-resource/client.ts",
     "test:packed": "vitest run --config vitest.packed.config.ts",
     "prepublishOnly": "pnpm run build",
     "prepare": "pnpm run build"

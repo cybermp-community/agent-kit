@@ -1,3 +1,7 @@
+import type { MpClient } from '@cybermp/client-types';
+
+declare const mp: MpClient;
+
 /**
  * Minimal CyberMP Starter Resource - Client Script
  *
@@ -24,7 +28,7 @@ function sendChatMessage(text: string) {
 }
 
 // Example: Send greeting upon resource startup
-mp.events.on('resourceStart', (resourceName: string) => {
-  console.log(`[Client] Resource ${resourceName} started. Connecting to chat...`);
+mp.events.on('resourceStart', () => {
+  console.log('[Client] Resource started. Connecting to chat...');
   sendChatMessage('Hello Night City!');
 });

@@ -1,21 +1,22 @@
+---
+environment: client
+---
+
 # Player Mechanics & Inventory Reference
 
 This reference covers low-level player entity lifecycle management, coordinate teleportation, health pools, status effect restrictions, item/equipment inventory manipulation, in-game appearance mirror menus, mesh invisibility, and gender switching in CyberMP client scripts (`use_game_natives = true`).
 
-> [!IMPORTANT]
-> All code in this reference is procedural TypeScript utilizing direct `mp.local.*`, `mp.game.*`, and `mp.events.*` runtime bindings. REDengine native classes require property instantiation via `Object.assign(new mp.game.<Type>(), { ... })`.
+These snippets run in the CyberMP game client with `use_game_natives = true`. They describe local REDengine operations. Your resource must define when the server authorizes them, how state is persisted, and what other clients should observe.
 
 ---
 
 ## 1. Spawning & Teleportation
 
-In CyberMP, player spatial positioning is divided into two distinct operations:
-1. **Physical Spawning (`mp.local.spawnPlayer`)**: Re-creates or resets the local player's avatar in the game engine, initializing physical rigs, camera attachments, and default health pools.
-2. **Coordinate Teleportation (`GetTeleportationFacility().Teleport`)**: Moves an already-spawned player entity smoothly to target coordinates without re-initializing game state or triggering reload sequences.
+Use `mp.local.spawnPlayer` in the resource's spawn or respawn flow. Use `GetTeleportationFacility().Teleport` to move an existing player. World load, spawn request acceptance and puppet availability are separate conditions. [Client lifecycle](https://docs.cyber.mp/guides/client/lifecycle/) · [Player spawn guide](https://docs.cyber.mp/guides/client/spawning-player/)
 
 ### Mathematical Vector & Rotation Helpers
 
-REDengine uses `Vector4` for world positions (where `w = 1.0` or heading) and `EulerAngles` (roll, pitch, yaw in degrees) for entity orientation.
+For native teleportation, build a `Vector4` for the destination and pass yaw separately in `EulerAngles`. A resource may serialize a different vector format for transport.
 
 ```typescript
 import type { EulerAngles, Vector3, Vector4 } from '@cybermp/client-types/game';
@@ -57,61 +58,35 @@ export function createEulerAngles(roll: number, pitch: number, yaw: number): Eul
 
 ### Player Spawning Implementation
 
-Call `mp.local.spawnPlayer` when the player enters the server or after death:
+Call this client fragment once the game world is loaded, at the point authorized by the resource's spawn flow. Use the spawn guide for health setup. A return value of `true` means that the spawn request started. Use `mp.game.onLocalPlayerSpawned` and check the puppet before issuing follow-up native calls. [Player spawn guide](https://docs.cyber.mp/guides/client/spawning-player/) · [Client lifecycle](https://docs.cyber.mp/guides/client/lifecycle/)
 
 ```typescript
-/**
- * Spawns the local player entity at world coordinates with heading yaw.
- * @param x World X coordinate
- * @param y World Y coordinate
- * @param z World Z coordinate
- * @param yaw Orientation angle around the Z axis in degrees (0 - 360)
- */
-export function spawnPlayer(x: number, y: number, z: number, yaw: number = 0): void {
-  // mp.local.spawnPlayer instantiates the player avatar in REDengine
-  mp.local.spawnPlayer(x, y, z, yaw);
-  console.log(`[Player] Spawned local player at (${x}, ${y}, ${z}) facing ${yaw}°`);
+export function requestLocalSpawn(
+  x: number,
+  y: number,
+  z: number,
+  yaw = 0,
+): boolean {
+  return mp.local.spawnPlayer(x, y, z, yaw);
 }
-
-// Example: Initial spawn once game world has loaded
-mp.game.onceGameLoaded(() => {
-  spawnPlayer(-1412.5, 1285.2, 23.4, 90.0);
-});
 ```
 
 ### Coordinate Teleportation Implementation
 
-Teleporting an active player must be executed through REDengine's `gamemountingTeleportationFacility` (`mp.game.ScriptGameInstance.GetTeleportationFacility()`):
+This fragment moves an existing on-foot player. Call it after your resource has closed active game menus and validated the destination. Handle vehicle transitions before this call. If the move also changes dimension, coordinate the dimension change with the server. Check the destination's streaming and collision separately. [Player teleportation guide](https://docs.cyber.mp/guides/client/teleporting-player/) · [Interior streaming](object-spawning-and-streaming.md#5-interior-streaming--occlusion-handling)
 
 ```typescript
-/**
- * Teleports the local player to the specified position and yaw without reloading the avatar.
- * Safely forces the player out of vehicles and closes active menus prior to movement.
- */
-export function teleportPlayer(
-  x: number,
-  y: number,
-  z: number,
-  yaw: number = 0,
-): void {
-  const player = mp.game.GetPlayerObject();
-  if (!player) {
-    console.error('[Teleport] Player object not ready');
-    return;
-  }
+export function requestOnFootTeleport(x: number, y: number, z: number, yaw = 0): boolean {
+  if (![x, y, z, yaw].every(Number.isFinite)) return false;
 
-  // 1. Close open menus to prevent camera desync
-  closeAllMenus();
+  const puppet = mp.game.GetPlayer();
+  const playerObject = mp.game.GetPlayerObject();
+  if (!puppet || !playerObject || puppet.GetMountedVehicle()) return false;
 
-  // 2. Teleport entity via REDengine TeleportationFacility
-  const targetPos = createVector4(x, y, z, 1.0);
-  const targetRot = createEulerAngles(0, 0, yaw);
-
-  mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
-    player,
-    targetPos,
-    targetRot,
-  );
+  const position = Object.assign(new mp.game.Vector4(), { x, y, z, w: 1 });
+  const rotation = Object.assign(new mp.game.EulerAngles(), { roll: 0, pitch: 0, yaw });
+  mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(playerObject, position, rotation);
+  return true; // The native call was issued.
 }
 ```
 
@@ -119,129 +94,38 @@ export function teleportPlayer(
 
 ## 2. Health, Max Health & God Mode
 
-Player health in REDengine is managed across two interconnected systems:
-- `StatPoolsSystem`: Manages dynamic, volatile pools (e.g. current `Health`, `Stamina`, `Memory`).
-- `StatsSystem`: Manages underlying base attributes and persistent modifier modifiers (e.g. base max health, resistances).
+`StatPoolsSystem` reads and updates the current health pool. `StatsSystem` exposes the Health stat and its modifiers. The optional `perc` argument on `RequestSettingStatPoolValueIgnoreChangeMode` selects the units of the current value. The sample uses points. The official spawn guide also changes the Health stat as part of its initialization routine. An in-session mode should only manage modifiers it owns. [Player spawn guide](https://docs.cyber.mp/guides/client/spawning-player/#initializing-health-stat-pools) · [StatPoolsSystem declarations](https://edgemodders.github.io/REDnode/game/t/gameStatPoolsSystem.html)
 
 ### Health Modification Implementation
 
 ```typescript
-import {
-  gamedataStatPoolType,
-  gamedataStatType,
-  gameStatModifierType,
-} from '@cybermp/client-types/enums';
+import { gamedataStatPoolType } from '@cybermp/client-types/enums';
 import type { gameStatsObjectID } from '@cybermp/client-types/game';
 
-/**
- * Returns the current health value of the local player.
- */
-export function getPlayerHealth(): number {
+export function readHealthPoints(): number | undefined {
   const player = mp.game.GetPlayer();
-  if (!player) return 0;
+  if (!player) return;
 
-  const playerGameId = player.GetEntityID() as unknown as gameStatsObjectID;
+  // Freeroam passes the entity ID here via a cast to the generated stats ID type.
+  const id = player.GetEntityID() as unknown as gameStatsObjectID;
   return mp.game.ScriptGameInstance.GetStatPoolsSystem().GetStatPoolValue(
-    playerGameId,
-    gamedataStatPoolType.Health,
-    false,
+    id, gamedataStatPoolType.Health, false,
   );
 }
 
-/**
- * Returns the maximum health attribute of the local player.
- */
-export function getPlayerMaxHealth(): number {
+export function requestHealthPoints(points: number): boolean {
   const player = mp.game.GetPlayer();
-  if (!player) return 0;
+  if (!player || !Number.isFinite(points) || points < 0) return false;
 
-  const playerGameId = player.GetEntityID() as unknown as gameStatsObjectID;
-  return mp.game.ScriptGameInstance.GetStatsSystem().GetStatValue(
-    playerGameId,
-    gamedataStatType.Health,
+  const id = player.GetEntityID() as unknown as gameStatsObjectID;
+  mp.game.ScriptGameInstance.GetStatPoolsSystem().RequestSettingStatPoolValueIgnoreChangeMode(
+    id, gamedataStatPoolType.Health, points, new mp.game.gameObject(), false,
   );
-}
-
-/**
- * Sets current player health directly in the StatPoolsSystem.
- * @param value Target health number
- */
-export function setPlayerHealth(value: number): void {
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  const playerGameId = player.GetEntityID() as unknown as gameStatsObjectID;
-  const statPoolsSystem = mp.game.ScriptGameInstance.GetStatPoolsSystem();
-
-  // RequestSettingStatPoolValueIgnoreChangeMode overrides regeneration or decay limits
-  statPoolsSystem.RequestSettingStatPoolValueIgnoreChangeMode(
-    playerGameId,
-    gamedataStatPoolType.Health,
-    value,
-    Object.assign(new mp.game.gameObject(), {}),
-    false, // false = modify current health pool, not pool capacity
-  );
-}
-
-/**
- * Sets maximum player health by removing previous modifiers and applying an additive modifier.
- * @param value New maximum health pool capacity
- */
-export function setPlayerMaxHealth(value: number): void {
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  const playerGameId = player.GetEntityID() as unknown as gameStatsObjectID;
-  const statsSystem = mp.game.ScriptGameInstance.GetStatsSystem();
-  const statPoolsSystem = mp.game.ScriptGameInstance.GetStatPoolsSystem();
-
-  // 1. Remove previous health modifiers from StatsSystem
-  statsSystem.RemoveAllModifiers(
-    playerGameId,
-    gamedataStatType.Health,
-    true,
-  );
-
-  // 2. Add new constant additive modifier
-  const statMod = Object.assign(new mp.game.gameConstantStatModifierData_Deprecated(), {
-    statType: gamedataStatType.Health,
-    modifierType: gameStatModifierType.Additive,
-    value,
-  });
-  statsSystem.AddModifier(playerGameId, statMod);
-
-  // 3. Update StatPoolsSystem maximum pool ceiling (isMax = true)
-  statPoolsSystem.RequestSettingStatPoolValueIgnoreChangeMode(
-    playerGameId,
-    gamedataStatPoolType.Health,
-    value,
-    Object.assign(new mp.game.gameObject(), {}),
-    true, // true = set maximum capacity
-  );
-}
-
-/**
- * Heals the player to maximum capacity.
- */
-export function healPlayer(): void {
-  setPlayerHealth(getPlayerMaxHealth());
-}
-
-/**
- * Toggles god mode (invulnerability + max health pool ceiling).
- */
-export function enableGodMode(enable: boolean): void {
-  if (enable) {
-    setPlayerMaxHealth(99999999);
-    setPlayerHealth(99999999);
-    applyRestriction('BaseStatusEffect.Invulnerable');
-  } else {
-    removeRestriction('BaseStatusEffect.Invulnerable');
-    setPlayerMaxHealth(300);
-    setPlayerHealth(300);
-  }
+  return true;
 }
 ```
+
+For a god mode, verify the exact invulnerability record and its removal on the target build. Keep temporary state tied to the owning resource and validate server-side damage behavior separately. `BaseStatusEffect.Invulnerable` is used by Freeroam, which sets its own mode-specific health defaults. [Freeroam health service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/health/health.service.ts)
 
 ---
 
@@ -295,48 +179,15 @@ export function removeRestriction(effect: string): void {
 }
 ```
 
-### Permanent Restriction Refresh System
+### Restriction Lifetime
 
-Certain REDengine events (such as cutscenes, vehicle enters/exits, or scene transitions) can periodically strip gameplay restrictions. To guarantee persistence (e.g. infinite ammo or lobby locks), maintain a refresh timer:
-
-```typescript
-const permanentRestrictions = new Set<string>(['GameplayRestriction.InfiniteAmmo']);
-let permanentIntervalId: ReturnType<typeof setInterval> | null = null;
-
-/**
- * Registers a gameplay restriction to re-apply every 10 seconds.
- */
-export function addPermanentRestriction(effect: string): void {
-  if (permanentRestrictions.has(effect)) return;
-  permanentRestrictions.add(effect);
-  applyRestriction(effect);
-}
-
-/**
- * Removes a permanent restriction and stops periodic re-application.
- */
-export function removePermanentRestriction(effect: string): void {
-  permanentRestrictions.delete(effect);
-  removeRestriction(effect);
-}
-
-/**
- * Initializes the permanent restriction daemon.
- */
-export function initPermanentRestrictions(): void {
-  if (permanentIntervalId) return;
-
-  permanentIntervalId = setInterval(() => {
-    for (const effect of permanentRestrictions) {
-      applyRestriction(effect);
-    }
-  }, 10_000);
-}
-```
+Some resources reapply restrictions after respawn or a mode transition. Start with the relevant lifecycle event. If you use a timer, re-resolve the current puppet, check whether the effect is already active, and stop the timer when the mode or resource ends. Only remove an effect if the resource owns its application. If another system can apply the same effect, coordinate cleanup through a shared owner. [Freeroam status-effect service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/status-effects/status-effects.service.ts)
 
 ### Standard Gameplay Restriction Catalog
 
-| Restriction Constant | Engine Effect | Multiplayer Usage |
+Treat these records and effects as candidates. Resolve each ID in the target game build and test application and removal on the intended entity.
+
+| Restriction Candidate | Effect to Test | Possible Use |
 |---|---|---|
 | `GameplayRestriction.NoCombat` | Disables weapon firing, aiming, melee attacks | Safezones, greenzones, lobbies |
 | `GameplayRestriction.NoWeapons` | Forces weapon holstering and prevents weapon draw | Social hubs, vehicle cockpits |
@@ -347,18 +198,18 @@ export function initPermanentRestrictions(): void {
 | `GameplayRestriction.NoHealing` | Prevents consuming MaxDoc / BounceBack injectors | Hardcore duel modes |
 | `GameplayRestriction.NoZooming` | Disables optical and weapon zoom | Lobbies, minigame states |
 | `GameplayRestriction.NoDriving` | Disables throttle, brakes, and vehicle controls | Impounded vehicles, greenzones |
-| `GameplayRestriction.NoPhotoMode` | Disables photo mode shortcut (prevents pausing engine) | Mandatory in all multiplayer servers |
+| `GameplayRestriction.NoPhotoMode` | Disables photo mode shortcut (prevents pausing engine) | Mode-specific photo mode restriction |
 | `GameplayRestriction.NoScanning` | Disables scanner HUD overlay | Competitive PvP anti-wallhack |
 | `GameplayRestriction.InfiniteAmmo` | Unlimited ammo in loaded magazine | Freeroam arenas, deathmatch |
 | `GameplayRestriction.VehicleCombatBlockExit` | Prevents player from exiting vehicle | Vehicle combat, derby, races |
 | `GameplayRestriction.VehicleFPP` | Locks vehicle camera perspective to first-person | Cockpit-only racing, hardcore mode |
-| `BaseStatusEffect.Invulnerable` | Complete immunity to all physical/thermal damage | God mode, spawn protection |
+| `BaseStatusEffect.Invulnerable` | Candidate invulnerability effect | God mode, spawn protection |
 
 ### Combat Status Effects & Damage-over-Time (DoT)
 
 REDengine includes native status effects for combat damage-over-time (burning, chemical poison, EMP electrocution, and physical bleeding).
 
-| Status Effect Constant | Effect Type | Multiplayer Usage |
+| Status Effect Candidate | Effect to Test | Possible Use |
 |---|---|---|
 | `BaseStatusEffect.Burning` | Thermal DoT | Incendiary ammo, flamethrowers, explosion aftermath |
 | `BaseStatusEffect.Electrocuted` | EMP DoT | Tech weapons, EMP grenades, cyberware shock |
@@ -370,45 +221,24 @@ REDengine includes native status effects for combat damage-over-time (burning, c
 | `BaseStatusEffect.Crippled` | Mobility Lock | Leg shots, tendon slicing, slowing movement |
 | `BaseStatusEffect.Stun` | Hard Crowd Control | Heavy melee impact, concussion blast |
 
+After confirming the record in the target build, use this client fragment to request one application of `BaseStatusEffect.Burning` to the current local puppet. Verify the resulting effect separately.
+
 ```typescript
-const activeTemporaryEffects = new Map<string, ReturnType<typeof setTimeout>>();
+export function requestLocalBurning(): boolean {
+  const player = mp.game.GetPlayer();
+  if (!player) return false;
 
-/**
- * Applies a temporary status effect (e.g. Burning or Electrocuted) to the target entity
- * with debounced automatic removal after the specified duration.
- *
- * @param player Target player entity
- * @param effectTdbId TweakDB record ID (e.g. 'BaseStatusEffect.Burning')
- * @param durationSec Duration in seconds
- */
-export function applyTemporaryStatusEffect(
-  player: mp.game.gameObject,
-  effectTdbId: string,
-  durationSec: number = 5,
-): void {
-  const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
-  if (!effectSystem || !player) return;
+  const id = player.GetEntityID();
+  const effect = 'BaseStatusEffect.Burning';
+  const effects = mp.game.ScriptGameInstance.GetStatusEffectSystem();
+  if (effects.HasStatusEffect(id, effect)) return false;
 
-  const entityId = player.GetEntityID();
-  const effectKey = `${entityId.hash}:${effectTdbId}`;
-
-  // Debounce existing removal timer if effect is refreshed
-  if (activeTemporaryEffects.has(effectKey)) {
-    clearTimeout(activeTemporaryEffects.get(effectKey)!);
-  }
-
-  effectSystem.ApplyStatusEffect(entityId, effectTdbId, player.GetRecordID(), entityId);
-
-  const timer = setTimeout(() => {
-    activeTemporaryEffects.delete(effectKey);
-    if (mp.game.StatusEffectHelper && player) {
-      mp.game.StatusEffectHelper.RemoveStatusEffect(player, effectTdbId, undefined);
-    }
-  }, durationSec * 1000);
-
-  activeTemporaryEffects.set(effectKey, timer);
+  effects.ApplyStatusEffect(id, effect, player.GetRecordID(), id);
+  return true;
 }
 ```
+
+Use the record's own duration where it matches the mode. If the resource schedules removal, tie it to the target entity and the resource's ownership of that application. Cancel pending removal on entity replacement or resource stop. Check stacking and damage in a multiplayer session.
 
 ---
 
@@ -418,50 +248,45 @@ Items are added to the player's inventory using `mp.game.AddToInventory(tdbId, c
 
 ### Inventory Inspection & Item Spawning
 
-```typescript
-import type { gameItemData } from '@cybermp/client-types/game';
+Run these client fragments after puppet spawn. Validate item records and supported quantities in the target build. A client add request is separate from a server-authorized entitlement or persistent loadout.
 
-/**
- * Gives an item to the local player by TweakDB ID.
- * @param itemKey Full item key (e.g. 'Items.Preset_Silverhand_3516')
- * @param count Quantity to add
- */
-export function giveItem(itemKey: string, count: number = 1): void {
+```typescript
+export function requestItem(itemKey: string, count = 1): boolean {
+  if (!mp.game.GetPlayer() || !Number.isSafeInteger(count) || count <= 0) return false;
   mp.game.AddToInventory(itemKey, count);
-  console.log(`[Inventory] Added ${count}x ${itemKey}`);
+  return true;
 }
 
-/**
- * Checks whether the player currently possesses an item in their inventory.
- */
 export function hasItem(itemKey: string): boolean {
   const player = mp.game.GetPlayerObject();
   if (!player) return false;
 
   const transactionSystem = mp.game.ScriptGameInstance.GetTransactionSystem();
-  const [, itemsList] = transactionSystem.GetItemList(player) as [boolean, gameItemData[]];
-
-  const targetId = mp.game.gameItemID.FromTDBID(itemKey);
-  return itemsList.some((item) => item.GetID().id === targetId.id);
+  const itemId = mp.game.gameItemID.FromTDBID(itemKey);
+  return transactionSystem.HasItem(player, itemId);
 }
+```
 
-/**
- * Equips cyberware implant into the player's cyberware slots by TweakDB identifier.
- */
-export function equipCyberware(itemKey: string): void {
-  const player = mp.game.GetPlayerObject();
-  if (!player) return;
+### Cyberware Equip Request (`EquipCyberwareByTDBID`)
 
-  if (!hasItem(itemKey)) {
-    giveItem(itemKey, 1);
-  }
+`EquipCyberwareByTDBID` takes a `PlayerPuppet` from `mp.game.GetPlayer()`. Check slot availability and the resulting equipment state separately. The wrapper reports whether it issued a request.
 
-  const eqSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('EquipmentSystem');
-  eqSystem.EquipCyberwareByTDBID(player, itemKey);
+```typescript
+export function requestCyberwareEquip(itemKey: string): boolean {
+  const player = mp.game.GetPlayer();
+  if (!player) return false;
+
+  const equipmentSystem = mp.game.ScriptGameInstance.GetScriptableSystemsContainer().Get('EquipmentSystem');
+  if (!equipmentSystem) return false;
+
+  equipmentSystem.EquipCyberwareByTDBID(player, itemKey);
+  return true;
 }
 ```
 
 ### Comprehensive Item & Equipment Catalog
+
+Use these names as TweakDB search candidates. Verify the record, DLC dependency, and compatibility with the current game version. [WolvenKit Tweak Browser](https://wiki.redmodding.org/wolvenkit/wolvenkit-app/editor/tweak-browser)
 
 #### Iconic & Powerful Weapons (`Items.<Key>`)
 
@@ -550,93 +375,17 @@ export function replenishAllAmmo(): void {
 
 ## 5. Character Customization Mirror
 
-CyberMP allows triggering Cyberpunk 2077's native character customization mirror anywhere in the world by intercepting the pause menu scenario (`MenuScenario_PauseMenu`) and switching it to `MenuScenario_CharacterCustomizationMirror`.
+Freeroam registers menu observers, captures the in-game menu controller and requests `OnOpenPauseMenu`. When the pause scenario enters for an outstanding appearance request, it switches to `MenuScenario_CharacterCustomizationMirror`. [Freeroam appearance menu service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/appearance-menu.service.ts)
 
 ### Appearance Menu Controller
 
+Use this fragment inside the observed pause scenario when the resource has a pending customization request. Track at most one pending request. Clear it on timeout or resource stop. Verify mirror visibility, return to gameplay and input restoration in the target game build.
+
 ```typescript
-import type {
-  gameuiInGameMenuGameController,
-  MenuScenario_PauseMenu,
-} from '@cybermp/client-types/game';
+import type { MenuScenario_PauseMenu } from '@cybermp/client-types/game';
 
-let inGameMenuController: gameuiInGameMenuGameController | null = null;
-let activePauseMenuScenario: MenuScenario_PauseMenu | null = null;
-const pendingAppearanceRequests: Array<() => void> = [];
-
-/**
- * Initializes pause menu interception.
- * Must be registered inside mp.game.onInit.
- */
-export function initAppearanceHooks(): void {
-  mp.game.onInit(() => {
-    // 1. Grab reference to the global in-game menu controller
-    mp.game.observeRaw(
-      'gameuiInGameMenuGameController',
-      'RegisterGlobalBlackboards',
-      (self) => {
-        inGameMenuController = self;
-      },
-    );
-
-    // 2. Intercept pause menu entry and switch to character customization mirror
-    mp.game.observeAfter(
-      'MenuScenario_PauseMenu',
-      'OnEnterScenario',
-      (self) => {
-        activePauseMenuScenario = self;
-        const resolve = pendingAppearanceRequests.shift();
-        if (resolve) {
-          self.SwitchToScenario('MenuScenario_CharacterCustomizationMirror');
-          resolve();
-        }
-      },
-    );
-  });
-}
-
-/**
- * Opens the character customization mirror UI.
- * Returns a promise that resolves once the scenario transition completes.
- */
-export function openAppearanceMenu(): Promise<void> {
-  if (!inGameMenuController) {
-    return Promise.reject(new Error('InGameMenu controller is not initialized'));
-  }
-
-  return new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      const idx = pendingAppearanceRequests.indexOf(resolve);
-      if (idx !== -1) {
-        pendingAppearanceRequests.splice(idx, 1);
-        reject(new Error('Appearance menu open timed out'));
-      }
-    }, 2000);
-
-    pendingAppearanceRequests.push(() => {
-      clearTimeout(timeout);
-      resolve();
-    });
-
-    // Spawns pause menu event, triggering our observeAfter hook
-    inGameMenuController.SpawnMenuInstanceEvent('OnOpenPauseMenu');
-  });
-}
-
-/**
- * Closes all active hub menus, pause menus, and mirrors.
- */
-export function closeAllMenus(): void {
-  const player = mp.game.GetPlayer();
-  if (player) {
-    // ForceCloseHubMenuEvent clears any stuck full-screen UI scenarios
-    player.QueueEvent(Object.assign(new mp.game.ForceCloseHubMenuEvent(), {}));
-  }
-
-  if (activePauseMenuScenario) {
-    activePauseMenuScenario.OnClosePauseMenu();
-    activePauseMenuScenario = null;
-  }
+export function requestMirrorFromPauseMenu(pauseMenu: MenuScenario_PauseMenu): void {
+  pauseMenu.SwitchToScenario('MenuScenario_CharacterCustomizationMirror');
 }
 ```
 
@@ -646,85 +395,20 @@ export function closeAllMenus(): void {
 
 ### Mesh Component Invisibility
 
-In REDengine, the player character's visible body, head, hair, cyberware, and garments are rendered by `entIComponent` instances attached to the player entity. Toggling these components enables true client-side invisibility without breaking physics collisions or weapon firing:
-
-```typescript
-const disabledComponentNames = new Set<string>();
-
-/**
- * Toggles mesh visibility for the local player entity.
- * @param invisible When true, turns off all active render components; when false, restores them.
- */
-export function setPlayerInvisible(invisible: boolean): void {
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  const components = player.GetComponents();
-
-  if (invisible) {
-    for (const component of components) {
-      if (!component.IsEnabled()) {
-        continue;
-      }
-      disabledComponentNames.add(component.GetName());
-      component.Toggle(false);
-    }
-    console.log(`[Player] Hidden ${disabledComponentNames.size} visual components`);
-  } else {
-    const componentsToRestore = components.filter((comp) =>
-      disabledComponentNames.has(comp.GetName()),
-    );
-
-    for (const component of componentsToRestore) {
-      component.Toggle(true);
-    }
-    disabledComponentNames.clear();
-    console.log('[Player] Restored visual mesh components');
-  }
-}
-```
+Inspect the puppet's components with `GetComponents()` and record each candidate's name, type and enabled state. Confirm that an explicitly selected component is visual before toggling it. Save its original state and restore it on mode exit while the same puppet exists. Check local rendering, collision and remote visibility separately.
 
 ### Gender Switching & Entity Reloading
 
-Changing player gender is performed via `CharacterCustomizationSystem.SetPlayerGender`. Because REDengine binds specific skeletal rigs, voice profiles, and clothing geometry to gender, the player entity must be respawned after the gender change event fires:
+Use `SetPlayerGender` in a customization flow. Observe `OnPlayerGenderChanged` to diagnose the transition. Freeroam coordinates this event with its own spawn flow. Check appearance, equipment and persistence before coupling the event to respawn in another resource. [Freeroam player service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/player.service.ts)
 
 ```typescript
-import { EPlayerGender } from '@cybermp/client-types/enums';
+import type { EPlayerGender } from '@cybermp/client-types/enums';
 
-/**
- * Switches the player's gender (Male / Female).
- * Observes OnPlayerGenderChanged to safely re-spawn the player at their current location.
- */
-export function setPlayerGender(gender: EPlayerGender): void {
-  const customSystem = mp.game.ScriptGameInstance.GetCharacterCustomizationSystem();
-  if (!customSystem) {
-    console.error('[Gender] CharacterCustomizationSystem unavailable');
-    return;
-  }
-
-  // SetPlayerGender(gender, bForceUpdate)
-  customSystem.SetPlayerGender(gender, true);
-}
-
-/**
- * Registers lifecycle listener to re-spawn player upon gender change.
- * Should be called inside mp.game.onceGameLoaded.
- */
-export function initGenderChangeObserver(): void {
-  mp.game.observe(
-    'gameuiICharacterCustomizationSystem',
-    'OnPlayerGenderChanged',
-    () => {
-      const player = mp.game.GetPlayer();
-      if (!player) return;
-
-      const pos = player.GetWorldPosition();
-      const yaw = mp.game.Quaternion.ToEulerAngles(player.GetWorldOrientation()).yaw;
-
-      console.log('[Gender] Gender changed. Respawning player to apply skeleton updates...');
-      spawnPlayer(pos.x, pos.y, pos.z, yaw);
-    },
-  );
+export function requestGenderChange(gender: EPlayerGender): boolean {
+  const system = mp.game.ScriptGameInstance.GetCharacterCustomizationSystem();
+  if (!system) return false;
+  system.SetPlayerGender(gender, true);
+  return true;
 }
 ```
 
@@ -846,63 +530,9 @@ export function restockAllAmmo(): void {
 
 ## 9. Player Freeze System
 
-To immobilize a player entity (e.g. during cinematic cutscenes, arena countdowns, or menu selection), combine movement restrictions with tick-based position lock:
+Start a countdown or cutscene by suppressing the relevant input or applying a verified movement restriction. Keep the restriction tied to the mode and the current puppet. Remove it when the mode ends, the puppet is replaced, or the resource stops. Test mounted state and menus separately.
 
-```typescript
-const FREEZE_STATUS_EFFECTS = [
-  'GameplayRestriction.NoMovement',
-  'GameplayRestriction.NoCombat',
-  'GameplayRestriction.NoWeapons',
-] as const;
-
-let freezeTickId: number | null = null;
-let frozenPosition: mp.game.Vector4 | null = null;
-
-/**
- * Freezes or unfreezes the player in place.
- */
-export function setPlayerFrozen(frozen: boolean): void {
-  const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  if (frozen) {
-    if (freezeTickId !== null) return;
-    frozenPosition = player.GetWorldPosition();
-
-    // Apply gameplay restrictions
-    for (const effect of FREEZE_STATUS_EFFECTS) {
-      effectSystem.ApplyStatusEffect(
-        player.GetEntityID(),
-        effect,
-        player.GetRecordID(),
-        player.GetEntityID(),
-      );
-    }
-
-    freezeTickId = mp.setTick(() => {
-      const p = mp.game.GetPlayerObject();
-      if (!p || !frozenPosition) return;
-      mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
-        p,
-        frozenPosition,
-        mp.game.Quaternion.ToEulerAngles(p.GetWorldOrientation()),
-      );
-    });
-  } else {
-    if (freezeTickId !== null) {
-      mp.clearTick(freezeTickId);
-      freezeTickId = null;
-    }
-    frozenPosition = null;
-
-    // Remove gameplay restrictions
-    for (const effect of FREEZE_STATUS_EFFECTS) {
-      mp.game.StatusEffectHelper.RemoveStatusEffect(player, effect, undefined);
-    }
-  }
-}
-```
+Per-frame calls to `Teleport` need their own validation for physics, streaming and multiplayer synchronization. Before using a freeze in a multiplayer mode, check whether the server and a second client observe the intended position and whether control returns after the mode ends.
 
 ---
 
@@ -1034,32 +664,4 @@ export class ArmsCyberwareMeshGuard {
 
 ## 11. Ragdoll Knockdown Reset & Revive (`AnimFeature_SwimmingData`)
 
-When a player entity enters a ragdoll or knockdown state (e.g. after health drops to 0 and is revived, or after being hit by high-speed vehicles), REDengine's ragdoll animation state may fail to recover automatically. 
-
-The engine-tested method to force the skeletal controller back into an upright standing posture is to pulse the `SwimmingData` animation feature:
-
-```typescript
-/**
- * Forces a downed or ragdolled player puppet to immediately stand back up.
- */
-export async function forcePlayerStandUp(): Promise<void> {
-  const player = mp.game.GetPlayer();
-  if (!player) return;
-
-  const animController = player.GetAnimationControllerComponent();
-  if (!animController) return;
-
-  // 1. Transition into swimming animation state (forces ragdoll termination)
-  const animFeature = Object.assign(new mp.game.AnimFeature_SwimmingData(), {
-    state: 1,
-  });
-  animController.ApplyFeature('SwimmingData', animFeature);
-
-  // 2. Short frame delay
-  await new Promise((resolve) => setTimeout(resolve, 50));
-
-  // 3. Reset swimming state to 0 (restores normal standing idle)
-  animFeature.state = 0;
-  animController.ApplyFeature('SwimmingData', animFeature);
-}
-```
+Freeroam uses the `SwimmingData` animation feature as a ragdoll recovery workaround. Treat `AnimFeature_SwimmingData` as a diagnostic lead. Verify the player is already alive, the animation controller belongs to the current puppet, and the player regains movement both locally and for another client. Keep the health and respawn flow separate from the animation test. [Freeroam death service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/death/death.service.ts)

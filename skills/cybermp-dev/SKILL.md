@@ -46,7 +46,7 @@ CyberMP isolates execution across three completely separate JavaScript runtimes.
 
 ## 2. Strict Negative Constraints & Anti-Hallucination Rules
 
-Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP, SA-MP), LLMs often hallucinate incorrect APIs. You must **NEVER** use foreign multiplayer platform APIs. All native methods in CyberMP across Server, Client, and CEF Browser are invoked via the global `mp.*` namespace (`mp.events.*`, `mp.commands.*`, `mp.players.*`, `mp.vehicles.*`, `mp.game.*`, `mp.cef.*`, `mp.discord.*`, `mp.localStorage.*`).
+Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP, SA-MP), LLMs often hallucinate incorrect APIs. You must **NEVER** use foreign multiplayer platform APIs. CyberMP's JavaScript API uses the global `mp.*` namespace (`mp.events.*`, `mp.commands.*`, `mp.players.*`, `mp.vehicles.*`, `mp.game.*`, `mp.cef.*`, `mp.discord.*`, `mp.localStorage.*`).
 
 ### ⛔ Prohibited Foreign Functions & Correct CyberMP Equivalents
 
@@ -64,11 +64,12 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `alt.emitClient(p, 'ev', ...args)` | alt:V | `mp.events.emitClient(player, 'ev', ...args)` |
 | `alt.emitServer('ev', ...args)` | alt:V | `mp.events.emitServer('ev', ...args)` |
 | `alt.Player.local` | alt:V | Client-side player entity streaming / reference |
-| `mp.events.add('ev', cb)` | RAGEMP | `mp.events.on('ev', cb)` |
 | `mp.events.callRemote('ev', ...args)` | RAGEMP | `mp.events.emitServer('ev', ...args)` |
 | `mp.events.callClient(p, 'ev', ...args)`| RAGEMP | `mp.events.emitClient(player, 'ev', ...args)` |
 | `mp.players.local` | RAGEMP | Local client player context |
 | `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `mp.events.on('playerConnected', (id, tempId) => ...)` / `player.position` |
+
+For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See `skills/cybermp-dev/references/lua-events.md`.
 
 ---
 
@@ -182,8 +183,8 @@ document.getElementById('submit-btn').addEventListener('click', () => {
 ### Player Lifecycle Events on Server
 ```typescript
 // 1. Connection negotiation
-mp.events.on('playerConnecting', (tempId: string, ip: string) => {
-  console.log(`Connecting: ${tempId} from ${ip}`);
+mp.events.on('playerConnecting', (tempId, name) => {
+  console.log(`Connecting: ${tempId} (${name})`);
 });
 
 // 2. Fully connected and assigned an ID
@@ -197,30 +198,32 @@ mp.events.on('playerSpawn', (playerId: number) => {
 });
 
 // 4. Damage handling (authoritative, return false to cancel damage)
-mp.events.on('damage', (playerId: number, data: DamageEventData) => {
-  console.log(`Player ${playerId} took ${data.totalDamage} damage from ${data.killerId}`);
+mp.events.on('damage', (_playerId, data) => {
+  console.log(`Player ${data.victimId} took ${data.totalDamage} damage`);
 });
 
 // 5. Player death
-mp.events.on('playerDeath', (playerId: number, killerId: number, reason: number) => {
-  console.log(`Player ${playerId} killed by ${killerId} (reason: ${reason})`);
+mp.events.on('playerDeath', (playerId, { killerId }) => {
+  console.log(`Player ${playerId} died (killer: ${killerId ?? 'unknown'})`);
 });
 
 // 6. Disconnect
-mp.events.on('playerDisconnected', (playerId: number, reason: number) => {
-  console.log(`Player ${playerId} disconnected (code: ${reason})`);
+mp.events.on('playerDisconnected', (playerId, reason) => {
+  console.log(`Player ${playerId} disconnected (reason: ${reason})`);
 });
 ```
 
 ### Custom Chat & Console Commands
 Register commands using `mp.commands.add`:
 ```typescript
-mp.commands.add('teleport', (player: MpPlayer, x: string, y: string, z: string) => {
-  if (!x || !y || !z) {
+mp.commands.add('teleport', (player, args) => {
+  if (!player) return;
+  const [x, y, z] = args.map(Number);
+  if (args.length !== 3 || ![x, y, z].every(Number.isFinite)) {
     mp.events.emitClient(player, 'chat:notify', 'Usage: /teleport <x> <y> <z>');
     return;
   }
-  player.position = new Vector3(parseFloat(x), parseFloat(y), parseFloat(z));
+  player.position = [x, y, z];
 });
 ```
 
@@ -243,14 +246,16 @@ If the MCP server is unavailable or running in a skill-only mode:
 1. **Consult Local References in `references/`**:
    - [INK HUD and Minimap](references/ui-ink-and-minimap.md)
    - [Archive Prop Workflow](references/recipes/archive-prop.md)
+   - [Archive Mod Compatibility](references/archive-mod-compatibility.md): Identify loader dependencies and verify delivery, engine loading, local effects and replication.
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
    - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
    - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
    - [World Interaction Recipe](references/recipes/world-interaction.md): Native `[F]` prompt via `SendInputHintData`, `MappinSystem`, and `onInputKeyEvent`.
-   - [Doors & Scriptable Devices](references/doors-and-devices.md): Door manipulation and interior unlocks via `DoorControllerPS` (`ActionSetOpened`, `ActionToggleLock`).
+   - [Doors & Scriptable Devices](references/doors-and-devices.md): Local door targeting, device state inspection, and multiplayer reconciliation.
    - [Object Spawning & World Streaming](references/object-spawning-and-streaming.md): Client-local props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` catalog, and interior occlusion.
    - [Animations & Workspots](references/animations-and-workspots.md): Contextual full-body animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`).
    - [Vehicles Tuning, Aesthetics & Combat 2.0](references/vehicles-tuning-combat.md): Apertures via `vehicleControllerPS` (hood, trunk, windows), ignition (`TurnEngineOn`), CrystalCoat shaders, and drive-by shooting.
+   - [Native Bridge Setup](references/native-bridge.md) for client manifest settings, lifecycle and value conversions in JavaScript, TypeScript and Lua.
    - [Game Engine & World Natives](references/game-natives.md): REDengine initialization, world time/weather systems, loading screen suppression, 3D to 2D projections.
    - [Vehicles & Physics Reference](references/vehicles-physics.md): Low-level mounting requests, cosmetic/physical deformation repair, nitro impulses, and speedometer curves.
    - [Player Mechanics & Inventory Reference](references/player-mechanics.md): Safe coordinate teleportation, health/god mode, status effect gameplay restrictions, item spawning, and customization mirrors.
@@ -274,12 +279,12 @@ CyberMP client scripts have direct access to REDengine 4 natives when `use_game_
 ### Deep-Dive Reference Guides
 
 - **[World Interaction Recipe](references/recipes/world-interaction.md)**: Native HUD prompt on `[F]` (`mp.game.SendInputHintData`), 3D marker (`MappinSystem.RegisterMappin`), hardware key capture (`onInputKeyEvent`), and singleplayer device caveats.
-- **[Doors & Scriptable Devices](references/doors-and-devices.md)**: Interactive door manipulation (`ActionSetOpened`, `ActionSetClosed`, `ActionToggleLock`) via `DoorControllerPS` and unlocking locked Night City interiors.
+- **[Doors & Scriptable Devices](references/doors-and-devices.md)**: Door targeting, local `OpenDoor` and `CloseDoor` requests, and verification of shared state.
 - **[Object Spawning & World Streaming](references/object-spawning-and-streaming.md)**: Client props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` depot paths, and interior occlusion culling.
 - **[Animations & Workspots](references/animations-and-workspots.md)**: Full-body native animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`) for sitting, smoking, leaning, drinking, and dancing.
 - **[Vehicles Tuning, Aesthetics & Combat 2.0](references/vehicles-tuning-combat.md)**: Aperture control via `vehicleControllerPS` (hood, trunk, windows), engine toggle (`TurnEngineOn`), CrystalCoat color shaders, body part detachment, and Vehicle Combat 2.0.
 - **[Game Engine & World Natives](references/game-natives.md)**: Engine lifecycle (`onceGameLoaded`), quest fact management (`vvc_visual_customization_unlocked`), weather and world time systems, loading screen suppression, and world 3D to screen 2D projections.
-- **[Vehicles & Physics Reference](references/vehicles-physics.md)**: Low-level vehicle mounting (`GetMountingFacility().Mount`), full 10-part deformation and glass repair (`DestructionResetGrid`), linear impulse physics (nitro boost), and true speedometer calculations via vehicle curve evaluation.
+- **[Vehicles & Physics Reference](references/vehicles-physics.md)**: Low-level vehicle mounting (`GetMountingFacility().Mount`), deformation and glass reset (`DestructionResetGrid`), velocity changes, and HUD speed calibration.
 - **[Player Mechanics & Inventory Reference](references/player-mechanics.md)**: Safe coordinate teleportation (`GetTeleportationFacility().Teleport`) vs physical respawning (`mp.local.spawnPlayer`), stat pool health/god mode, status effect gameplay restrictions, item spawning via `AddToInventory`, and appearance mirror customization.
 - **[Cameras, Input & CEF Integration](references/cameras-input-cef.md)**: Custom free camera spawning (`simple_free_camera.ent`), player spectating camera synchronization, hardware key handling via `mp.game.onInputKeyEvent`, and CEF browser focus/cursor control.
 - **[Server Mechanics & World Entities](references/server-mechanics.md)**: Authoritative server object creation (`mp.objects.create`), virtual dimension routing, 2D polygon ray-casting safezones, entity metadata synchronization, and persistence patterns.
@@ -323,92 +328,7 @@ export function teleportPlayer(x: number, y: number, z: number, yaw: number = 0)
 
 #### 2. Vehicle Seat Mounting and Repair
 
-Mounting into vehicles requires low-level `MountingFacility.Mount` calls. Full cosmetic and physical repair requires clearing blend shapes, flat tires, and resetting destruction grids:
-
-```typescript
-import * as CyberEnums from '@cybermp/client-types/enums';
-import type { vehicleBaseObject } from '@cybermp/client-types/game';
-
-/**
- * Mounts the local player into a streamed vehicle seat via REDengine's MountingFacility.
- */
-export function mountPlayerInVehicle(
-  vehicle: vehicleBaseObject,
-  slotName: string = 'seat_front_left',
-  instant: boolean = true,
-): void {
-  const player = mp.game.GetPlayer();
-  if (!player || !vehicle) return;
-
-  const mountData = Object.assign(new mp.game.gameMountEventData(), {
-    isInstant: instant,
-    slotName,
-    mountParentEntityId: vehicle.GetEntityID(),
-    entryAnimName: 'forcedTransition',
-  });
-
-  const slotID = Object.assign(new mp.game.gamemountingMountingSlotId(), {
-    id: slotName,
-  });
-
-  const mountingInfo = Object.assign(new mp.game.gamemountingMountingInfo(), {
-    childId: player.GetEntityID(),
-    parentId: vehicle.GetEntityID(),
-    slotId: slotID,
-  });
-
-  const mountRequest = Object.assign(new mp.game.gamemountingMountingRequest(), {
-    lowLevelMountingInfo: mountingInfo,
-    mountData,
-  });
-
-  mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest);
-}
-
-const DEFORMATION_PARTS = [
-  'hood_destruction',
-  'wheel_f_l_destruction',
-  'wheel_f_r_destruction',
-  'bumper_b_destruction',
-  'bumper_f_destruction',
-  'door_f_l_destruction',
-  'door_f_r_destruction',
-  'trunk_destruction',
-  'bumper_b_destruction_side_2',
-  'bumper_f_destruction_side_2',
-] as const;
-
-/**
- * Performs a 100% complete physical and cosmetic restoration of a vehicle.
- */
-export function repairVehicle(vehicle: vehicleBaseObject): void {
-  if (!vehicle) return;
-
-  const comp = vehicle.GetVehicleComponent();
-  const vehType = vehicle.GetVehicleType();
-
-  if (vehType !== CyberEnums.gamedataVehicleType.Bike) {
-    comp.bumperFrontState = 0;
-    comp.bumperBackState = 0;
-    for (const part of DEFORMATION_PARTS) {
-      mp.game.entAnimationControllerComponent.SetInputFloat(vehicle, part, 0.0);
-    }
-  }
-
-  comp.damageLevel = 0;
-
-  // Restore flat/broken tires if applicable
-  const flatTireIndex = (vehicle as any).GetFlatTireIndex?.() ?? -1;
-  if (flatTireIndex >= 0) {
-    for (let i = 0; i < 4; i++) {
-      (vehicle as any).ToggleBrokenTire?.(i, false);
-    }
-  }
-
-  vehicle.DestructionResetGrid();
-  vehicle.DestructionResetGlass();
-}
-```
+Use the [vehicle physics reference](references/vehicles-physics.md) for authorized mounting, local repair requests, speed telemetry, and tests across vehicle ownership changes.
 
 #### 3. Spawning Weapons and Items
 

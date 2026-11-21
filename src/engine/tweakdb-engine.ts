@@ -1,10 +1,19 @@
 import tweakDbData from '../data/tweakdb.json' with { type: 'json' };
 
+export const tweakDbCategories = [
+  'status_effects', 'weapons', 'vehicles', 'clothing', 'quickhacks', 'workspots',
+  'ammo', 'cyberware', 'consumables',
+] as const;
+
 export interface TweakDbRecord {
   id: string;
-  category: 'status_effects' | 'weapons' | 'vehicles' | 'clothing' | 'quickhacks' | 'workspots';
+  category: typeof tweakDbCategories[number];
   name: string;
   description: string;
+  kind?: 'workspot-search-label';
+  evidence?:
+    | { status: 'source-match' | 'record-name-index'; sourceUrl: string }
+    | { status: 'needs-recheck'; sourceUrl: string; candidateId?: string };
 }
 
 export interface TweakDbLookupResult {
@@ -29,8 +38,11 @@ export function lookupTweakDb(query = '', category = 'all', limit = 10): TweakDb
       (r) =>
         r.id.toLowerCase().includes(q) ||
         r.name.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q)
+        r.description.toLowerCase().includes(q) ||
+        (r.evidence?.status === 'needs-recheck' && r.evidence.candidateId?.toLowerCase().includes(q))
     );
+    const exact = filtered.findIndex((record) => record.id.toLowerCase() === q);
+    if (exact > 0) filtered = [filtered[exact], ...filtered.slice(0, exact), ...filtered.slice(exact + 1)];
   }
 
   const results = filtered.slice(0, maxLimit);
@@ -42,16 +54,33 @@ export function lookupTweakDb(query = '', category = 'all', limit = 10): TweakDb
   }
 
   const lines = [
-    `## TweakDB Lookup Results (${results.length} found)`,
+    `## TweakDB Lookup Results (${results.length} shown of ${filtered.length} matches)`,
     '',
-    'Curated subset. Confirm item availability and behavior for the target game version.',
+    'Curated candidates. Runtime behavior is unverified. An exact name match establishes an entry in the source index. Check record type, display name, tier, DLC and availability in the target game build.',
     '',
-    '| TweakDB ID | Category | Name | Description |',
-    '| :--- | :--- | :--- | :--- |',
+    '| Identifier | Category | Name | Evidence | Catalog note (unverified) |',
+    '| :--- | :--- | :--- | :--- | :--- |',
   ];
 
   for (const r of results) {
-    lines.push(`| \`${r.id}\` | \`${r.category}\` | **${r.name}** | ${r.description} |`);
+    const evidence = r.evidence;
+    let evidenceText = 'Unconfirmed ID';
+    if (r.kind === 'workspot-search-label') {
+      evidenceText = 'Unconfirmed ID. Workspot search label';
+    } else if (evidence?.status === 'record-name-index') {
+      evidenceText = `[Exact record name in WolvenKit index](${evidence.sourceUrl})`;
+    } else if (evidence?.status === 'source-match') {
+      evidenceText = `[ID found in source](${evidence.sourceUrl})`;
+    } else if (evidence?.status === 'needs-recheck') {
+      evidenceText = `[ID needs recheck](${evidence.sourceUrl})`;
+      if (evidence.candidateId) evidenceText += `. Candidate: \`${evidence.candidateId}\``;
+    }
+    lines.push(`| \`${r.id}\` | \`${r.category}\` | **${r.name}** | ${evidenceText} | ${r.description.replace(/\|/g, '\\|')} |`);
+  }
+
+  if (results.some((record) => record.kind === 'workspot-search-label')) {
+    lines.push('', 'For `PlayInDeviceSimple`, resolve the device and actor in the client. Inspect the device and its `.workspot` asset in the target build.',
+      '[Workspot asset and playback guide](https://github.com/mo3g666/cybermp-agent-kit/blob/main/skills/cybermp-dev/references/animations-and-workspots.md)');
   }
 
   return {

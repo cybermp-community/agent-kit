@@ -12,6 +12,8 @@ Generate the original cube geometry from the [example source](../../examples/arc
 
 Warning: the generator and TypeScript sample can be checked without the game. The WolvenKit import, packaged archive, appearance and client spawn must be verified on the target builds. ArchiveXL is a separate dependency when the mod uses its features.
 
+For a controlled game run, use the [portable probe](../../examples/archive-probe/README.md). It exposes local and shared spawn commands with the same depot path and offers a base-game asset for a baseline.
+
 ## Build an original diagnostic cube
 
 1. Create a WolvenKit project named `cybermp_kit_cube`. Add a simple non-skinned single-submesh mesh container from a local game installation, or use one you have permission to redistribute. Copy it to `cybermp_kit\diagnostics\cube.mesh` in the project. Choose a clearly visible opaque material and check its dependencies. Keep all original game files in the author's local game installation as the source for any required template and record the template path used.
@@ -32,15 +34,4 @@ Sources. [CyberMP resource file delivery](https://docs.cyber.mp/guides/resources
 
 ## Identify the loader and its dependencies
 
-| Input or mechanism | What the sources establish | What to confirm in CyberMP |
-| --- | --- | --- |
-| `.archive` | WolvenKit packages REDengine assets. CyberMP lists it as a supported resource file type. | Internal depot paths, asset conflicts, visible spawn and cleanup. |
-| `.xl` / ArchiveXL | CyberMP lists `.xl` files. ArchiveXL documents the features and versions of its loader. | Which loader features are available on the tested client and whether the extension is applied. |
-| `.tweak` / YAML / TweakXL | CyberMP lists these extensions. TweakXL defines its own input formats. | File interpretation, TweakDB registration and patch compatibility. |
-| `.redscripts` | CyberMP's file reference describes compiled redscripts. | Compiler target, dependencies, initialization and behavior after a cold launch. |
-| REDmod | CDPR documents a separate install and deployment workflow for REDmods. | Which individual outputs can be supplied as CyberMP resource files. |
-| RED4ext / Codeware / CET | These are separate loaders or runtime libraries with their own version requirements. | Availability and behavior on the target CyberMP client. Keep any test with dependencies distinct from the baseline. |
-
-Local installation uses the game's mod loader and folder layout. CyberMP `file` delivers assets for that resource. `core.files` selects files from the built-in core resource. `client_script` loads the bundled client program and `cef_url` points to browser UI. For nested asset directories add explicit file entries or a documented directory-local pattern.
-
-Sources. [CDPR REDmod](https://www.cyberpunk.net/en/modding-support) · [CyberMP core configuration](https://docs.cyber.mp/reference/server/configuration) · [ArchiveXL](https://github.com/psiberx/cp2077-archive-xl) · [TweakXL](https://github.com/psiberx/cp2077-tweak-xl) · [Codeware](https://github.com/psiberx/cp2077-codeware) · [RED4ext](https://docs.red4ext.com/) · [Cyber Engine Tweaks](https://wiki.redmodding.org/cyber-engine-tweaks).
+For an existing mod, use the [archive compatibility guide](../archive-mod-compatibility.md) to identify archive resources, loader dependencies and the required evidence on the target build. The diagnostic cube recipe above gives you a baseline for comparing delivery and visible spawn.

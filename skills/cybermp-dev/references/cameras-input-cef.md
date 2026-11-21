@@ -1,9 +1,12 @@
+---
+environment: client
+---
+
 # Camera, Input & CEF Reference
 
 This reference covers low-level REDengine camera manipulation, detached free camera spawning, multi-target spectator systems, direct keyboard hardware input capturing, and Chromium Embedded Framework (CEF) focus/cursor management in CyberMP client scripts (`use_game_natives = true`).
 
-> [!IMPORTANT]
-> All code in this reference is procedural TypeScript utilizing direct `mp.game.*`, `mp.network.*`, `mp.local.*`, `mp.cef.*`, and `mp.events.*` runtime bindings. REDengine native classes require property instantiation via `Object.assign(new mp.game.<Type>(), { ... })`. No dependency injection containers or decorators are used.
+The REDengine camera and input fragments run in the CyberMP game client with `use_game_natives = true`. The CEF bridge spans both the game client and browser. The snippets indicate the relevant side where it differs.
 
 ---
 
@@ -144,329 +147,100 @@ export function interpolateTppFov(targetFov: number, lerpRate = 0.1): void {
 
 ## 2. Free Camera Entity Spawning (`simple_free_camera.ent`)
 
-CyberMP provides detached camera functionality by spawning an instance of REDengine's `base\entities\cameras\simple_free_camera.ent`. Spawning is performed client-side using `mp.local.spawnObject`, and the camera view is taken over by activating the entity's `gameCameraComponent`.
+Freeroam creates a client-local object from the vanilla resource `base\entities\cameras\simple_free_camera.ent`. A successful call to `mp.local.spawnObject` yields a handle. Camera activation also requires a resolved engine entity and its `camera` component. Freeroam polls for the entity with a deadline and uses the object cleanup callback to deactivate the camera. [Freeroam camera service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/camera.service.ts) · [Freeroam entity lookup](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/game/entity.service.ts)
 
-### Lifecycle Diagram
+### Free Camera Activation Probe
 
-```
-1. Resolve Hash:
-   redResourceReferenceScriptToken.GetHash('base\\entities\\cameras\\simple_free_camera.ent')
-      ↓
-2. Spawn Local Object:
-   mp.local.spawnObject(cameraHash, 0, x, y, z, roll, pitch, yaw, false)
-      ↓
-3. Find Spawned Entity:
-   ScriptGameInstance.FindEntityByID(entityId)
-      ↓
-4. Activate Camera:
-   cameraComponent.Activate(0, false)
-      ↓
-5. Deactivate & Despawn:
-   cameraComponent.Deactivate(0, false) -> mp.local.despawnObject(hash)
-```
-
-### Free Camera Implementation
+Run this client-side after the local player has spawned. Call `stopFreeCamera` when leaving the mode. The probe uses a five-second lookup deadline and logs whether it called `Activate`. Check the actual view change and return to the player camera in the target build.
 
 ```typescript
-import type {
-  EulerAngles,
-  entEntity,
-  gameCameraComponent,
-  Vector3,
-} from '@cybermp/client-types/game';
+import type { gameCameraComponent } from '@cybermp/client-types/game';
 
-let cachedFreeCameraHash: number | null = null;
-let activeFreeCameraObjId: number | null = null;
-let activeFreeCameraComp: gameCameraComponent | null = null;
+let cameraHandle: number | undefined;
+let camera: gameCameraComponent | undefined;
+let lookupTimer: ReturnType<typeof setInterval> | undefined;
 
-/**
- * Initializes and caches the resource hash for the engine's free camera entity.
- */
-export function getFreeCameraHash(): number {
-  if (cachedFreeCameraHash === null) {
-    cachedFreeCameraHash = mp.game.redResourceReferenceScriptToken.GetHash(
-      'base\\entities\\cameras\\simple_free_camera.ent',
-    );
-  }
-  return cachedFreeCameraHash;
+function stopLookup(): void {
+  if (lookupTimer === undefined) return;
+  clearInterval(lookupTimer);
+  lookupTimer = undefined;
 }
 
-export interface FreeCameraTransform {
-  position: { x: number; y: number; z: number };
-  rotation?: { roll: number; pitch: number; yaw: number };
+export function stopFreeCamera(): void {
+  stopLookup();
+  const activeCamera = camera;
+  const handle = cameraHandle;
+  camera = undefined;
+  cameraHandle = undefined;
+  try {
+    activeCamera?.Deactivate(0, false);
+  } finally {
+    if (handle !== undefined) mp.local.despawnObject(handle);
+  }
 }
 
-/**
- * Creates and activates a free camera entity at the specified world position and rotation.
- * @param transform Coordinates and rotation for initial placement.
- * @returns The local object ID of the spawned camera entity.
- */
-export function createFreeCamera(transform: FreeCameraTransform): number {
-  // Despawn existing free camera if one is currently active
-  if (activeFreeCameraObjId !== null) {
-    destroyFreeCamera();
-  }
+export function probeFreeCamera(x: number, y: number, z: number): void {
+  stopFreeCamera();
 
-  const cameraHash = getFreeCameraHash();
-  const { position, rotation = { roll: 0, pitch: 0, yaw: 0 } } = transform;
-
-  // Spawn the entity locally via mp.local
-  activeFreeCameraObjId = mp.local.spawnObject(
-    cameraHash,
-    0, // appHash
-    position.x,
-    position.y,
-    position.z,
-    rotation.roll,
-    rotation.pitch,
-    rotation.yaw,
-    false, // streaming
+  const modelHash = mp.game.redResourceReferenceScriptToken.GetHash(
+    'base\\entities\\cameras\\simple_free_camera.ent',
   );
+  const handle = mp.local.spawnObject(modelHash, 0, x, y, z, 0, 0, 0, false);
+  cameraHandle = handle;
+  const entityId = Object.assign(new mp.game.entEntityID(), { hash: handle });
+  const deadline = Date.now() + 5_000;
 
-  // Look up the spawned entity in REDengine
-  const entityID = Object.assign(new mp.game.entEntityID(), {
-    hash: activeFreeCameraObjId,
-  });
+  lookupTimer = setInterval(() => {
+    try {
+      if (Date.now() >= deadline) {
+        console.warn(`[camera] timed out waiting for camera component on handle ${handle}`);
+        stopFreeCamera();
+        return;
+      }
 
-  const cameraEntity = mp.game.ScriptGameInstance.FindEntityByID(entityID) as entEntity | null;
-  if (cameraEntity) {
-    const comp = cameraEntity.FindComponentByName('camera') as gameCameraComponent | null;
-    if (comp) {
-      activeFreeCameraComp = comp;
-      activeFreeCameraComp.Activate(0, false);
+      const entity = mp.game.ScriptGameInstance.FindEntityByID(entityId);
+      const component = entity?.FindComponentByName('camera') as gameCameraComponent | undefined;
+      if (!component) return;
+
+      camera = component;
+      camera.Activate(0, false);
+      stopLookup();
+      console.log(`[camera] Activate called for handle ${handle}`);
+    } catch (error) {
+      console.error('[camera] activation probe failed', error);
+      stopFreeCamera();
     }
-  }
-
-  return activeFreeCameraObjId;
+  }, 100);
 }
 
-/**
- * Deactivates and despawns the active free camera, restoring player view.
- */
-export function destroyFreeCamera(): void {
-  if (activeFreeCameraComp) {
-    activeFreeCameraComp.Deactivate(0, false);
-    activeFreeCameraComp = null;
-  }
-
-  if (activeFreeCameraObjId !== null) {
-    mp.local.despawnObject(activeFreeCameraObjId);
-    activeFreeCameraObjId = null;
-  }
-
-  // Restore the local player's primary camera
-  const playerCam = mp.game.GetPlayer()?.FindComponentByName('camera') as gameCameraComponent | null;
-  playerCam?.Activate(0, false);
-}
+mp.events.on('resourceStop', stopFreeCamera);
 ```
-
----
 
 ## 3. Spectator System (`spectateCamera`)
 
-CyberMP spectator mode enables spectating other players by binding to their pre-attached `spectateCamera` component.
+Freeroam resolves a streamed target and looks for a component named `spectateCamera` on that entity. Component availability depends on the target entity setup. The mode also has its own camera offsets, player positioning and control restrictions. [Freeroam spectator service](https://github.com/Cyber-MP/CyberMP-Freeroam/blob/main/resources/freeroam/client/src/modules/spectating/spectating.service.ts)
 
-### Architecture Overview
+### Spectator Target Lookup
 
-1. **Network to Game Entity**: Retrieve the game entity ID with `mp.network.getPlayerGameId(targetNetworkId)`.
-2. **Entity Attachment**: Locate `targetEntity.FindComponentByName('spectateCamera')`.
-3. **Adaptive Offsets**: Apply different local offsets depending on whether the target is on foot or inside a vehicle (`mp.game.GetMountedVehicle`).
-4. **Spectator Metadata & Restrictions**: Broadcast spectator status via `mp.meta.setPlayerMeta` and apply gameplay restrictions so the spectator doesn't interfere with the world.
-
-### Camera Offset Matrix
-
-| Target State | Local Camera Offset (`x, y, z, w`) | FOV | Description |
-|---|---|---|---|
-| **On-Foot** | `{ x: 0, y: -2, z: 2, w: 0 }` | `80°` | Slightly above and behind the player's shoulders |
-| **In-Vehicle** | `{ x: 0, y: -5, z: 2, w: 0 }` | `80°` | Pulled further back to keep entire vehicle visible |
-
-### Spectator Controller Implementation
+This client fragment resolves the current component for a supplied **network player ID**. An unavailable result is expected when the target is outside streaming range, during entity replacement, or when the target has no spectator camera. [Network IDs](https://docs.cyber.mp/guides/client/network-ids/)
 
 ```typescript
-import type {
-  gameCameraComponent,
-  gameObject,
-  Vector4,
-} from '@cybermp/client-types/game';
+import type { gameCameraComponent } from '@cybermp/client-types/game';
 
-interface SpectatorState {
-  spectatingPlayerId: number | null;
-  cameraComponent: gameCameraComponent | null;
-  tickIntervalId: ReturnType<typeof setInterval> | null;
-  initialPlayerPosition: Vector4 | null;
-}
+export function resolveSpectatorCamera(targetNetworkId: number): gameCameraComponent | undefined {
+  if (targetNetworkId === mp.network.getLocalPlayerId()) return;
 
-const ON_FOOT_OFFSET = { x: 0, y: -2, z: 2, w: 0 };
-const IN_VEHICLE_OFFSET = { x: 0, y: -5, z: 2, w: 0 };
-const SPECTATOR_FOV = 80;
-
-const state: SpectatorState = {
-  spectatingPlayerId: null,
-  cameraComponent: null,
-  tickIntervalId: null,
-  initialPlayerPosition: null,
-};
-
-const RESTRICTIONS = [
-  'GameplayRestriction.NoMovement',
-  'GameplayRestriction.NoCombat',
-  'GameplayRestriction.NoWeapons',
-];
-
-/**
- * Applies or removes gameplay restrictions for spectator mode.
- */
-function setSpectatorRestrictions(apply: boolean): void {
-  const statusEffectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
-  const player = mp.game.GetPlayer();
-  if (!statusEffectSystem || !player) {
-    return;
-  }
-
-  const playerId = player.GetEntityID();
-  for (const restriction of RESTRICTIONS) {
-    const recordId = Object.assign(new mp.game.TweakDBID(), { hash: restriction });
-    if (apply) {
-      statusEffectSystem.ApplyStatusEffect(playerId, recordId);
-    } else {
-      statusEffectSystem.RemoveStatusEffect(playerId, recordId);
-    }
-  }
-}
-
-/**
- * Configures the spectate camera on the target entity.
- */
-function setupSpectateCamera(targetNetworkId: number): boolean {
   const gameId = mp.network.getPlayerGameId(targetNetworkId);
-  if (!gameId) {
-    return false;
-  }
+  if (!gameId) return;
 
-  const entityID = Object.assign(new mp.game.entEntityID(), { hash: gameId });
-  const targetEntity = mp.game.ScriptGameInstance.FindEntityByID(entityID);
-  if (!targetEntity) {
-    return false;
-  }
-
-  const cameraComp = targetEntity.FindComponentByName('spectateCamera') as gameCameraComponent | null;
-  if (!cameraComp) {
-    return false;
-  }
-
-  state.cameraComponent = cameraComp;
-  state.cameraComponent.SetLocalPosition(ON_FOOT_OFFSET);
-  state.cameraComponent.SetFOV(SPECTATOR_FOV);
-  state.cameraComponent.Activate(0, false);
-  return true;
-}
-
-/**
- * Periodic tick checking target state and updating vehicle vs on-foot camera distance.
- */
-function onSpectatorTick(): void {
-  if (state.spectatingPlayerId === null) {
-    stopSpectating();
-    return;
-  }
-
-  // Ensure target is still connected and not spectating someone else
-  if (mp.meta.getPlayerMeta(state.spectatingPlayerId, 'spectating')) {
-    stopSpectating();
-    return;
-  }
-
-  const gameId = mp.network.getPlayerGameId(state.spectatingPlayerId);
-  if (!gameId) {
-    return;
-  }
-
-  const entityID = Object.assign(new mp.game.entEntityID(), { hash: gameId });
-  const targetEntity = mp.game.ScriptGameInstance.FindEntityByID(entityID);
-  if (!targetEntity) {
-    return;
-  }
-
-  if (!state.cameraComponent) {
-    setupSpectateCamera(state.spectatingPlayerId);
-    return;
-  }
-
-  // Check if target is inside a vehicle
-  const mountedVehicle = mp.game.GetMountedVehicle(targetEntity as gameObject);
-  const targetOffset = mountedVehicle ? IN_VEHICLE_OFFSET : ON_FOOT_OFFSET;
-  const currentPos = state.cameraComponent.GetLocalPosition();
-
-  if (
-    currentPos.x !== targetOffset.x ||
-    currentPos.y !== targetOffset.y ||
-    currentPos.z !== targetOffset.z
-  ) {
-    state.cameraComponent.SetLocalPosition(targetOffset);
-  }
-}
-
-/**
- * Begins spectating a networked player by network ID.
- * @param targetNetId Network ID of the target player.
- */
-export function startSpectating(targetNetId: number): boolean {
-  const localPlayerNetId = mp.network.getPlayerId(1);
-  if (targetNetId === localPlayerNetId) {
-    return false;
-  }
-
-  // If already spectating, clean up previous session
-  if (state.spectatingPlayerId !== null) {
-    stopSpectating();
-  }
-
-  const localPlayer = mp.game.GetPlayer();
-  if (localPlayer) {
-    state.initialPlayerPosition = localPlayer.GetWorldPosition();
-  }
-
-  state.spectatingPlayerId = targetNetId;
-
-  // Apply spectator state
-  setSpectatorRestrictions(true);
-  setupSpectateCamera(targetNetId);
-
-  // Synchronize spectator metadata to server and other clients
-  mp.meta.setPlayerMeta(localPlayerNetId, 'spectating', true, true);
-
-  // Start update tick (100ms)
-  state.tickIntervalId = setInterval(onSpectatorTick, 100);
-  return true;
-}
-
-/**
- * Stops spectating and restores local player camera and control.
- */
-export function stopSpectating(): void {
-  if (state.tickIntervalId !== null) {
-    clearInterval(state.tickIntervalId);
-    state.tickIntervalId = null;
-  }
-
-  state.spectatingPlayerId = null;
-
-  // Restore local camera
-  const localPlayer = mp.game.GetPlayer();
-  if (localPlayer) {
-    const cam = localPlayer.FindComponentByName('camera') as gameCameraComponent | null;
-    cam?.Activate(0, false);
-  }
-  state.cameraComponent = null;
-
-  // Remove restrictions
-  setSpectatorRestrictions(false);
-
-  // Clear spectator metadata
-  const localPlayerNetId = mp.network.getPlayerId(1);
-  mp.meta.setPlayerMeta(localPlayerNetId, 'spectating', false, true);
+  const entityId = Object.assign(new mp.game.entEntityID(), { hash: gameId });
+  const entity = mp.game.ScriptGameInstance.FindEntityByID(entityId);
+  const component = entity?.FindComponentByName('spectateCamera');
+  if (component) return component as gameCameraComponent;
 }
 ```
+
+For a full spectator mode, track the target by network ID and re-resolve its engine entity after stream-in or respawn. Release the current camera on stream-out, disconnect, mode exit and resource stop. Treat control restrictions and replicated spectator state as separate parts of the game mode. In a two-client session, verify the normal start/stop path, target replacement, and recovery after the target leaves.
 
 ---
 
@@ -559,20 +333,15 @@ export function unbindKey(key: EInputKey, callback: KeyActionCallback): void {
     }
   }
 }
+
+export function bindMenuToggle(toggleMenu: () => void): () => void {
+  return bindKey(EInputKey.IK_F6, (action) => {
+    if (action === EInputAction.IACT_Release) toggleMenu();
+  });
+}
 ```
 
-### Usage Example: Toggle UI on Key Release
-
-```typescript
-import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
-
-bindKey(EInputKey.IK_F6, (action) => {
-  if (action === EInputAction.IACT_Release) {
-    // Toggle menu or scoreboard
-    toggleCustomMenu();
-  }
-});
-```
+Pass the resource's menu toggle function to `bindMenuToggle` and call the returned function to remove the binding.
 
 ---
 
@@ -589,6 +358,8 @@ CyberMP embeds Chromium Embedded Framework (CEF) for rendering HTML5, CSS, and m
 | `mp.cef.setUrl` | `(url: string) => void` | Navigates the web frame to a local asset or remote URL (e.g. Vite dev server). |
 
 ### Focus Control Pattern
+
+This example assumes one menu owns CEF focus. If several menus share the frame, coordinate focus in one place.
 
 ```typescript
 let isMenuOpen = false;
@@ -618,6 +389,12 @@ export function toggleMenu(): void {
     mp.events.emitCef('ui:menu:close');
   }
 }
+
+mp.events.on('resourceStop', () => {
+  if (!isMenuOpen) return;
+  isMenuOpen = false;
+  mp.cef.setFocus(false, false);
+});
 ```
 
 ### Forwarding Key Input to Browser
@@ -640,38 +417,33 @@ mp.game.onInputKeyEvent((action: EInputAction, key: EInputKey) => {
 
 ### Dynamic Dev Server URL Switching
 
-During local development, you can point CEF to a Vite or Webpack dev server (`http://localhost:5173`) to take advantage of Hot Module Replacement (HMR) without reloading the resource:
-
-```typescript
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-mp.game.onInit(() => {
-  if (isDevelopment) {
-    // Live reload server URL
-    mp.cef.setUrl('http://localhost:5173');
-    console.log('[CEF] Connected to local development server');
-  } else {
-    // Production build URL (matches cef_url in resource.toml)
-    mp.cef.setUrl('browser/index.html');
-  }
-});
-```
+Use `cef_url` in `resource.toml` for the packaged page. For a local development build, configure the dev URL explicitly and call `mp.cef.setUrl` from the game client. A bundler can substitute a development flag at build time. The embedded client does not require a Node.js `process` global. [CEF resource configuration](https://docs.cyber.mp/guides/client/first-cef-ui/#resource-manifest-configuration)
 
 ### Waiting for Browser Ready (`domReady`)
 
-Always wait for the CEF web runtime to signal that the DOM and script context are completely initialized before emitting startup data:
+The client receives `domReady` through `mp.events.onCef` when the document is ready. A UI may install its application listeners later. For startup data, let the browser send an application-level ready event after registering its listener. Register the client handler before navigating to the page. A page reload can repeat the handshake.
 
-```typescript
-mp.events.onCef('domReady', () => {
-  console.log('[CEF] Web UI DOM is ready');
+Game state has a separate lifecycle. For player-specific data, send an update after the local player spawns and get the current network player ID from `mp.network.getLocalPlayerId()`. [CEF guide](https://docs.cyber.mp/guides/client/first-cef-ui/) · [Client lifecycle](https://docs.cyber.mp/guides/client/lifecycle/) · [Network IDs](https://docs.cyber.mp/guides/client/network-ids/)
 
-  // Push initial player data and server configurations to browser
-  const localId = mp.network.getPlayerId(1);
-  mp.events.emitCef('ui:init', {
-    localId,
-    timestamp: Date.now(),
-  });
+### CEF `ui:ready` Handler in the Game Client
+
+Register `ui:ready` using the game client's `mp.events.onCef`. Reply with `ui:init` using `mp.events.emitCef`.
+
+```typescript env=client checked=@cybermp/client-types@2.7.1
+mp.events.onCef('ui:ready', () => {
+  mp.events.emitCef('ui:init', { timestamp: Date.now() });
 });
+```
+
+### CEF `ui:ready` Signal from the Browser
+
+In the CEF browser script, register `ui:init` using the injected `mp.events.on`. Emit `ui:ready` once the UI has initialized.
+
+```typescript env=browser checked=@cybermp/browser-types@2.0.1
+mp.events.on('ui:init', (data: { timestamp: number }) => {
+  console.log('[CEF] Startup data received at', data.timestamp);
+});
+mp.events.emit('ui:ready');
 ```
 
 ---
@@ -767,7 +539,7 @@ When CEF does not own direct keyboard focus (`mp.cef.isInFocus() === false`), we
 
 ### Browser-Side Event Simulator (`keys.ts`)
 
-```typescript
+```typescript env=browser
 import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
 
 const keyCodeToName: Record<number, string> = {
@@ -815,71 +587,16 @@ mp.events.on('incomingKeyPressed', (data: { action: EInputAction; key: EInputKey
 
 ---
 
-## 8. Noclip Controller Implementation
+## 8. Noclip Diagnostics
 
-Noclip combines camera directional vectors, tick-based teleportation, and `PlayerPuppet.OnAction` hook for mouse yaw delta:
+A detached camera and a noclip player controller have different effects. Use the free camera probe above to check client-only viewing. To implement player movement in a development resource, first verify the following in the target CyberMP build.
 
-```typescript
-import { EInputAction, EInputKey } from '@cybermp/client-types/enums';
+1. Record which `onInputKeyEvent` press and release actions reach the resource with and without CEF focus. Clear held input when the mode exits.
+2. Check camera direction vectors separately from movement. Use elapsed time to scale movement driven by a frame tick.
+3. Start with a single move using the documented teleport flow. Test on-foot movement, mounted behavior, and what the server and another client observe. Repeated local teleportation needs separate validation for collision, streaming and synchronization.
+4. If the mode applies gameplay restrictions, verify the record and how to remove it. Stop the movement tick and restore player control on exit and `resourceStop`.
 
-export class NoclipController {
-  private active = false;
-  private tickId: number | null = null;
-  private speed = 3.0;
-  private activeKeys = new Set<EInputKey>();
-
-  start(): void {
-    if (this.active) return;
-    this.active = true;
-
-    // Apply movement freeze status effects
-    const effectSystem = mp.game.ScriptGameInstance.GetStatusEffectSystem();
-    const player = mp.game.GetPlayer();
-    if (player) {
-      effectSystem.ApplyStatusEffect(player.GetEntityID(), 'GameplayRestriction.NoMovement', player.GetRecordID(), player.GetEntityID());
-    }
-
-    this.tickId = mp.setTick(() => this.onTick());
-  }
-
-  stop(): void {
-    if (!this.active) return;
-    this.active = false;
-    if (this.tickId) {
-      mp.clearTick(this.tickId);
-      this.tickId = null;
-    }
-    const player = mp.game.GetPlayer();
-    if (player) {
-      mp.game.StatusEffectHelper.RemoveStatusEffect(player, 'GameplayRestriction.NoMovement', undefined);
-    }
-  }
-
-  private onTick(): void {
-    const player = mp.game.GetPlayer();
-    if (!player || player.GetMountedVehicle()) return;
-
-    const cam = mp.game.ScriptGameInstance.GetCameraSystem();
-    const forwardVec = cam.GetActiveCameraForward();
-    const rightVec = cam.GetActiveCameraRight();
-    const pos = player.GetWorldPosition();
-
-    const forward = (this.activeKeys.has(EInputKey.IK_W) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_S) ? 1 : 0);
-    const right = (this.activeKeys.has(EInputKey.IK_D) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_A) ? 1 : 0);
-    const up = (this.activeKeys.has(EInputKey.IK_Space) ? 1 : 0) - (this.activeKeys.has(EInputKey.IK_Shift) ? 1 : 0);
-
-    pos.x += (forwardVec.x * forward + rightVec.x * right) * this.speed;
-    pos.y += (forwardVec.y * forward + rightVec.y * right) * this.speed;
-    pos.z += (forwardVec.z * forward + rightVec.z * right + up * 0.7) * this.speed;
-
-    mp.game.ScriptGameInstance.GetTeleportationFacility().Teleport(
-      mp.game.GetPlayerObject(),
-      pos,
-      mp.game.EulerAngles.create(0, 0, player.GetWorldYaw()),
-    );
-  }
-}
-```
+[Player teleportation guide](https://docs.cyber.mp/guides/client/teleporting-player/) · [Client tick loops](https://docs.cyber.mp/guides/client/local-entities/#per-frame-tick-loops)
 
 ---
 
@@ -900,11 +617,9 @@ CyberMP exposes the client-side Discord Game SDK integration via `mp.discord`. T
 Update the player's Discord status to reflect in-game activity, current vehicle, and location:
 
 ```typescript
-import type { MpPlayer } from '@cybermp/client-types';
-
 export class DiscordActivityManager {
   private lastUpdate = 0;
-  private updateIntervalMs = 15000; // Throttle Discord RPC updates (15s rate limit)
+  private readonly updateIntervalMs = 15_000; // Example application throttle
 
   /**
    * Updates Discord Rich Presence based on the player's current status.
@@ -964,7 +679,7 @@ export function requestDiscordAuth(appId: string): void {
       mp.events.emitServer('auth:verifyDiscordCode', authCode);
     } else {
       console.warn('[Discord] Empty authorization code received');
-      mp.events.emitCef('auth:status', { success: false, reason: 'Discord auth declined' });
+      mp.events.emitCef('auth:status', { success: false, reason: 'No Discord authorization code received' });
     }
   } catch (err) {
     console.error('[Discord] Failed to obtain OAuth2 code:', err);
@@ -983,10 +698,10 @@ The `mp.localStorage` subsystem (`MpLocalStorage`) provides client-side persiste
 | Method | Parameters | Return Type | Description |
 |---|---|---|---|
 | `mp.localStorage.set` | `key: string`, `value: string` | `void` | Associates a plaintext string value with a unique key. Overwrites existing keys. |
-| `mp.localStorage.get` | `key: string` | `string` | Retrieves the string value for the given key. Returns empty string if not found. |
+| `mp.localStorage.get` | `key: string` | `string` | Retrieves the string value for the given key. Handle both an empty string and `null` for a missing entry, as described by the declaration comments. |
 | `mp.localStorage.delete` | `key: string` | `void` | Permanently deletes a specific key-value entry from storage. |
 | `mp.localStorage.deleteAll` | *none* | `void` | Clears all stored key-value pairs for the current resource. |
-| `mp.localStorage.save` | *none* | `void` | Flushes the in-memory cache to physical disk to protect against unexpected crashes. |
+| `mp.localStorage.save` | *none* | `void` | Requests an explicit flush of the in-memory storage to disk. |
 
 ### Type-Safe JSON Storage Wrapper
 
@@ -1087,7 +802,7 @@ CyberMP client scripts can register client-side console and chat commands using 
 |---|---|---|
 | **Execution Environment** | Client V8 Engine (in-game process) | Server Node.js Dedicated Runtime |
 | **Primary Use Cases** | Client FOV/camera tweaks, HUD toggles, debug overlays, client audio | Moderation, inventory, economy, vehicle spawning, teleportation |
-| **Callback Arguments** | `(id: number, args: string[])` where `id` is local entity ID | `(player: MpPlayer, ...args: string[])` |
+| **Callback Arguments** | `(id: number, args: string[])` | `(player: MpPlayer \| null, args: string[])` |
 | **Network Overhead** | Zero (processed entirely client-side) | Network RPC packet sent from client to server |
 
 ### Practical Client Commands Implementation

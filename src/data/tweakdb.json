@@ -3,270 +3,2046 @@
     "id": "BaseStatusEffect.Burning",
     "category": "status_effects",
     "name": "Burning",
-    "description": "Applies thermal damage over time, prevents health regeneration, and triggers panic/flailing reactions on affected targets."
+    "description": "Applies thermal damage over time, prevents health regeneration, and triggers panic/flailing reactions on affected targets.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Electrocuted",
     "category": "status_effects",
     "name": "Electrocuted",
-    "description": "Deals electrical shock damage over time, interrupts actions, and temporarily disables cyberware functionality."
+    "description": "Deals electrical shock damage over time, interrupts actions, and temporarily disables cyberware functionality.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Poisoned",
     "category": "status_effects",
     "name": "Poisoned",
-    "description": "Inflicts chemical damage over time and slows movement and attack speed."
+    "description": "Inflicts chemical damage over time and slows movement and attack speed.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Bleeding",
     "category": "status_effects",
     "name": "Bleeding",
-    "description": "Causes physical hemorrhage damage over time and reduces stamina recovery."
+    "description": "Causes physical hemorrhage damage over time and reduces stamina recovery.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.CyberwareMalfunction",
     "category": "status_effects",
     "name": "Cyberware Malfunction",
-    "description": "Jams target cyberware implants, shutting down active abilities and slowing movement."
+    "description": "Jams target cyberware implants, shutting down active abilities and slowing movement.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Blind",
     "category": "status_effects",
     "name": "Blind",
-    "description": "Blinds visual optics sensors, drastically reducing target detection range and combat accuracy."
+    "description": "Blinds visual optics sensors, drastically reducing target detection range and combat accuracy.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Stun",
     "category": "status_effects",
     "name": "Stun",
-    "description": "Stuns the target, leaving them completely incapacitated and unable to move or attack for a brief duration."
+    "description": "Stuns the target, leaving them completely incapacitated and unable to move or attack for a brief duration.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Emp",
     "category": "status_effects",
     "name": "EMP Disruption",
-    "description": "Disables cyberware, interrupts active hacks, and deals heavy damage to automated drones and mechs."
+    "description": "Disables cyberware, interrupts active hacks, and deals heavy damage to automated drones and mechs.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.MemoryWipe",
     "category": "status_effects",
     "name": "Memory Wipe",
-    "description": "Forces enemies out of combat state and clears their current alert and detection meter."
+    "description": "Forces enemies out of combat state and clears their current alert and detection meter.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Knockdown",
     "category": "status_effects",
     "name": "Knockdown",
-    "description": "Knocks the target off their feet onto the ground, requiring time to recover and stand up."
+    "description": "Knocks the target off their feet onto the ground, requiring time to recover and stand up.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "BaseStatusEffect.Defeated",
     "category": "status_effects",
     "name": "Defeated",
-    "description": "Sets the target into an unconscious or downed non-lethal state."
+    "description": "Sets the target into an unconscious or downed non-lethal state.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_sport1_quadra_turbo_r_player",
     "category": "vehicles",
     "name": "Quadra Turbo-R V-Tech",
-    "description": "Iconic high-performance muscle sports car favored by street mercenaries in Night City."
+    "description": "Iconic high-performance muscle sports car favored by street mercenaries in Night City.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_sport2_mizutani_shion_nomad_player",
     "category": "vehicles",
     "name": "Mizutani Shion \"Coyote\"",
-    "description": "Nomad-modified sports coupe reinforced for off-road Badlands driving with reinforced suspension."
+    "description": "Nomad-modified sports coupe reinforced for off-road Badlands driving with reinforced suspension.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard3_militech_hellhound_player",
+    "category": "vehicles",
+    "name": "Militech Hellhound",
+    "description": "Vehicle record candidate. Verify model, DLC and availability in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_utility4_militech_hellhound_player",
     "category": "vehicles",
     "name": "Militech Hellhound",
-    "description": "Heavy combat-armored military APC vehicle equipped with mounted dual machine guns and missile launchers."
+    "description": "Heavy combat-armored military APC vehicle equipped with mounted dual machine guns and missile launchers.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark",
+      "candidateId": "Vehicle.v_standard3_militech_hellhound_player"
+    }
   },
   {
     "id": "Vehicle.v_sport1_rayfield_caliburn_player",
     "category": "vehicles",
     "name": "Rayfield Caliburn",
-    "description": "Ultra-luxury aerodynamic hypercar, the fastest street-legal production vehicle in Night City."
+    "description": "Ultra-luxury aerodynamic hypercar, the fastest street-legal production vehicle in Night City.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_standard25_thorton_colby_pickup_player",
     "category": "vehicles",
     "name": "Thorton Colby \"Little Mule\"",
-    "description": "Durable workhorse pickup truck commonly modified by Nomads for cargo hauling and rough terrain."
+    "description": "Durable workhorse pickup truck commonly modified by Nomads for cargo hauling and rough terrain.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_porsche_911turbo_player",
+    "category": "vehicles",
+    "name": "Porsche 911 Turbo (930)",
+    "description": "Vehicle record candidate. Verify model, DLC and availability in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_sport2_porsche_911_turbo_player",
     "category": "vehicles",
     "name": "Porsche 911 Turbo (930)",
-    "description": "Johnny Silverhand's classic 1977 sports coupe, customized with Samurai liveries."
+    "description": "Johnny Silverhand's classic 1977 sports coupe, customized with Samurai liveries.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark",
+      "candidateId": "Vehicle.v_sport2_porsche_911turbo_player"
+    }
   },
   {
     "id": "Vehicle.v_sport1_herrera_outlaw_player",
     "category": "vehicles",
     "name": "Herrera Outlaw GTS",
-    "description": "Sleek executive luxury limousine blending top-tier speed with armor plating."
+    "description": "Sleek executive luxury limousine blending top-tier speed with armor plating.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_sportbike1_yaiba_kusanagi_player",
     "category": "vehicles",
     "name": "Yaiba Kusanagi CT-3X",
-    "description": "Aerodynamic sport motorcycle built for extreme speeds, inspired by classic anime aesthetics."
+    "description": "Aerodynamic sport motorcycle built for extreme speeds, inspired by classic anime aesthetics.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Vehicle.v_sportbike2_arch_player",
     "category": "vehicles",
     "name": "ARCH Nazare",
-    "description": "Custom cruiser motorcycle built by ARCH Motorcycle, renowned for raw torque and distinct exhaust sound."
+    "description": "Custom cruiser motorcycle built by ARCH Motorcycle, renowned for raw torque and distinct exhaust sound.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Silverhand_3516",
     "category": "weapons",
     "name": "Malorian Arms 3516 (Johnny's Pistol)",
-    "description": "Custom heavy power pistol designed specifically for Johnny Silverhand, featuring explosive punch and flamethrower melee."
+    "description": "Custom heavy power pistol designed specifically for Johnny Silverhand, featuring explosive punch and flamethrower melee.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Katana_Default",
     "category": "weapons",
     "name": "Katana (Arasaka Standard)",
-    "description": "Standard high-frequency blade designed for rapid strikes, parrying, and high crit damage."
+    "description": "Standard high-frequency blade designed for rapid strikes, parrying, and high crit damage.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Omaha_Default",
     "category": "weapons",
     "name": "Techtronika RT-46 Omaha",
-    "description": "Tech pistol firing a 3-round burst that can be charged to penetrate cover and heavy armor."
+    "description": "Tech pistol firing a 3-round burst that can be charged to penetrate cover and heavy armor.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Nekomata_Default",
     "category": "weapons",
     "name": "Tsunami Nekomata",
-    "description": "Tech sniper rifle firing high-velocity rail projectiles capable of shooting through walls and obstacles."
+    "description": "Tech sniper rifle firing high-velocity rail projectiles capable of shooting through walls and obstacles.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Carnage_Default",
     "category": "weapons",
     "name": "Budget Arms Carnage",
-    "description": "Heavy pump-action power shotgun delivering devastating close-range kinetic force."
+    "description": "Heavy pump-action power shotgun delivering devastating close-range kinetic force.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Lexington_Default",
     "category": "weapons",
     "name": "Militech M-10AF Lexington",
-    "description": "Reliable full-auto power handgun widely deployed across Night City security forces."
+    "description": "Reliable full-auto power handgun widely deployed across Night City security forces.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_Copperhead_Default",
     "category": "weapons",
     "name": "Nokota D5 Copperhead",
-    "description": "Workhorse power assault rifle offering balanced recoil, rate of fire, and mid-range precision."
+    "description": "Workhorse power assault rifle offering balanced recoil, rate of fire, and mid-range precision.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Preset_MantisBlades_Default",
     "category": "weapons",
     "name": "Mantis Blades",
-    "description": "Lethal arm cyberware blades extending from forearms for swift dismemberment and leaping attacks."
+    "description": "Search the Mantis Blades cyberware records and select a specific variant. Confirm the record type before using the inventory or equipment API.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.SuicideLvl4Program",
     "category": "quickhacks",
-    "name": "Suicide (Tier 4 / Iconic)",
-    "description": "Ultimate quickhack forcing the target to turn their weapon on themselves."
+    "name": "Suicide",
+    "description": "Quickhack item candidate for Suicide. Check the tier, linked action and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.OverheatLvl4Program",
     "category": "quickhacks",
-    "name": "Overheat (Tier 4 / Iconic)",
-    "description": "Combat quickhack overheating the target's neural circuitry to apply continuous thermal damage."
+    "name": "Overheat",
+    "description": "Quickhack item candidate for Overheat. Check the tier, linked action and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.DisableCyberwareLvl4Program",
+    "category": "quickhacks",
+    "name": "Cyberware Malfunction",
+    "description": "Quickhack item candidate. Verify the linked action and tier in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.CyberwareMalfunctionLvl4Program",
     "category": "quickhacks",
-    "name": "Cyberware Malfunction (Tier 4 / Iconic)",
-    "description": "Covert quickhack disabling target cyberware and detonating cyberware upon stacking multiple times."
+    "name": "Cyberware Malfunction",
+    "description": "Search for Cyberware Malfunction. Verify the candidate item and its linked action in the target game database.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark",
+      "candidateId": "Items.DisableCyberwareLvl4Program"
+    }
   },
   {
     "id": "Items.SystemCollapseLvl4Program",
     "category": "quickhacks",
-    "name": "System Collapse (Tier 4 / Iconic)",
-    "description": "Ultimate covert quickhack quietly knocking out target's consciousness without raising alarms."
+    "name": "System Collapse",
+    "description": "Quickhack item candidate for System Collapse. Check the tier, linked action and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.EMPOverloadLvl4Program",
+    "category": "quickhacks",
+    "name": "Short Circuit",
+    "description": "Quickhack item candidate. Verify the linked action and tier in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.ShortCircuitLvl4Program",
     "category": "quickhacks",
-    "name": "Short Circuit (Tier 4 / Iconic)",
-    "description": "Combat quickhack sending high-voltage electrical charge to fry electronic systems and organic nerves."
+    "name": "Short Circuit",
+    "description": "Search for Short Circuit. Verify the candidate item and its linked action in the target game database.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark",
+      "candidateId": "Items.EMPOverloadLvl4Program"
+    }
   },
   {
     "id": "Items.ContagionLvl4Program",
     "category": "quickhacks",
-    "name": "Contagion (Tier 4 / Iconic)",
-    "description": "Stealth quickhack spreading chemical poison virus between closely clustered targets."
+    "name": "Contagion",
+    "description": "Quickhack item candidate for Contagion. Check the tier, linked action and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Workspot.SitChair",
     "category": "workspots",
     "name": "Sit in Chair",
-    "description": "Workspot node animation sequence for sitting comfortably in standard chairs, dining stools, or office seats."
+    "description": "Search for chair, bench or stool devices and their sitting workspots.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Workspot.LeanWall",
     "category": "workspots",
     "name": "Lean Against Wall",
-    "description": "Workspot node animation sequence for leaning back against vertical walls or barriers."
+    "description": "Search for wall or railing devices and their leaning workspots.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Workspot.SmokeCigarette",
     "category": "workspots",
     "name": "Smoke Cigarette",
-    "description": "Workspot node animation sequence for lighting, puffing, and holding a cigarette."
+    "description": "Search for a smoking workspot and inspect its animation and prop dependencies.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Workspot.DrinkBar",
     "category": "workspots",
     "name": "Drink at Bar",
-    "description": "Workspot node animation sequence for holding drink glasses, taking sips, and idling at a bar counter."
+    "description": "Search for a bar or drinking workspot and inspect its animation and prop dependencies.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Workspot.DanceClub",
     "category": "workspots",
     "name": "Dance in Club",
-    "description": "Workspot node animation sequence for rhythmic club dancing and crowd party gestures."
+    "description": "Search for a dance workspot from the desired venue or animation category.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Workspot.TypeComputer",
     "category": "workspots",
     "name": "Type on Computer",
-    "description": "Workspot node animation sequence for operating terminals, typing on keyboards, and monitoring screens."
+    "description": "Search for a terminal device and its typing or interaction workspot.",
+    "kind": "workspot-search-label"
   },
   {
     "id": "Items.Coat_01_basic_01",
     "category": "clothing",
     "name": "Basic Trench Coat",
-    "description": "Standard weather-resistant long coat providing wind and rain protection with inner pockets."
+    "description": "Standard weather-resistant long coat providing wind and rain protection with inner pockets.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Pants_01_basic_01",
     "category": "clothing",
     "name": "Basic Cargo Pants",
-    "description": "Durable cotton-kevlar utility pants equipped with multiple reinforced gear pouches."
+    "description": "Durable cotton-kevlar utility pants equipped with multiple reinforced gear pouches.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Shoes_01_basic_01",
     "category": "clothing",
     "name": "Basic High-Top Sneakers",
-    "description": "Streetwear rubber-soled high-top sneakers popular across Night City districts."
+    "description": "Search shoe records and verify the desired visual appearance. Check the resource path and item type.",
+    "evidence": {
+      "status": "needs-recheck",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.TShirt_01_basic_01",
     "category": "clothing",
     "name": "Basic Crewneck T-Shirt",
-    "description": "Simple cotton crewneck tee worn casually across all social classes."
+    "description": "Simple cotton crewneck tee worn casually across all social classes.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   },
   {
     "id": "Items.Vest_01_basic_01",
     "category": "clothing",
     "name": "Tactical Armored Vest",
-    "description": "Ballistic armor vest offering torso protection against pistol and intermediate rifle fire."
+    "description": "Ballistic armor vest offering torso protection against pistol and intermediate rifle fire.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport1_rayfield_aerondight_player",
+    "category": "vehicles",
+    "name": "Rayfield Aerondight",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_archer_bandit",
+    "category": "vehicles",
+    "name": "Archer Quartz Bandit",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_porsche_911turbo_cabrio_player",
+    "category": "vehicles",
+    "name": "Porsche 911 Turbo Cabriolet 930",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport1_quadra_turbo_player",
+    "category": "vehicles",
+    "name": "Quadra Turbo-R 740",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_mizutani_shion_player",
+    "category": "vehicles",
+    "name": "Mizutani Shion MZ2",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_villefort_alvarado_player",
+    "category": "vehicles",
+    "name": "Villefort Alvarado V4F",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport1_yaiba_semimaru_player",
+    "category": "vehicles",
+    "name": "Yaiba Semimaru",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_quadra_type66_02_player",
+    "category": "vehicles",
+    "name": "Quadra Type66 Bullit",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_quadra_type66_base_player",
+    "category": "vehicles",
+    "name": "Quadra Type66 640 TS",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_quadra_type66_player",
+    "category": "vehicles",
+    "name": "Quadra Type66 Jen Rowley",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_archer_quartz_base_player",
+    "category": "vehicles",
+    "name": "Archer Quartz EC-L R275",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard25_mahir_supron_player",
+    "category": "vehicles",
+    "name": "Mahir Supron FS3",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_thorton_colby_gt_player",
+    "category": "vehicles",
+    "name": "Thorton Colby CST40",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_thorton_galena_player",
+    "category": "vehicles",
+    "name": "Thorton Galena G240",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_makigai_maimai_player",
+    "category": "vehicles",
+    "name": "Makagai MaiMai",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard3_chevalier_emperor_police",
+    "category": "vehicles",
+    "name": "Chevalier Emperor NCPD",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard3_chevalier_emperor_militech_wasteland_prevention",
+    "category": "vehicles",
+    "name": "Chevalier Emperor Militech",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard3_chevalier_emperor_player",
+    "category": "vehicles",
+    "name": "Chevalier Emperor",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_utility4_chevalier_legatus_player",
+    "category": "vehicles",
+    "name": "Chevalier Legatus",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard25_thorton_colby_nomad_player",
+    "category": "vehicles",
+    "name": "Thorton Colby Little Mule",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard2_thorton_galena_nomad_player",
+    "category": "vehicles",
+    "name": "Thorton Galena Gecko",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_standard3_thorton_mackinaw_02_player",
+    "category": "vehicles",
+    "name": "Thorton Machinaw Saguaro",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_quadra_type66_nomad_player_03",
+    "category": "vehicles",
+    "name": "Quadra Type66 Wingate",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike2_arch_tyger_player",
+    "category": "vehicles",
+    "name": "Arch Nazare ITSUMADE",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike2_arch_player_03",
+    "category": "vehicles",
+    "name": "Arch Nazare KOBOLD",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike2_arch_player_02",
+    "category": "vehicles",
+    "name": "Arch Nazare RACER",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike1_yaiba_kusanagi_player_03",
+    "category": "vehicles",
+    "name": "Yaiba Kusanagi Akashita",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike1_yaiba_kusanagi_player_02",
+    "category": "vehicles",
+    "name": "Yaiba Kusanagi Peacekeeper",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike3_brennan_apollo_player_02",
+    "category": "vehicles",
+    "name": "Brennan Apollo 650-S",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sportbike3_brennan_apollo_player",
+    "category": "vehicles",
+    "name": "Brennan Apollo",
+    "description": "Vehicle model listed in CyberMP Freeroam. Verify its appearance and DLC requirements in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Nue_Default",
+    "category": "weapons",
+    "name": "Nue",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Unity_Default",
+    "category": "weapons",
+    "name": "Unity",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Liberty_Default",
+    "category": "weapons",
+    "name": "Liberty",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Overture_Default",
+    "category": "weapons",
+    "name": "Overture",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Burya_Default",
+    "category": "weapons",
+    "name": "Burya",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Kenshin_Default",
+    "category": "weapons",
+    "name": "Kenshin",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Yukimura_Default",
+    "category": "weapons",
+    "name": "Yukimura",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Ajax_Default",
+    "category": "weapons",
+    "name": "Ajax",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Masamune_Default",
+    "category": "weapons",
+    "name": "Masamune",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Pulsar_Default",
+    "category": "weapons",
+    "name": "Pulsar",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Saratoga_Default",
+    "category": "weapons",
+    "name": "Saratoga",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Dian_Default",
+    "category": "weapons",
+    "name": "Dian",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Senkoh_Default",
+    "category": "weapons",
+    "name": "Senkoh",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_MA70_Default",
+    "category": "weapons",
+    "name": "MA70 HB",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Grad_Default",
+    "category": "weapons",
+    "name": "Grad",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Ashura_Default",
+    "category": "weapons",
+    "name": "Ashura",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Crusher_Default",
+    "category": "weapons",
+    "name": "Crusher",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Tactician_Default",
+    "category": "weapons",
+    "name": "Tactician",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Zhuo_Default",
+    "category": "weapons",
+    "name": "Zhuo",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Lexington_Toygun",
+    "category": "weapons",
+    "name": "Skippy",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Katana_Saburo",
+    "category": "weapons",
+    "name": "Satori",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Katana_Cocktail",
+    "category": "weapons",
+    "name": "Cocktail Stick",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Katana_GoG",
+    "category": "weapons",
+    "name": "Black Unicorn",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Carnage_Edgerunners",
+    "category": "weapons",
+    "name": "Guts",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Overture_Cassidy",
+    "category": "weapons",
+    "name": "Amnesty",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Nue_Maiko",
+    "category": "weapons",
+    "name": "Death and Taxes",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Dian_Yinglong",
+    "category": "weapons",
+    "name": "Yinglong",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Saratoga_Raffen",
+    "category": "weapons",
+    "name": "Problem Solver",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Masamune_Rogue",
+    "category": "weapons",
+    "name": "Prejudice",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Grad_Buck",
+    "category": "weapons",
+    "name": "O'Five",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Kolac_Tiny_Mike",
+    "category": "weapons",
+    "name": "Hypercritical",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Neurotoxin_Knife_Iconic",
+    "category": "weapons",
+    "name": "Blue Fang",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Preset_Tactician_Dino",
+    "category": "weapons",
+    "name": "The Headsman",
+    "description": "Weapon preset. Verify item type, availability and appearance in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedCamilloRamManagerLegendaryPlus",
+    "category": "cyberware",
+    "name": "Camillo RAM Manager",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedBioConductorsLegendaryPlus",
+    "category": "cyberware",
+    "name": "Bioconductor",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedSubdermalCoProcessorLegendaryPlus",
+    "category": "cyberware",
+    "name": "Subdermal Co-Processor",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedSmartLinkLegendaryPlus",
+    "category": "cyberware",
+    "name": "Smart Link",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedPowerGripLegendaryPlus",
+    "category": "cyberware",
+    "name": "Power Grip",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedStrongArmsLegendaryPlus",
+    "category": "cyberware",
+    "name": "Gorilla Arms",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedMantisBladesLegendaryPlus",
+    "category": "cyberware",
+    "name": "Mantis Blades",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedNanoWiresLegendaryPlus",
+    "category": "cyberware",
+    "name": "Monowire",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedProjectileLauncherLegendaryPlus",
+    "category": "cyberware",
+    "name": "Projectile Launch System",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedKiroshiOpticsBareLegendaryPlus",
+    "category": "cyberware",
+    "name": "Kiroshi Optics",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedSecondHeartLegendaryPlus",
+    "category": "cyberware",
+    "name": "Second Heart",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedBloodPumpLegendaryPlus",
+    "category": "cyberware",
+    "name": "Blood Pump",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedBiomonitorLegendaryPlus",
+    "category": "cyberware",
+    "name": "Biomonitor",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedHealOnKillLegendaryPlus",
+    "category": "cyberware",
+    "name": "Heal-on-Kill",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedEndoskeletonLegendaryPlus",
+    "category": "cyberware",
+    "name": "Endoskeleton",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedTitaniumInfusedBonesLegendaryPlus",
+    "category": "cyberware",
+    "name": "Titanium-Infused Bones",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedBoostedTendonsLegendaryPlus",
+    "category": "cyberware",
+    "name": "Boosted Tendons",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedReinforcedMusclesLegendaryPlus",
+    "category": "cyberware",
+    "name": "Reinforced Muscles",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedJenkinsTendonsLegendaryPlus",
+    "category": "cyberware",
+    "name": "Jenkins' Tendons",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedBerserkC4MK5Plus",
+    "category": "cyberware",
+    "name": "Berserk C4",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedMicroGeneratorLegendaryPlus",
+    "category": "cyberware",
+    "name": "Microgenerator",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.AdvancedPainReductorLegendaryPlus",
+    "category": "cyberware",
+    "name": "Pain Reductor",
+    "description": "Cyberware record. Verify the equipment area, requirements and effect in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Ammo.HandgunAmmo",
+    "category": "ammo",
+    "name": "Handgun ammunition",
+    "description": "Ammunition record. Verify the weapon mapping and inventory API in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Ammo.ShotgunAmmo",
+    "category": "ammo",
+    "name": "Shotgun ammunition",
+    "description": "Ammunition record. Verify the weapon mapping and inventory API in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Ammo.RifleAmmo",
+    "category": "ammo",
+    "name": "Rifle ammunition",
+    "description": "Ammunition record. Verify the weapon mapping and inventory API in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Ammo.SniperRifleAmmo",
+    "category": "ammo",
+    "name": "Sniper rifle ammunition",
+    "description": "Ammunition record. Verify the weapon mapping and inventory API in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Ammo.Special",
+    "category": "ammo",
+    "name": "Special ammunition",
+    "description": "Ammunition record. Verify the weapon mapping and inventory API in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Q005_Johnny_Glasses",
+    "category": "clothing",
+    "name": "Johnny's glasses",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SQ031_Samurai_Jacket",
+    "category": "clothing",
+    "name": "Samurai jacket",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Q005_Johnny_Shirt",
+    "category": "clothing",
+    "name": "Johnny's shirt",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Q005_Johnny_Pants",
+    "category": "clothing",
+    "name": "Johnny's pants",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Q005_Johnny_Shoes",
+    "category": "clothing",
+    "name": "Johnny's shoes",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Trauma_Team_Outfit",
+    "category": "clothing",
+    "name": "Trauma Team outfit",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SQ030_MaxTac_Chest",
+    "category": "clothing",
+    "name": "MaxTac torso gear",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Cop_01_Set_Jacket",
+    "category": "clothing",
+    "name": "Police jacket",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Cop_01_Set_Boots",
+    "category": "clothing",
+    "name": "Police boots",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SQ030_Diving_Suit",
+    "category": "clothing",
+    "name": "Diving suit",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Q115_Custom_Predator_Armor",
+    "category": "clothing",
+    "name": "Predator armor",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.CasualShoes_01_basic_01",
+    "category": "clothing",
+    "name": "Casual shoes basic 01",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.FormalShoes_01_basic_01",
+    "category": "clothing",
+    "name": "Formal shoes basic 01",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Coat_01_basic_02",
+    "category": "clothing",
+    "name": "Coat basic 02",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Pants_01_basic_02",
+    "category": "clothing",
+    "name": "Pants basic 02",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.TShirt_01_basic_02",
+    "category": "clothing",
+    "name": "T-shirt basic 02",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.Vest_01_basic_02",
+    "category": "clothing",
+    "name": "Vest basic 02",
+    "description": "Clothing record. Verify appearance and resource dependencies in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.FirstAidWhiffVLegendaryPlus",
+    "category": "consumables",
+    "name": "MaxDoc",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.BonesMcCoy70VLegendaryPlus",
+    "category": "consumables",
+    "name": "Bounce Back",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.HealthBooster",
+    "category": "consumables",
+    "name": "Health Booster",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.MemoryBooster",
+    "category": "consumables",
+    "name": "Memory Booster",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.StaminaBooster",
+    "category": "consumables",
+    "name": "Stamina Booster",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.CarryCapacityBooster",
+    "category": "consumables",
+    "name": "Carry Capacity Booster",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.BlackLaceV1",
+    "category": "consumables",
+    "name": "Black Lace",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeOzobsNose",
+    "category": "consumables",
+    "name": "Ozob's Nose",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeFragLegendaryPlus",
+    "category": "consumables",
+    "name": "Frag grenade",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeEMPLegendaryPlus",
+    "category": "consumables",
+    "name": "EMP grenade",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeFlashRegular",
+    "category": "consumables",
+    "name": "Flash grenade",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeReconRegular",
+    "category": "consumables",
+    "name": "Recon grenade",
+    "description": "Consumable or grenade record. Verify the item type and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.OverheatLvl3Program",
+    "category": "quickhacks",
+    "name": "Overheat Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.OverheatLvl4PlusPlusProgram",
+    "category": "quickhacks",
+    "name": "Overheat Lvl4PlusPlus",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.ContagionLvl3Program",
+    "category": "quickhacks",
+    "name": "Contagion Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.ContagionLvl4PlusPlusProgram",
+    "category": "quickhacks",
+    "name": "Contagion Lvl4PlusPlus",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SuicideLvl3Program",
+    "category": "quickhacks",
+    "name": "Suicide Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SuicideLvl4PlusPlusProgram",
+    "category": "quickhacks",
+    "name": "Suicide Lvl4PlusPlus",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SystemCollapseLvl3Program",
+    "category": "quickhacks",
+    "name": "System Collapse Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.SystemCollapseLvl4PlusPlusProgram",
+    "category": "quickhacks",
+    "name": "System Collapse Lvl4PlusPlus",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.EMPOverloadLvl3Program",
+    "category": "quickhacks",
+    "name": "Short Circuit candidate Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.DisableCyberwareLvl3Program",
+    "category": "quickhacks",
+    "name": "Cyberware Malfunction candidate Lvl3",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.MemoryWipeLvl4Program",
+    "category": "quickhacks",
+    "name": "Memory Wipe",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.BlindLvl4Program",
+    "category": "quickhacks",
+    "name": "Reboot Optics candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.WeaponMalfunctionLvl4Program",
+    "category": "quickhacks",
+    "name": "Weapon Glitch candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.LocomotionMalfunctionLvl4Program",
+    "category": "quickhacks",
+    "name": "Cripple Movement candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.BrainMeltLvl4Program",
+    "category": "quickhacks",
+    "name": "Synapse Burnout candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.MadnessLvl4Program",
+    "category": "quickhacks",
+    "name": "Cyberpsychosis candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.GrenadeExplodeLvl4Program",
+    "category": "quickhacks",
+    "name": "Detonate Grenade candidate",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.PingLvl4Program",
+    "category": "quickhacks",
+    "name": "Ping",
+    "description": "Quickhack item record. Verify tier and the linked action in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Invulnerable",
+    "category": "status_effects",
+    "name": "Invulnerable",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Crippled",
+    "category": "status_effects",
+    "name": "Crippled",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Overheat",
+    "category": "status_effects",
+    "name": "Overheat",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Drunk",
+    "category": "status_effects",
+    "name": "Drunk",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Cloaked",
+    "category": "status_effects",
+    "name": "Cloaked",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Berserk",
+    "category": "status_effects",
+    "name": "Berserk",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.CombatStim",
+    "category": "status_effects",
+    "name": "Combat stimulant",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "BaseStatusEffect.Unconscious",
+    "category": "status_effects",
+    "name": "Unconscious",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoCombat",
+    "category": "status_effects",
+    "name": "Combat restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoWeapons",
+    "category": "status_effects",
+    "name": "Weapon restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoMovement",
+    "category": "status_effects",
+    "name": "Movement restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoCameraControl",
+    "category": "status_effects",
+    "name": "Camera control restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoPhotoMode",
+    "category": "status_effects",
+    "name": "Photo Mode restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoScanning",
+    "category": "status_effects",
+    "name": "Scanning restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.InfiniteAmmo",
+    "category": "status_effects",
+    "name": "Infinite ammo",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.VehicleCombatBlockExit",
+    "category": "status_effects",
+    "name": "Vehicle combat exit restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.VehicleFPP",
+    "category": "status_effects",
+    "name": "Vehicle first-person restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.BlockAllMenu",
+    "category": "status_effects",
+    "name": "Menu restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoHealing",
+    "category": "status_effects",
+    "name": "Healing restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "GameplayRestriction.NoDriving",
+    "category": "status_effects",
+    "name": "Driving restriction",
+    "description": "Status effect record. Verify the intended target, duration and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
   }
 ]

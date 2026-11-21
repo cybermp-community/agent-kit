@@ -68,3 +68,69 @@ it('links a documented upstream result to the recorded revision', () => {
   expect(guide?.sourceUrl).toContain(`/blob/${guide?.sourceRevision}/`);
   expect(result.formattedText).toContain(guide!.sourceUrl);
 });
+
+it('routes a Lua event search to the language-specific reference', () => {
+  const result = searchDocs('mp.events.add', 1);
+  expect(result.results[0]?.slug).toContain('lua-events');
+  expect(result.formattedText).toContain('mp.events.add');
+  expect(result.formattedText).not.toContain('is from RAGEMP');
+});
+
+it('omits an unconnected example and avoids guessing between tied examples', async () => {
+  const { parseMarkdownSections } = await import('../scripts/build-index.js');
+  const { formatGuide } = await import('../src/engine/docs-engine.js');
+  const [, guide] = parseMarkdownSections([
+    '# Fixture', '## UI notes', 'A loading overlay needs a separate lifecycle.', '',
+    '```typescript', "mp.events.emitServer('ready');", '```', '',
+    '```typescript', "mp.events.emitCef('ready');", '```',
+  ].join('\n'), 'fixture', 'https://example.org/fixture', 'Fixture', '');
+  expect(formatGuide(guide, 'loading overlay')).not.toContain('```');
+  expect(formatGuide(guide, 'ready')).not.toContain('```');
+  expect(formatGuide(guide, 'mp.events.emitCef')).toContain("mp.events.emitCef('ready')");
+  expect(formatGuide(guide, 'mp.events.emitCef')).not.toContain("mp.events.emitServer('ready')");
+  expect(formatGuide({ ...guide, codeSnippets: [guide.codeSnippets[0]] }, 'mp.events.unknown')).not.toContain('```');
+});
+
+it('uses the selected example environment, checked version and prerequisites', async () => {
+  const { parseMarkdownSections } = await import('../scripts/build-index.js');
+  const { formatGuide } = await import('../src/engine/docs-engine.js');
+  const [, guide] = parseMarkdownSections([
+    '---', 'environment: mixed', '---', '# Fixture', '## Sending events',
+    'Client code runs after the resource starts.', '',
+    '```typescript env=client checked=@cybermp/client-types@2.7.1',
+    "mp.events.emitServer('status');", '```', '',
+    'Register the browser handler before reporting readiness.', '',
+    '```typescript env=browser checked=@cybermp/browser-types@2.0.1',
+    "mp.events.emit('ui:ready');", '```',
+  ].join('\n'), 'fixture', 'https://example.org/fixture', 'Fixture', '');
+  const answer = formatGuide(guide, 'ui:ready');
+  expect(answer).toContain('Example environment:** browser');
+  expect(answer).toContain('@cybermp/browser-types@2.0.1');
+  expect(answer).toContain('Register the browser handler before reporting readiness.');
+  expect(answer).not.toContain('Client code runs after the resource starts.');
+  expect(answer).not.toContain('@cybermp/client-types@2.7.1');
+  expect(answer).not.toContain('emitServer(');
+});
+
+it.each(['Working with Game Natives', 'use_game_natives', 'Lua game natives'])(
+  'returns native bridge setup and lifecycle guidance for "%s"',
+  (query) => {
+    const result = searchDocs(query, 1);
+    expect(result.results[0]?.slug).toBe('references/native-bridge');
+    expect(result.formattedText).toContain('use_game_natives');
+    expect(result.formattedText).toContain('mp.game');
+    expect(result.formattedText).toContain('Game.GetPlayer()');
+    expect(result.formattedText).toContain('puppet');
+    expect(result.formattedText).toContain('https://docs.cyber.mp/reference/client/working-with-game-natives/');
+  },
+);
+
+it.each([
+  ['resource.toml', '3-resource-manifest-resourcetoml', 'client_script'],
+  ['server.toml', '2-root-server-configuration-servertoml', 'resources/'],
+  ['core.files', 'core-file-delivery', 'cybermp_core/files/'],
+] as const)('routes %s to its configuration section', (query, anchor, expected) => {
+  const result = searchDocs(query, 1);
+  expect(result.results[0]?.slug).toBe(`references/resource-structure#${anchor}`);
+  expect(result.formattedText).toContain(expected);
+});

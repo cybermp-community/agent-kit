@@ -70,6 +70,12 @@ export interface NativeTypeIndex {
   types: TypeRecord[];
 }
 
+export interface GuideExampleContext {
+  environment?: 'client' | 'server' | 'browser' | 'tooling';
+  checkedAgainst?: string;
+  notes?: string;
+}
+
 export interface GuideRecord {
   title: string;
   guideTitle?: string;
@@ -79,6 +85,7 @@ export interface GuideRecord {
   url: string;
   codeSnippets: string[];
   codeLanguages?: string[];
+  exampleContexts?: GuideExampleContext[];
   paragraphs?: string[];
   aliases?: string[];
   priorityAliases?: string[];

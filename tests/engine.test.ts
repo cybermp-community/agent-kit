@@ -44,14 +44,15 @@ describe('Anti-Hallucination Guard', () => {
   });
 
   it('detects RAGEMP API calls and returns warnings', () => {
-    const mpAdd = checkForeignApi('mp.events.add');
-    expect(mpAdd).not.toBeNull();
-    expect(mpAdd).toContain('RAGEMP');
-
     const mpCallRemote = checkForeignApi('mp.events.callRemote');
     expect(mpCallRemote).not.toBeNull();
     expect(mpCallRemote).toContain('RAGEMP');
     expect(mpCallRemote).toContain('events.emitServer');
+  });
+
+  it('does not flag an event listener shared by CyberMP Lua and RAGEMP', () => {
+    expect(checkForeignApi('mp.events.add')).toBeNull();
+    expect(checkForeignApi('CyberMP Lua mp.events.add(name, fn)')).toBeNull();
   });
 
   it('detects SA-MP API calls and returns warnings', () => {
@@ -89,6 +90,7 @@ describe('RPC Flow Engine', () => {
     expect(clientToServer.title).toBe('Client to Server RPC');
     expect(clientToServer.senderCode).toContain('mp.events.emitServer');
     expect(clientToServer.receiverCode).toContain('mp.events.onClient');
+    expect(clientToServer.receiverCode).toContain('player.nickname');
   });
 
   it('generates exact paired RPC code between client and browser (CEF)', () => {
@@ -142,6 +144,15 @@ describe('MCP Argument Normalization', () => {
 });
 
 describe('Events Engine', () => {
+  it('treats browser on, off and emit as transport methods', () => {
+    for (const method of ['on', 'off', 'emit']) {
+      const { formattedText } = getEventInfo({ name: method, env: 'browser' });
+      expect(formattedText).toContain('CEF transport method');
+      expect(formattedText).toContain(`mp.events.${method}(\'hud:update\'`);
+      expect(formattedText).not.toContain(`mp.events.on(\'${method}\'`);
+    }
+  });
+
   it('retrieves exact match for player damage event', () => {
     const result = getEventInfo({ name: 'damage', env: 'server' });
     expect(result.exactMatch).toBeDefined();

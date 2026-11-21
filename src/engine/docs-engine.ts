@@ -36,11 +36,14 @@ const verificationLabels = {
   unreviewed: 'Community reference. Runtime and version applicability have not been independently verified.',
 };
 
-function excerpt(guide: GuideRecord, terms: string[]): string {
+function excerpt(guide: GuideRecord, terms: string[], exampleNotes?: string): string {
   const paragraphs = guide.paragraphs ?? [guide.plainText];
-  const score = (paragraph: string) => terms.filter((term) => paragraph.toLowerCase().includes(term)).length;
+  const score = (paragraph: string) => {
+    const words = new Set(identifiers(paragraph));
+    return terms.filter((term) => words.has(term)).length;
+  };
   const ranked = [...paragraphs].sort((left, right) => score(right) - score(left));
-  const matching = ranked[0];
+  const matching = ranked[0] && score(ranked[0]) > 0 ? ranked[0] : exampleNotes ?? ranked[0];
   const warning = paragraphs.find((paragraph) => /^(?:⚠️\s*)?(warning|limitation|caution|important)\b/i.test(paragraph));
   return [...new Set([matching, warning])].filter(Boolean).map((paragraph) => {
     const position = terms.reduce((first, term) => {
@@ -53,8 +56,40 @@ function excerpt(guide: GuideRecord, terms: string[]): string {
   }).join('\n\n');
 }
 
+function identifiers(text: string): string[] {
+  return text.toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+}
+
+function qualifiedIdentifiers(text: string): string[] {
+  return text.toLowerCase().match(/[\p{L}\p{N}_]+(?:[.:/\\-][\p{L}\p{N}_]+)+/gu) ?? [];
+}
+
+const queryConnectors = new Set(['a', 'an', 'and', 'for', 'from', 'how', 'in', 'of', 'or', 'the', 'to', 'use', 'using', 'with']);
+
+function selectExample(guide: GuideRecord, query: string, terms: string[]): number | undefined {
+  const keywords = [...new Set(terms)].filter((term) => !queryConnectors.has(term));
+  if (!keywords.length || !guide.codeSnippets.length) return;
+
+  const qualified = [...new Set(qualifiedIdentifiers(query))];
+  const matches = (parts: string[], words: Set<string>) => parts.filter((part) => words.has(part)).length;
+  const ranked = guide.codeSnippets.map((code, index) => {
+    const codeTerms = new Set(identifiers(code));
+    const qualifiedMatches = matches(qualified, new Set(qualifiedIdentifiers(code)));
+    const score = qualified.length && !qualifiedMatches
+      ? 0
+      : matches(keywords, codeTerms) + (keywords.length + 1) * qualifiedMatches;
+    return { index, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const [best, next] = ranked;
+  if (best.score > 0 && best.score !== next?.score) return best.index;
+  if (!next && guide.sectionTitle && matches(keywords, new Set(identifiers(guide.sectionTitle))) === keywords.length) {
+    return best.index;
+  }
+}
+
 export function formatGuide(guide: GuideRecord, query: string): string {
-  const terms = query.toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+  const terms = identifiers(query);
   const heading = guide.sectionTitle ? `${guide.title} -> ${guide.sectionTitle}` : guide.title;
   const source = guide.sourceKind === 'cybermp-docs' ? 'CyberMP Docs' : 'CyberMP Agent Kit';
   const lines = [
@@ -64,12 +99,20 @@ export function formatGuide(guide: GuideRecord, query: string): string {
   ];
   if (guide.sourceUrl) lines.push(`[Pinned source](${guide.sourceUrl})`);
   if (guide.description) lines.push(guide.description);
-  const relevant = excerpt(guide, terms);
+  const selected = selectExample(guide, query, terms);
+  const context = selected === undefined ? undefined : guide.exampleContexts?.[selected];
+  const relevant = excerpt(guide, terms, context?.notes);
   if (relevant && relevant !== guide.description) lines.push(relevant);
-  const bestExample = guide.codeSnippets.findIndex((code) => terms.some((term) => code.toLowerCase().includes(term)));
-  const selected = Math.max(0, bestExample);
-  const code = guide.codeSnippets[selected];
-  if (code) {
+  if (selected !== undefined) {
+    const code = guide.codeSnippets[selected];
+    const environment = context?.environment ?? (guide.environment === 'mixed' ? undefined : guide.environment);
+    const evidence = context?.checkedAgainst
+      ? `Type-checked against ${context.checkedAgainst}. Runtime behavior requires separate evidence.`
+      : 'See section evidence above.';
+    lines.push(`**Example environment:** ${environment ?? 'unspecified'} · **Example evidence:** ${evidence}`);
+    if (context?.notes && !relevant.includes(context.notes) && context.notes !== guide.description) {
+      lines.push(`**Example context:** ${context.notes}`);
+    }
     if (code.length <= 850) {
       const fence = code.includes('```') ? '~~~~' : '```';
       lines.push(`${fence}${guide.codeLanguages?.[selected] ?? ''}\n${code}\n${fence}`);
