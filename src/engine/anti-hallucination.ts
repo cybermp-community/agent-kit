@@ -89,10 +89,7 @@ export const FOREIGN_MAP: Record<string, ForeignApiInfo> = {
   },
 
   // RAGEMP
-  'mp.events.add': {
-    platform: 'RAGEMP',
-    cybermpAlternative: 'mp.events.on(name, callback)',
-  },
+  // mp.events.add is also a documented CyberMP Lua API.
   'mp.events.callremote': {
     platform: 'RAGEMP',
     cybermpAlternative: 'mp.events.emitServer(name, ...args)',

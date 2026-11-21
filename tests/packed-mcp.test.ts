@@ -100,6 +100,39 @@ it('serves the installed package with the locked production dependencies', async
         expect(answer, query).toContain('CyberMP archive mod compatibility');
         expect(answer, query).toContain('file delivery, engine loading, local behavior and multiplayer replication');
       }
+      const luaEvents = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'mp.events.add', limit: 1 },
+      });
+      const luaText = (luaEvents.content as Array<{ text: string }>)[0].text;
+      expect(luaText).toContain('CyberMP Lua events and runtime');
+      expect(luaText).toContain('mp.events.on for local events in CyberMP JavaScript and TypeScript');
+      expect(luaText).not.toContain('is from RAGEMP');
+      for (const [query, heading, detail] of [
+        ['resource.toml', 'Resource Manifest', 'client_script'],
+        ['core.files', 'Core file delivery', 'cybermp_core/files/'],
+      ]) {
+        const response = await client.callTool({
+          name: 'cybermp_search_docs', arguments: { query, limit: 1 },
+        });
+        const answer = (response.content as Array<{ text: string }>)[0].text;
+        expect(answer, query).toContain(heading);
+        expect(answer, query).toContain(detail);
+      }
+      const referenceId = 'Vehicle.v_sport2_porsche_911turbo_player';
+      const vehicle = await client.callTool({
+        name: 'cybermp_lookup_tweakdb', arguments: { query: referenceId, category: 'vehicles', limit: 1 },
+      });
+      const vehicleText = (vehicle.content as Array<{ text: string }>)[0].text;
+      expect(vehicleText).toContain(referenceId);
+      expect(vehicleText).toContain('Exact record name in WolvenKit index');
+      const nativeBridge = await client.callTool({
+        name: 'cybermp_search_docs', arguments: { query: 'Working with Game Natives', limit: 1 },
+      });
+      const nativeBridgeText = (nativeBridge.content as Array<{ text: string }>)[0].text;
+      expect(nativeBridgeText).toContain('CyberMP native bridge');
+      expect(nativeBridgeText).toContain('use_game_natives = true');
+      expect(nativeBridgeText).toContain('Game.GetPlayer()');
+      expect(nativeBridgeText).toContain('https://docs.cyber.mp/reference/client/working-with-game-natives/');
       const cefReadiness = await client.callTool({
         name: 'cybermp_search_docs', arguments: { query: 'ui:ready' },
       });

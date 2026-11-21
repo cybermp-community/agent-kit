@@ -130,6 +130,16 @@
     }
   },
   {
+    "id": "Vehicle.v_standard3_militech_hellhound_player",
+    "category": "vehicles",
+    "name": "Militech Hellhound",
+    "description": "Vehicle record candidate. Verify model, DLC and availability in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
     "id": "Vehicle.v_utility4_militech_hellhound_player",
     "category": "vehicles",
     "name": "Militech Hellhound",
@@ -155,6 +165,16 @@
     "category": "vehicles",
     "name": "Thorton Colby \"Little Mule\"",
     "description": "Durable workhorse pickup truck commonly modified by Nomads for cargo hauling and rough terrain.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Vehicle.v_sport2_porsche_911turbo_player",
+    "category": "vehicles",
+    "name": "Porsche 911 Turbo (930)",
+    "description": "Vehicle record candidate. Verify model, DLC and availability in the target game build.",
     "evidence": {
       "status": "record-name-index",
       "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
@@ -302,6 +322,16 @@
     }
   },
   {
+    "id": "Items.DisableCyberwareLvl4Program",
+    "category": "quickhacks",
+    "name": "Cyberware Malfunction",
+    "description": "Quickhack item candidate. Verify the linked action and tier in the target game build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
     "id": "Items.CyberwareMalfunctionLvl4Program",
     "category": "quickhacks",
     "name": "Cyberware Malfunction",
@@ -317,6 +347,16 @@
     "category": "quickhacks",
     "name": "System Collapse",
     "description": "Quickhack item candidate for System Collapse. Check the tier, linked action and behavior in the target build.",
+    "evidence": {
+      "status": "record-name-index",
+      "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"
+    }
+  },
+  {
+    "id": "Items.EMPOverloadLvl4Program",
+    "category": "quickhacks",
+    "name": "Short Circuit",
+    "description": "Quickhack item candidate. Verify the linked action and tier in the target game build.",
     "evidence": {
       "status": "record-name-index",
       "sourceUrl": "https://github.com/WolvenKit/WolvenKit/blob/c6065b22f70cb0a53913f5440d112ab1b7dd00a4/WolvenKit.Common/Resources/tweakdbstr.kark"

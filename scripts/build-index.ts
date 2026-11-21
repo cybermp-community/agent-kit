@@ -731,6 +731,7 @@ export function parseMarkdownSections(
     for (let suffix = 1; anchors.has(anchor); suffix++) anchor = `${baseAnchor}-${suffix}`;
     anchors.add(anchor);
     const suffix = sectionTitle ? `#${anchor}` : '';
+    const priorityAliases = sectionTitle ? metadata.sectionPriorityAliases?.[anchor] : metadata.priorityAliases;
 
     return {
       title: docTitle,
@@ -738,8 +739,8 @@ export function parseMarkdownSections(
       ...(sectionTitle ? { sectionTitle } : {
         description: docDescription,
         ...(Array.isArray(metadata.aliases) ? { aliases: metadata.aliases } : {}),
-        ...(Array.isArray(metadata.priorityAliases) ? { priorityAliases: metadata.priorityAliases } : {}),
       }),
+      ...(Array.isArray(priorityAliases) ? { priorityAliases } : {}),
       slug: baseSlug + suffix,
       url: baseUrl + suffix,
       codeSnippets: blocks.map((block) => block.code),

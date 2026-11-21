@@ -64,18 +64,22 @@ describe('TweakDB Lookup Engine', () => {
     expect(workspot.formattedText).not.toContain('ID found in source');
   });
 
-  it('keeps a suspect ID searchable and labels the alternative as a candidate', () => {
-    const result = lookupTweakDb('v_sport2_porsche_911_turbo_player');
-    expect(result.results[0]?.id).toBe('Vehicle.v_sport2_porsche_911_turbo_player');
-    expect(result.formattedText).toContain('ID needs recheck');
-    expect(result.formattedText).toContain('Candidate: `Vehicle.v_sport2_porsche_911turbo_player`');
-  });
+  it.each([
+    ['vehicles', 'Vehicle.v_sport2_porsche_911_turbo_player', 'Vehicle.v_sport2_porsche_911turbo_player'],
+    ['vehicles', 'Vehicle.v_utility4_militech_hellhound_player', 'Vehicle.v_standard3_militech_hellhound_player'],
+    ['quickhacks', 'Items.CyberwareMalfunctionLvl4Program', 'Items.DisableCyberwareLvl4Program'],
+    ['quickhacks', 'Items.ShortCircuitLvl4Program', 'Items.EMPOverloadLvl4Program'],
+  ])('resolves the indexed alternative in %s for %s', (category, oldId, indexedId) => {
+    const oldResult = lookupTweakDb(oldId, category, 1);
+    expect(oldResult.results[0]?.id).toBe(oldId);
+    expect(oldResult.formattedText).toContain('ID needs recheck');
+    expect(oldResult.formattedText).toContain(`Candidate: \`${indexedId}\``);
+    expect(oldResult.results[0]?.evidence).toMatchObject({ status: 'needs-recheck', candidateId: indexedId });
 
-  it('finds a disputed quickhack by its candidate record name', () => {
-    const result = lookupTweakDb('Items.EMPOverloadLvl4Program', 'quickhacks');
-    expect(result.results[0]?.id).toBe('Items.ShortCircuitLvl4Program');
-    expect(result.formattedText).toContain('ID needs recheck');
-    expect(result.formattedText).toContain('Candidate: `Items.EMPOverloadLvl4Program`');
+    const indexedResult = lookupTweakDb(indexedId, category, 1);
+    expect(indexedResult.results[0]?.id).toBe(indexedId);
+    expect(indexedResult.formattedText).toContain('Exact record name in WolvenKit index');
+    expect(indexedResult.formattedText).toContain('Runtime behavior is unverified');
   });
 
   it.each([

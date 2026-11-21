@@ -26,10 +26,12 @@ All calls to CyberMP native methods and systems run through the global `mp.*` na
 DO NOT hallucinate APIs from FiveM, alt:V, RAGEMP, or SA-MP:
 - Prohibited: `RegisterNetEvent`, `TriggerClientEvent`, `TriggerServerEvent`, `AddEventHandler`, `GetPlayerPed`, `SetEntityCoords`, `SetPedIntoVehicle`, `SetEntityHealth`.
 - Prohibited: `alt.onClient`, `alt.emitServer`, `alt.Player.local`.
-- Prohibited: `mp.events.add`, `mp.events.callRemote`, `mp.players.local`.
+- Prohibited: `mp.events.callRemote`, `mp.players.local`.
+
+For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See `skills/cybermp-dev/references/lua-events.md`.
 
 ### REDengine Game Natives Guidance
-When `use_game_natives = true` is configured in `resource.toml`, client scripts gain direct access to `mp.game.*` for REDengine native classes, systems, and facilities.
+When `use_game_natives = true` is configured in `resource.toml`, client scripts can access REDengine through `mp.game` in JavaScript and TypeScript or `Game` in Lua.
 
 DO NOT hallucinate FiveM or GTA native methods for player, vehicle, door, prop, or animation manipulation:
 

@@ -13,7 +13,9 @@
 | Reference | Best use | Status and next question |
 | --- | --- | --- |
 | Events and RPC flows | Select the correct listener or sender for each runtime | Check the actual payload contract, especially project-defined events. |
-| Resource structure | Locate entry points, files and manifest settings | Check config types against the target build. The archive pilot gives the asset validation path. |
+| [Lua events](../skills/cybermp-dev/references/lua-events.md) | Select Lua event methods for server, client and CEF routes | Cross-checked against the Lua API reference. The generated TypeScript event index and RPC examples describe the JavaScript bindings. |
+| [Resource structure](../skills/cybermp-dev/references/resource-structure.md) | Distinguish server startup, core file delivery and the resource manifest | Exact configuration queries lead to the corresponding sections. Check runtime behavior against the target build. |
+| [Native bridge setup](../skills/cybermp-dev/references/native-bridge.md) | Enable native calls and choose lifecycle hooks and value conversions for JavaScript, TypeScript or Lua | Cross-checked against public documentation and the locked JavaScript declarations. The Lua probe needs a target-client run. |
 | Game natives and world interaction | Locate engine systems and implement a point prompt | Point versus area is clarified. Validate the remaining recipes and prerequisites before promotion. |
 | Object spawning and streaming | Choose local or synchronized object handling | Verify candidate depot paths and required hash kinds on the target build. |
 | Server mechanics | Entity lifecycle, data scope and polygon membership | Confirm server ownership and replication in a two-client check when used. |

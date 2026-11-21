@@ -44,14 +44,15 @@ describe('Anti-Hallucination Guard', () => {
   });
 
   it('detects RAGEMP API calls and returns warnings', () => {
-    const mpAdd = checkForeignApi('mp.events.add');
-    expect(mpAdd).not.toBeNull();
-    expect(mpAdd).toContain('RAGEMP');
-
     const mpCallRemote = checkForeignApi('mp.events.callRemote');
     expect(mpCallRemote).not.toBeNull();
     expect(mpCallRemote).toContain('RAGEMP');
     expect(mpCallRemote).toContain('events.emitServer');
+  });
+
+  it('does not flag an event listener shared by CyberMP Lua and RAGEMP', () => {
+    expect(checkForeignApi('mp.events.add')).toBeNull();
+    expect(checkForeignApi('CyberMP Lua mp.events.add(name, fn)')).toBeNull();
   });
 
   it('detects SA-MP API calls and returns warnings', () => {

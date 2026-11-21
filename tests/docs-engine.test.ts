@@ -69,6 +69,13 @@ it('links a documented upstream result to the recorded revision', () => {
   expect(result.formattedText).toContain(guide!.sourceUrl);
 });
 
+it('routes a Lua event search to the language-specific reference', () => {
+  const result = searchDocs('mp.events.add', 1);
+  expect(result.results[0]?.slug).toContain('lua-events');
+  expect(result.formattedText).toContain('mp.events.add');
+  expect(result.formattedText).not.toContain('is from RAGEMP');
+});
+
 it('omits an unconnected example and avoids guessing between tied examples', async () => {
   const { parseMarkdownSections } = await import('../scripts/build-index.js');
   const { formatGuide } = await import('../src/engine/docs-engine.js');
@@ -103,4 +110,27 @@ it('uses the selected example environment, checked version and prerequisites', a
   expect(answer).not.toContain('Client code runs after the resource starts.');
   expect(answer).not.toContain('@cybermp/client-types@2.7.1');
   expect(answer).not.toContain('emitServer(');
+});
+
+it.each(['Working with Game Natives', 'use_game_natives', 'Lua game natives'])(
+  'returns native bridge setup and lifecycle guidance for "%s"',
+  (query) => {
+    const result = searchDocs(query, 1);
+    expect(result.results[0]?.slug).toBe('references/native-bridge');
+    expect(result.formattedText).toContain('use_game_natives');
+    expect(result.formattedText).toContain('mp.game');
+    expect(result.formattedText).toContain('Game.GetPlayer()');
+    expect(result.formattedText).toContain('puppet');
+    expect(result.formattedText).toContain('https://docs.cyber.mp/reference/client/working-with-game-natives/');
+  },
+);
+
+it.each([
+  ['resource.toml', '3-resource-manifest-resourcetoml', 'client_script'],
+  ['server.toml', '2-root-server-configuration-servertoml', 'resources/'],
+  ['core.files', 'core-file-delivery', 'cybermp_core/files/'],
+] as const)('routes %s to its configuration section', (query, anchor, expected) => {
+  const result = searchDocs(query, 1);
+  expect(result.results[0]?.slug).toBe(`references/resource-structure#${anchor}`);
+  expect(result.formattedText).toContain(expected);
 });

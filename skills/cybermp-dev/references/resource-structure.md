@@ -1,3 +1,10 @@
+---
+sectionPriorityAliases:
+  2-root-server-configuration-servertoml: [server.toml, server configuration]
+  core-file-delivery: [core.files]
+  3-resource-manifest-resourcetoml: [resource.toml, resource manifest]
+---
+
 # CyberMP Server & Resource Structure Reference
 
 This guide details the official server architecture, resource layout, and configuration files (`server.toml` and `resource.toml`) for CyberMP servers.
@@ -31,15 +38,16 @@ cybermp-server/
 
 ## 2. Root Server Configuration: `server.toml`
 
-The `server.toml` file resides in the root directory of the CyberMP server. It defines networking, active resources, core archives, and gameplay overrides.
+Place `server.toml` in the CyberMP server root. Add each resource folder name from `resources/` to the top-level `resources` array to start it with the server. Use `connection_host_addr` for the endpoint clients should connect to. The example uses localhost for a local server. [Server configuration](https://docs.cyber.mp/reference/server/configuration/)
 
 ```toml
 #:schema https://schemas.cyber.mp/server/schema.json
 
 tcp_host = "0.0.0.0:2077"
 udp_host = "0.0.0.0:2077"
+connection_host_addr = "127.0.0.1:2077"
 
-max_players = 2500
+max_players = 32
 disable_voice = false
 ep2_dlc_enabled = false
 cef_debug = false
@@ -78,11 +86,13 @@ disable_no_combat = true
 
 ---
 
-Keep the `[core]` table for the CyberMP runtime configuration. Populate `core.files` only with files supplied by the installed `cybermp_core` that your configuration needs. [Server configuration](https://docs.cyber.mp/reference/server/configuration/#core-gameplay-runtime-settings)
+## Core file delivery
+
+Keep `[core]` in `server.toml` for core runtime settings. The optional `core.files` list selects files from `cybermp_core/files/` for delivery to clients. Declare assets from your own resource in the `file` field of its `resource.toml`. [Server configuration](https://docs.cyber.mp/reference/server/configuration/#core-gameplay-runtime-settings)
 
 ## 3. Resource Manifest: `resource.toml`
 
-Every resource inside `resources/<resource_name>/` must have a **`resource.toml`** file. This is the only manifest format supported by CyberMP.
+Place `resource.toml` in each resource folder. Set `client_script` and `server_script` for the runtimes the resource uses. Point each entry to a JavaScript or Lua file. Compile TypeScript to JavaScript before loading it. Use `file` for client assets, including local CEF files referenced by `cef_url`. [Creating resources](https://docs.cyber.mp/guides/resources/creating-resource/)
 
 ```toml
 #:schema https://schemas.cyber.mp/resource/schema.json
@@ -122,11 +132,11 @@ Use explicit paths or a directory-local wildcard for client assets. Include nest
 
 | Field | Type | Description |
 |---|---|---|
-| `server_script` | `string[]` or `string` | Relative path(s) to server-side script(s) executed in Node.js. |
-| `client_script` | `string[]` or `string` | Relative path(s) to client-side script(s) executed inside the game V8 client. |
+| `server_script` | `string[]` or `string` | Relative paths to JavaScript or Lua server scripts. |
+| `client_script` | `string[]` or `string` | Relative paths to JavaScript or Lua game client scripts. |
 | `file` | `string[]` or `string` | Glob patterns or paths for files served to clients (CEF UI HTML/CSS/JS, textures, fonts). |
 | `cef_url` | `string` | Path to the local HTML file loaded in the CEF browser (e.g. `"./browser/index.html"`). |
-| `use_game_natives`| `boolean` | Set to `true` to enable access to native game functions (`mp.game.*`) on the client. |
+| `use_game_natives`| `boolean` | Set to `true` to enable the [native bridge](native-bridge.md) on the client. |
 | `hotreload` | `boolean` | Set to `true` to reload scripts live without restarting the server process. |
 | `author` / `version` | `string` | Metadata identifying author and semantic version. |
 

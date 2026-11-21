@@ -46,7 +46,7 @@ CyberMP isolates execution across three completely separate JavaScript runtimes.
 
 ## 2. Strict Negative Constraints & Anti-Hallucination Rules
 
-Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP, SA-MP), LLMs often hallucinate incorrect APIs. You must **NEVER** use foreign multiplayer platform APIs. All native methods in CyberMP across Server, Client, and CEF Browser are invoked via the global `mp.*` namespace (`mp.events.*`, `mp.commands.*`, `mp.players.*`, `mp.vehicles.*`, `mp.game.*`, `mp.cef.*`, `mp.discord.*`, `mp.localStorage.*`).
+Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP, SA-MP), LLMs often hallucinate incorrect APIs. You must **NEVER** use foreign multiplayer platform APIs. CyberMP's JavaScript API uses the global `mp.*` namespace (`mp.events.*`, `mp.commands.*`, `mp.players.*`, `mp.vehicles.*`, `mp.game.*`, `mp.cef.*`, `mp.discord.*`, `mp.localStorage.*`).
 
 ### ⛔ Prohibited Foreign Functions & Correct CyberMP Equivalents
 
@@ -64,11 +64,12 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `alt.emitClient(p, 'ev', ...args)` | alt:V | `mp.events.emitClient(player, 'ev', ...args)` |
 | `alt.emitServer('ev', ...args)` | alt:V | `mp.events.emitServer('ev', ...args)` |
 | `alt.Player.local` | alt:V | Client-side player entity streaming / reference |
-| `mp.events.add('ev', cb)` | RAGEMP | `mp.events.on('ev', cb)` |
 | `mp.events.callRemote('ev', ...args)` | RAGEMP | `mp.events.emitServer('ev', ...args)` |
 | `mp.events.callClient(p, 'ev', ...args)`| RAGEMP | `mp.events.emitClient(player, 'ev', ...args)` |
 | `mp.players.local` | RAGEMP | Local client player context |
 | `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `mp.events.on('playerConnected', (id, tempId) => ...)` / `player.position` |
+
+For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See `skills/cybermp-dev/references/lua-events.md`.
 
 ---
 
@@ -254,6 +255,7 @@ If the MCP server is unavailable or running in a skill-only mode:
    - [Object Spawning & World Streaming](references/object-spawning-and-streaming.md): Client-local props (`mp.local.spawnObject`) vs server props (`mp.objects.create`), curated `.ent` catalog, and interior occlusion.
    - [Animations & Workspots](references/animations-and-workspots.md): Contextual full-body animations via `gameWorkspotGameSystem` (`PlayInDeviceSimple`, `SendFastExitSignal`, `SendSlowExitSignal`).
    - [Vehicles Tuning, Aesthetics & Combat 2.0](references/vehicles-tuning-combat.md): Apertures via `vehicleControllerPS` (hood, trunk, windows), ignition (`TurnEngineOn`), CrystalCoat shaders, and drive-by shooting.
+   - [Native Bridge Setup](references/native-bridge.md) for client manifest settings, lifecycle and value conversions in JavaScript, TypeScript and Lua.
    - [Game Engine & World Natives](references/game-natives.md): REDengine initialization, world time/weather systems, loading screen suppression, 3D to 2D projections.
    - [Vehicles & Physics Reference](references/vehicles-physics.md): Low-level mounting requests, cosmetic/physical deformation repair, nitro impulses, and speedometer curves.
    - [Player Mechanics & Inventory Reference](references/player-mechanics.md): Safe coordinate teleportation, health/god mode, status effect gameplay restrictions, item spawning, and customization mirrors.
