@@ -25,6 +25,8 @@ An offline-first Model Context Protocol (MCP) server, universal agent skills, an
 
 ## Quick Start
 
+The package also ships the [CyberMP session review skill](skills/cybermp-session-review/SKILL.md). For Codex, copy the entire `skills/cybermp-session-review` directory into your personal or project `.agents/skills` directory. Invoke `$cybermp-session-review` in a chat you want to review.
+
 Initialize CyberMP rules and MCP configuration in your project with a single command:
 
 ```bash

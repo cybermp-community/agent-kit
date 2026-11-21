@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 — 2026-11-21
+
+- Ship `cybermp-session-review`, a standalone skill for reviewing Agent Kit's contribution to a selected development chat. It traces the sources of working changes, records verification evidence, and proposes a prioritized backlog.
+
 ## 1.2.0 — 2026-11-21
 
 - Align offline event references and RPC examples with the indexed CyberMP declarations; improve resource configuration, Lua and native bridge search.
