@@ -1,0 +1,108 @@
+{
+  "source": "cybermp-mcp-minimap",
+  "snapshot": "2026-11-22",
+  "revision": null,
+  "license": "MIT",
+  "scope": "Game UI, geometry, projection and diagnostics only. MCP bridge excluded.",
+  "reportedServer": "v4.0.5-beta.2 Linux",
+  "reportedClientBuild": null,
+  "reportedGameBuild": null,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "c0053da25a6c667d98d11652e09db2facd1651f510e39bf1aea5fc7f7e8dd41a"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "089e4541846e4e4899ffac1ea5fb8ebd0753ca011e6ef69b68337daa9fa7e8af"
+    },
+    {
+      "path": "resources/minimap/README.md",
+      "sha256": "a5e62116fbd9dfe06c32c23636488771618a2d5cb554718cb6b6e20c377944f0"
+    },
+    {
+      "path": "resources/minimap/package.json",
+      "sha256": "6f708f298d7dd28b87d05151270b1102deb5ee7e78c62e71c07e232d43f0d2cd"
+    },
+    {
+      "path": "resources/minimap/src/client/game.ts",
+      "sha256": "bf962325cc76f5eb23a696dbd0e610e3cf3ba3d6314179072b41270cdeae01b7"
+    },
+    {
+      "path": "resources/minimap/src/client/engine.ts",
+      "sha256": "9ba6c0222d239bc46e953e4df89e17a37e6698dab1e72dfefd7b0bec9b7d609f"
+    },
+    {
+      "path": "resources/minimap/src/client/layout.ts",
+      "sha256": "12d012bad6a52bf8040423b2e0cb63f81a63befa33584e86e555147fdbc04efd"
+    },
+    {
+      "path": "resources/minimap/src/client/parts.ts",
+      "sha256": "fb515c9d6c369ff51dda1790e3bc887a62aaf6965be74e191c73d0da75908342"
+    },
+    {
+      "path": "resources/minimap/src/client/recovery.ts",
+      "sha256": "08967a28d6cb4128b6c83b31622b0617474f6b8443e97642e7763379449d4ede"
+    },
+    {
+      "path": "resources/minimap/src/client/record.ts",
+      "sha256": "dfdc092f624bdf7db90fdbbe64e605e86ec2b18d7683b966097143a55eaad36d"
+    },
+    {
+      "path": "resources/minimap/src/client/idle.ts",
+      "sha256": "d3d3b376e0b989a32af2604f4030ab734e2fc577668f7be52050630528cb7e35"
+    },
+    {
+      "path": "resources/minimap/src/client/index.ts",
+      "sha256": "620a420d8c665fded453a5bb32e2279c8d9e017fa60a30bc5e1e2c899b4ee6aa"
+    },
+    {
+      "path": "resources/minimap/src/server/restarts.ts",
+      "sha256": "234359b50dd6962c129a97ebfe9e5f22bd5af3f7c04d9ddc6bb7e7e18749f937"
+    },
+    {
+      "path": "resources/minimap/test/engine.test.ts",
+      "sha256": "779604ffa73755ff0251180c57944dccb8cc02601dc04b26941bd302c7c8467c"
+    },
+    {
+      "path": "resources/minimap/test/fake.ts",
+      "sha256": "81f045df201798cf294a5261f8ec4dc5b47c60424876a9ffdee32c1ef2052e44"
+    },
+    {
+      "path": "resources/minimap/test/layout.test.ts",
+      "sha256": "801e2111e9f1b15c2d38fc972ef9d353b1b9ae86d59d502272caacdea46216a6"
+    },
+    {
+      "path": "resources/minimap/test/parts.test.ts",
+      "sha256": "2b33df471ff58dfd9cacbb4dec8790f1b6124bc75c41f8a99fb71ebd82f28a30"
+    },
+    {
+      "path": "resources/minimap/test/protocol.test.ts",
+      "sha256": "2d0ae5227c725dffd619af1a1e76678dc96194d619067ef89ea383a07b6f48a8"
+    },
+    {
+      "path": "resources/minimap/test/recovery.test.ts",
+      "sha256": "caaa2ff50b8f8a5c29963c464e835e062153e34b5768f13ebeede327c660369d"
+    },
+    {
+      "path": "resources/minimap/test/restarts.test.ts",
+      "sha256": "f9b9dc1b714a474b77c25bfe25ba8f4be0652bbf50a15b43649966fbb7f535fc"
+    },
+    {
+      "path": "resources/minimap/test/store.test.ts",
+      "sha256": "abec8a172023ad3d3137ece078ef09f38a836c759c6dd37b3ef28a002d256a36"
+    },
+    {
+      "path": "resources/minimap/test/streaming.test.ts",
+      "sha256": "57c81c882aeb87c2d09762653f081308b0bc8a1a32bb35cbd5a952171f843494"
+    },
+    {
+      "path": "resources/minimap/src/shared/protocol.ts",
+      "sha256": "64a2b27e4f8375f05c6b8023b267ad618510edbd29ef8b455c8ea6fbde6a7ff3"
+    },
+    {
+      "path": "resources/minimap/src/server/store.ts",
+      "sha256": "f5b71310820ced0bcc59e15da2f6debc46900bd657972309644c69ae6c9e33de"
+    }
+  ]
+}

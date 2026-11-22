@@ -251,7 +251,9 @@ mp.commands.add('teleport', (player, args) => {
 
 If the MCP server is unavailable or running in a skill-only mode:
 1. **Consult Local References in `references/`**:
+   - [INK Widget Lifecycle, Layout & Diagnostics](references/ink-widgets.md): General native UI attachment, canvas composition, tint, pooling and delayed readback; applicable beyond the minimap.
    - [INK HUD and Minimap](references/ui-ink-and-minimap.md)
+   - [World Regions on the Native Minimap](references/recipes/minimap-projection.md): Measured projection, zoom/camera timing and streaming, with source-specific evidence limits.
    - [Archive Prop Workflow](references/recipes/archive-prop.md)
    - [Archive Mod Compatibility](references/archive-mod-compatibility.md): Identify loader dependencies and verify delivery, engine loading, local effects and replication.
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.

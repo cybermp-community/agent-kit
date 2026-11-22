@@ -13,6 +13,8 @@ priorityAliases: [minimap, zone, polygon, AddBlipForArea, AddBlipForCoord, SetTi
 - **Custom world map UI**: a CEF map can draw changing territories in SVG or Canvas. This is a separate UI. The available sources do not establish a native runtime API for drawing arbitrary regions on the game's world map.
 - **Server geometry**: evaluate whether a world-space point is inside a polygon on the server. Use that result for rules such as a spawn zone or territory capture. This computation does not draw anything.
 
+For widget creation, attach order, canvas composition, color, pooling and delayed readback, use [INK widgets](ink-widgets.md). These are general native UI techniques. The supplied minimap resource adds a separate [world-region projection case study](recipes/minimap-projection.md), with author-reported game behavior and fake-game tests distinguished.
+
 See the [minimap diagnostic](recipes/minimap-zones.md), [world interaction marker](recipes/world-interaction.md), and [server geometry](server-mechanics.md#4-3d-zones--polygon-collision).
 
 ## Getting the HUD controller
@@ -27,7 +29,7 @@ Sources. [CyberMP observers](https://docs.cyber.mp/guides/client/observes/) · [
 
 - **`inkCircleWidget`** exposes `SetSegmentsNumber`. The diagnostic's four segments and 45° rotation produced a visible square in the tested root container. `SetSize(Vector2)` read back as `32x32` on that stand; the two-number overload read back as zero. Its size is in widget coordinates.
 - **`inkShapeWidget`** exposes resource-related fields in the declarations. Start from a known shape asset if using this path. The postmortem records an invisible instance in its resource-free attempt.
-- **`inkRectangleWidget`** appeared dark in the postmortem. The original experiment changed several color and style paths. It did not isolate a default material or shader.
+- **`inkRectangleWidget`** appeared dark in the earlier postmortem, which did not isolate a material or shader cause. The newly supplied resource reports visible rectangles using normalized HDR tint and canvas composition. These are different experiments; neither establishes universal compatibility. See [general color and primitive guidance](ink-widgets.md#color-and-geometric-primitives).
 - **`inkWidget.SetTintColor`** declares overloads for `Color`, `HDRColor`, and four `number` arguments. `Color` uses byte channels; the diagnostic now passes `HDRColor` with normalized yellow channels `(1, 215/255, 0, 1)`. This read back correctly and produced a visible yellow square on the tested stand; the earlier `Color` argument produced invalid read-back values and a dark square in root. The underlying overload-resolution cause is not established. The declaration of four numbers does not specify conversion or range; check that overload separately. See the diagnostic for the runtime evidence and version limits.
 
 A widget attached to a HUD container needs a projection if it must stay at a target world position while the player moves. Validate the coordinate origin, axis direction, scale, rotation and clipping across changes in HUD zoom, movement on foot, and a vehicle. Use the native client for local updates when the requirement forbids sending coordinates to CEF each frame. A screen-centered figure does not demonstrate projection.

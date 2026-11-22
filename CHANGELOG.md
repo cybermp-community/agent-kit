@@ -2,6 +2,8 @@
 
 ## 1.3.1 — 2026-11-22
 
+- Extract general INK widget lifecycle, canvas composition, pooling and readback guidance from the supplied MIT minimap resource; keep projection in a separate recipe and preserve source/evidence limits.
+
 - Remove server position assignment and Vector3 constructor advice; route authorized teleport requests to client handling.
 - Add searchable spawn diagnostics for competing resources, asynchronous readiness, health initialization, match state and lifecycle verification.
 - Clarify maximum-health initialization and prevention of modifier stacking on repeated respawn.

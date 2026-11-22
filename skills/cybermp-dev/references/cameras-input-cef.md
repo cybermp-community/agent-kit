@@ -454,6 +454,8 @@ In addition to HTML-based CEF overlays, REDengine provides an ultra-low-latency 
 
 ### Creating and Reparenting Ink Widgets
 
+See [INK widgets](ink-widgets.md) for general attach/transform order, canvas composition, pooling, delayed readback and ownership. The label fragment below is a separate HUD use case. Its `destroyEntityLabel` only hides the widget for potential reuse; final disposal must detach the owned widget while the parent remains valid and stop its update work.
+
 ```typescript
 import type { entEntity, inkTextWidget, Vector3 } from '@cybermp/client-types/game';
 
@@ -524,7 +526,7 @@ export function updateLabelPosition(
 }
 
 /**
- * Hides and cleans up an ink text widget.
+ * Hides an ink text widget without detaching it (not final disposal).
  */
 export function destroyEntityLabel(label: InGameLabel): void {
   label.widget.SetVisible(false);

@@ -23,3 +23,5 @@ Clone or copy the [example directory](../../examples/minimap-diagnostic/) into t
 4. For a world-aligned zone, add and verify projection separately. Set a target with a known offset, then change the player's location, heading and minimap zoom. Repeat on foot and in a vehicle. Record clipping behavior and verify that the same world target remains under the figure. This example supplies no projection.
 
 See [INK HUD and minimap](../ui-ink-and-minimap.md) for the decision between a HUD shape, point marker, CEF map and server geometry.
+
+For reusable widget handling beyond this probe, see [INK widgets](../ink-widgets.md). For the separately supplied world-coordinate implementation, see [World regions on the native minimap](minimap-projection.md). Its projection and canvas hierarchy do not change what this smaller diagnostic has actually verified.
