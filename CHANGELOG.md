@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 — 2026-11-22
+
+- Remove server position assignment and Vector3 constructor advice; route authorized teleport requests to client handling.
+- Add searchable spawn diagnostics for competing resources, asynchronous readiness, health initialization, match state and lifecycle verification.
+- Clarify maximum-health initialization and prevention of modifier stacking on repeated respawn.
+
 ## 1.3.0 — 2026-11-21
 
 - Ship `cybermp-session-review`, a standalone skill for reviewing Agent Kit's contribution to a selected development chat. It traces the sources of working changes, records verification evidence, and proposes a prioritized backlog.

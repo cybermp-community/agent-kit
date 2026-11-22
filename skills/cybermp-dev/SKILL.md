@@ -57,7 +57,7 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `TriggerClientEvent('ev', id, ...args)` | FiveM | `mp.events.emitClient(player, 'ev', ...args)` (Server) |
 | `AddEventHandler('ev', cb)` | FiveM | `mp.events.on('ev', cb)` |
 | `GetPlayerPed(-1)` | FiveM | `player` instance / local player context |
-| `SetEntityCoords(ped, x, y, z)` | FiveM | `player.position = new Vector3(x, y, z)` (Server) or `GetTeleportationFacility().Teleport(...)` (Client) |
+| `SetEntityCoords(ped, x, y, z)` | FiveM | Server authorizes a client request; client uses `GetTeleportationFacility().Teleport(...)` (see player mechanics) |
 | `SetPedIntoVehicle(ped, veh, seat)` | FiveM | `mp.game.ScriptGameInstance.GetMountingFacility().Mount(mountRequest)` (Client) |
 | `SetEntityHealth(ped, health)` | FiveM | `StatPoolsSystem.RequestSettingStatPoolValueIgnoreChangeMode(...)` (Client) |
 | `alt.onClient('ev', cb)` / `alt.onServer` | alt:V | `mp.events.onClient('ev', (player, ...args) => ...)` / `mp.events.onServer('ev', cb)` |
@@ -67,7 +67,7 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `mp.events.callRemote('ev', ...args)` | RAGEMP | `mp.events.emitServer('ev', ...args)` |
 | `mp.events.callClient(p, 'ev', ...args)`| RAGEMP | `mp.events.emitClient(player, 'ev', ...args)` |
 | `mp.players.local` | RAGEMP | Local client player context |
-| `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `mp.events.on('playerConnected', (id, tempId) => ...)` / `player.position` |
+| `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `mp.events.on('playerConnected', (id, tempId) => ...)` / server-authorized client teleport |
 
 For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See `skills/cybermp-dev/references/lua-events.md`.
 
@@ -213,6 +213,12 @@ mp.events.on('playerDisconnected', (playerId, reason) => {
 });
 ```
 
+### Spawn, Respawn & Health Diagnostics
+
+Server `MpPlayer.position` is readonly in `@cybermp/server-types@3.2.8`; its `Vector3` is a tuple, not a constructor. Read coordinates on the server and authorize movement through a client handler. The command below only dispatches a request: wire `mode:teleport` to the guarded client helper in [player mechanics](references/player-mechanics.md#coordinate-teleportation-implementation).
+
+For falling through the map, zero HP or missing respawn, follow [Spawn and health diagnostics](references/recipes/player-spawn-health.md): check competing spawn resources, then entity readiness, maximum health and current HP, then destination streaming.
+
 ### Custom Chat & Console Commands
 Register commands using `mp.commands.add`:
 ```typescript
@@ -223,7 +229,8 @@ mp.commands.add('teleport', (player, args) => {
     mp.events.emitClient(player, 'chat:notify', 'Usage: /teleport <x> <y> <z>');
     return;
   }
-  player.position = [x, y, z];
+  // Add server-side permission and destination checks before dispatch.
+  mp.events.emitClient(player, 'mode:teleport', x, y, z);
 });
 ```
 

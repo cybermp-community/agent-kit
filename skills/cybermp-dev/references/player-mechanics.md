@@ -14,6 +14,8 @@ These snippets run in the CyberMP game client with `use_game_natives = true`. Th
 
 Use `mp.local.spawnPlayer` in the resource's spawn or respawn flow. Use `GetTeleportationFacility().Teleport` to move an existing player. World load, spawn request acceptance and puppet availability are separate conditions. [Client lifecycle](https://docs.cyber.mp/guides/client/lifecycle/) · [Player spawn guide](https://docs.cyber.mp/guides/client/spawning-player/)
 
+For falling through the map, zero HP or missing respawn, start with [Spawn and health diagnostics](recipes/player-spawn-health.md). Check enabled resources for competing spawn calls before adjusting coordinates.
+
 ### Mathematical Vector & Rotation Helpers
 
 For native teleportation, build a `Vector4` for the destination and pass yaw separately in `EulerAngles`. A resource may serialize a different vector format for transport.
@@ -95,6 +97,8 @@ export function requestOnFootTeleport(x: number, y: number, z: number, yaw = 0):
 ## 2. Health, Max Health & God Mode
 
 `StatPoolsSystem` reads and updates the current health pool. `StatsSystem` exposes the Health stat and its modifiers. The optional `perc` argument on `RequestSettingStatPoolValueIgnoreChangeMode` selects the units of the current value. The sample uses points. The official spawn guide also changes the Health stat as part of its initialization routine. An in-session mode should only manage modifiers it owns. [Player spawn guide](https://docs.cyber.mp/guides/client/spawning-player/#initializing-health-stat-pools) · [StatPoolsSystem declarations](https://edgemodders.github.io/REDnode/game/t/gameStatPoolsSystem.html)
+
+**Spawn initialization order: maximum Health stat → current HP → read-back.** Setting 100% of a zero maximum leaves zero HP. Initialize the mode-owned maximum before calling the current-health helper below; use the official spawn guide for the native sequence. Repeated initialization must replace or reuse owned modifiers rather than stack them. Preserve other systems' modifiers. Test zero initial maximum, death and repeated respawn. This helper only requests current HP; it does not initialize the maximum or confirm recovery. See [spawn diagnostics](recipes/player-spawn-health.md).
 
 ### Health Modification Implementation
 
