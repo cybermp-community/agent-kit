@@ -379,4 +379,42 @@ describe('CLI Init Wizard', () => {
     const skillPath = path.join(tempDir, '.agents/skills/cybermp-dev');
     expect(fs.existsSync(skillPath)).toBe(false);
   });
+
+  it('does not set up the bridge unless asked', async () => {
+    await initProject({ cwd: tempDir, editors: ['claude'], copySkill: false, nonInteractive: true });
+
+    expect(fs.existsSync(path.join(tempDir, 'resources/mcp-bridge'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, '.env'))).toBe(false);
+  });
+
+  it('sets up the bridge including resource, token in .env, .env ignored, no token in editor configs', async () => {
+    fs.writeFileSync(path.join(tempDir, '.env'), 'OTHER=1');
+    fs.writeFileSync(path.join(tempDir, '.gitignore'), 'node_modules/');
+
+    await initProject({
+      cwd: tempDir,
+      editors: ['claude'],
+      copySkill: false,
+      bridge: true,
+      nonInteractive: true,
+    });
+
+    const resource = path.join(tempDir, 'resources/mcp-bridge');
+    expect(fs.existsSync(path.join(resource, 'resource.toml'))).toBe(true);
+    expect(fs.readFileSync(path.join(resource, 'src/index.ts'), 'utf8')).toContain(
+      "from 'cybermp-agent-kit-bridge'",
+    );
+    expect(fs.existsSync(path.join(resource, 'node_modules'))).toBe(false);
+
+    const env = fs.readFileSync(path.join(tempDir, '.env'), 'utf8');
+    expect(env).toMatch(/^OTHER=1\n# .*\nDEVTOOLS_TOKEN=[0-9a-f]{48}\n$/);
+    expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('node_modules/\n.env\n');
+    expect(fs.readFileSync(path.join(tempDir, '.mcp.json'), 'utf8')).not.toContain('DEVTOOLS_TOKEN');
+
+    // Running again keeps the token and the resource
+    const token = env.match(/DEVTOOLS_TOKEN=(\w+)/)![1];
+    await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
+    expect(fs.readFileSync(path.join(tempDir, '.env'), 'utf8').match(/DEVTOOLS_TOKEN=(\w+)/)![1]).toBe(token);
+    expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('node_modules/\n.env\n');
+  });
 });
