@@ -417,4 +417,13 @@ describe('CLI Init Wizard', () => {
     expect(fs.readFileSync(path.join(tempDir, '.env'), 'utf8').match(/DEVTOOLS_TOKEN=(\w+)/)![1]).toBe(token);
     expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('node_modules/\n.env\n');
   });
+
+  it('creates a .gitignore ignoring .env when the project has none', async () => {
+    await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
+    expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('.env\n');
+
+    // Running again leaves it as it is
+    await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
+    expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('.env\n');
+  });
 });

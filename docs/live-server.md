@@ -76,7 +76,8 @@ and tools. Rules for choosing a scope are in the
 
 - The bridge listens on 127.0.0.1 only and needs the token on every call.
   Anything holding the token can call it directly, so keep `.env` private (`init
-  --bridge` adds it to an existing `.gitignore`).
+  --bridge` adds it to `.gitignore`, and creates that file if the project has
+  none).
 - Spawning and destroying entities is off unless the resource sets
   `DEVTOOLS_ALLOW_SPAWN=1`; the resource hosting the bridge, and anything in
   `DEVTOOLS_PROTECT_RESOURCES`, can't be stopped or restarted by the agent.

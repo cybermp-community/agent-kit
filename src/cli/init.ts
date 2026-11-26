@@ -23,14 +23,15 @@ export interface InitOptions {
 export interface BridgeSetup {
   resource: 'copied' | 'kept' | 'missing';
   token: 'created' | 'kept';
-  gitignore: 'added' | 'present' | 'none';
+  gitignore: 'created' | 'added' | 'present';
 }
 
 /**
  * Lets the MCP server drive a local game server: copies the `mcp-bridge`
  * resource into `resources/`, and writes a random `DEVTOOLS_TOKEN` to `.env`
  * (read by both the resource and the MCP server, so the token never goes
- * into an editor configuration). Adds `.env` to an existing `.gitignore`.
+ * into an editor configuration). Adds `.env` to `.gitignore`, creating the
+ * file when the project has none.
  */
 export function setupBridge(cwd: string, force = false): BridgeSetup {
   const packageRoot = getPackageRoot();
@@ -68,7 +69,7 @@ export function setupBridge(cwd: string, force = false): BridgeSetup {
   }
 
   const gitignorePath = path.join(cwd, '.gitignore');
-  let gitignore: BridgeSetup['gitignore'] = 'none';
+  let gitignore: BridgeSetup['gitignore'];
 
   if (fs.existsSync(gitignorePath)) {
     const ignored = fs.readFileSync(gitignorePath, 'utf8');
@@ -80,6 +81,10 @@ export function setupBridge(cwd: string, force = false): BridgeSetup {
       fs.appendFileSync(gitignorePath, `${separator}.env\n`);
       gitignore = 'added';
     }
+  } else {
+    // A fresh project; without this, `git add .` would pick up the token
+    fs.writeFileSync(gitignorePath, '.env\n');
+    gitignore = 'created';
   }
 
   return { resource, token, gitignore };
@@ -395,6 +400,8 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     }
     if (setup.gitignore === 'added') {
       console.log('Added .env to .gitignore (it holds DEVTOOLS_TOKEN)');
+    } else if (setup.gitignore === 'created') {
+      console.log('Created .gitignore with .env in it (it holds DEVTOOLS_TOKEN)');
     }
     if (!options.nonInteractive) {
       console.log(
