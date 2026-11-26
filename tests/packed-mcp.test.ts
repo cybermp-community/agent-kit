@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
@@ -238,6 +238,25 @@ it('serves the installed package with the locked production dependencies', async
       expect(workspotText).toContain('PlayInDeviceSimple');
     } finally {
       await client.close();
+    }
+    // Live features switch on by themselves next to a server's logs folder
+    const serverRoot = path.join(temp, 'server');
+    fs.mkdirSync(path.join(serverRoot, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(serverRoot, 'logs/server_1.log'), 'boot\nERROR packed check\n');
+    const live = new Client({ name: 'packed-mcp-live', version: '1.0.0' });
+    await live.connect(new StdioClientTransport({
+      command: process.execPath,
+      args: [path.join(installed, metadata.bin['cybermp-agent-kit'])],
+      cwd: temp,
+      env: { ...getDefaultEnvironment(), CYBERMP_ROOT: serverRoot },
+    }));
+    try {
+      const names = (await live.listTools()).tools.map((tool) => tool.name);
+      expect(names).toEqual(expect.arrayContaining(['server_status', 'list_server_logs', 'read_server_log']));
+      const log = await live.callTool({ name: 'read_server_log', arguments: { filter: 'error' } });
+      expect((log.content as Array<{ text: string }>)[0].text).toContain('ERROR packed check');
+    } finally {
+      await live.close();
     }
     expect(new Set(nativeAnswers).size).toBe(1);
     expect(nativeAnswers[0]).toContain('segmentsNumber');
