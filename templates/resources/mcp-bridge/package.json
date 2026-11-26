@@ -1,0 +1,22 @@
+{
+  "name": "mcp-bridge-resource",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CyberMP resource hosting the cybermp-agent-kit bridge.",
+  "scripts": {
+    "build": "tsc --noEmit && tsdown",
+    "dev": "tsdown --watch"
+  },
+  "dependencies": {
+    "@cybermp/rpc-server": "0.2.0",
+    "cybermp-agent-kit-bridge": "^0.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@cybermp/server-types": "^3.2.5",
+    "@types/node": "^22.13.0",
+    "tsdown": "^0.22.3",
+    "typescript": "^5.9.3"
+  }
+}

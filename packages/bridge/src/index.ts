@@ -46,7 +46,48 @@ export type MethodDef<TSchema extends z.ZodType = z.ZodType> = {
    * Used for methods that run in another resource (the schema was made there).
    */
   inputSchema?: Record<string, unknown>;
+  /**
+   * Set by the provider host for methods contributed by another resource
+   * ({@link CORE_SCOPE} when left out). See {@link scopedToolName}.
+   */
+  scope?: string;
+  /** Resource the method runs in, set by the provider host */
+  resource?: string;
   handler(params: z.infer<TSchema>): unknown | Promise<unknown>;
+};
+
+/** Scope of the methods the bridge resource itself serves */
+export const CORE_SCOPE = 'core';
+/**
+ * Between a provider's scope and its tool name: `economy__set_money`.
+ * MCP clients such as Claude only allow `[A-Za-z0-9_-]` in tool names, and a
+ * single `_` would be lost among snake_case words.
+ */
+export const SCOPE_SEPARATOR = '__';
+/** Lower-case letters, digits and `-`, starting with a letter, 1-20 characters */
+export const SCOPE_PATTERN = /^[a-z][a-z0-9-]{0,19}$/;
+/** snake_case */
+export const TOOL_PATTERN = /^[a-z][a-z0-9_]*$/;
+/**
+ * Longest tool name a provider may produce. Claude allows 64 characters, and
+ * clients prefix the server key (`mcp__cybermp__` is 14 of them).
+ */
+export const MAX_TOOL_NAME_LENGTH = 48;
+
+/** Name the agent sees for a provider tool. Core tools keep their bare name */
+export const scopedToolName = (scope: string, tool: string) =>
+  scope === CORE_SCOPE ? tool : `${scope}${SCOPE_SEPARATOR}${tool}`;
+
+/** A resource name turned into a valid scope (`My_Gamemode` -> `my-gamemode`) */
+export const defaultScope = (resource: string) => {
+  const scope = resource
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^[^a-z]+/, '')
+    .slice(0, 20)
+    .replace(/-+$/, '');
+
+  return SCOPE_PATTERN.test(scope) ? scope : 'resource';
 };
 
 export type MethodSource =
@@ -147,6 +188,8 @@ export const describeMethods = (
             title: def.title ?? def.tool ?? method,
             description: def.description ?? '',
             kind: def.kind,
+            scope: def.scope ?? CORE_SCOPE,
+            ...(def.resource ? { resource: def.resource } : {}),
             inputSchema:
               def.inputSchema ??
               z.toJSONSchema(def.params, {
@@ -189,8 +232,8 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
 /**
  * Starts the bridge with `POST /rpc {"method", "params"}` with
  * `Authorization: Bearer <token>`. The built-in method `bridge.describe`
- * lists every method with its JSON Schema so cybermp-mcp can expose them as
- * tools without knowing the game server.
+ * lists every method with its JSON Schema and scope, so the MCP server can
+ * expose them as tools without knowing the game server.
  */
 export const createBridge = (options: BridgeOptions): Bridge => {
   const { token, logger = {} } = options;

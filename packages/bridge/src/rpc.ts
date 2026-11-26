@@ -2,13 +2,19 @@ import z from 'zod';
 import {
   type BridgeLogger,
   BridgeError,
+  CORE_SCOPE,
+  defaultScope,
   defineMethod,
   describeMethods,
   isBridgeError,
   jsonReplacer,
+  MAX_TOOL_NAME_LENGTH,
   type MethodDef,
   type MethodKind,
   type PresenceState,
+  SCOPE_PATTERN,
+  scopedToolName,
+  TOOL_PATTERN,
 } from './index.ts';
 
 /**
@@ -21,8 +27,12 @@ import {
  * - Registration, calls and presence travel as JSON strings, so no value type
  *   has to survive the trip between resources.
  *
+ * Each provider has a scope (defaulting to its resource name). Its tools reach
+ * the agent as `<scope>__<tool>`, so every tool shows where it comes from and
+ * two resources can never take the same name. Core tools keep bare names.
+ *
  * All server resources are trusted code, therefore a provider can declare any
- * `kind` and replace generic tools of the same name.
+ * `kind`.
  */
 export const MCP_BRIDGE_RPC_NAME = 'mcp-bridge';
 /** Emitted (shared event) when a bridge starts, so providers re-register at once */
@@ -62,6 +72,21 @@ type Reply = { ok: true; result: unknown } | { ok: false; error: string };
 
 const reply = (value: Reply) => JSON.stringify(value, jsonReplacer);
 
+/** The host answers a registration with a {@link Reply}; anything else counts as accepted */
+const registrationError = (answer: unknown) => {
+  if (typeof answer !== 'string') {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(answer) as Partial<Reply> | null;
+
+    return parsed && parsed.ok === false ? (parsed as { error: string }).error : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 // ---------------------------------------------------------------- provider
 
 export type McpProviderOptions = {
@@ -69,6 +94,15 @@ export type McpProviderOptions = {
   /** Your resource's own RPC server (the same one you use for other RPC) */
   rpc: McpRpc;
   methods: Record<string, MethodDef>;
+  /**
+   * Prefix of your tools as the agent sees them (`economy` -> `economy__set_money`).
+   * Lower-case letters, digits and `-`, up to 20 characters. The default is the
+   * resource name, made valid. Another resource already holding the scope makes the
+   * registration fail (logged through `logger`).
+   */
+  scope?: string;
+  /** Default: `console` */
+  logger?: BridgeLogger;
   /** Called when an agent attaches/detaches; the result is merged into the bridge's reply */
   onPresence?(state: PresenceState): unknown;
   /** RPC name of the bridge resource. Default {@link MCP_BRIDGE_RPC_NAME} */
@@ -98,6 +132,13 @@ export const registerMcpProvider = (options: McpProviderOptions): McpProvider =>
   const retryMs = options.retryMs ?? 3_000;
   const timeout = options.callTimeoutMs ?? 3_000;
   const resource = mp.resources.getCurrentName();
+  const scope = options.scope ?? defaultScope(resource);
+  const logger: BridgeLogger = options.logger ?? {
+    info: (message) => console.log(message),
+    success: (message) => console.log(message),
+    warn: (message, detail) => console.warn(message, detail ?? ''),
+  };
+  let lastRejection: string | undefined;
 
   rpc.register(RPC.call, async (ctx) => {
     try {
@@ -143,21 +184,42 @@ export const registerMcpProvider = (options: McpProviderOptions): McpProvider =>
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const register = async () => {
+    let answer: unknown;
+
     try {
-      await rpc.callServer(RPC.register, {
+      answer = await rpc.callServer(RPC.register, {
         name: bridgeName,
         timeout,
         data: JSON.stringify({
           resource,
+          scope,
           rpcName: rpc.name,
           methods: describeMethods(methods, true),
         }),
       });
-      registered = true;
     } catch {
       // Bridge not running (yet): retried below
       registered = false;
+      return;
     }
+
+    const rejection = registrationError(answer);
+
+    if (rejection) {
+      // Retried at the heartbeat pace: the other resource may stop
+      if (rejection !== lastRejection) {
+        logger.warn?.(`MCP tools of ${resource} not registered: ${rejection}`);
+      }
+      lastRejection = rejection;
+      registered = true;
+      return;
+    }
+
+    if (lastRejection) {
+      logger.success?.(`MCP tools of ${resource} registered (scope ${scope})`);
+    }
+    lastRejection = undefined;
+    registered = true;
   };
 
   const tick = () => {
@@ -212,11 +274,59 @@ const descriptorSchema = z.object({
 
 const registrationSchema = z.object({
   resource: z.string().min(1).max(100),
+  /** Older providers send none: derived from the resource name */
+  scope: z.string().optional(),
   rpcName: z.string().min(1).max(100),
   methods: z.array(descriptorSchema).max(200),
 });
 
-type Registration = z.infer<typeof registrationSchema> & { lastSeen: number };
+type Registration = z.infer<typeof registrationSchema> & {
+  scope: string;
+  lastSeen: number;
+};
+
+/** Why a registration can't be accepted, or undefined */
+const validateRegistration = (
+  data: z.infer<typeof registrationSchema> & { scope: string },
+  registry: Map<string, Registration>,
+) => {
+  const { resource, scope } = data;
+
+  if (scope === CORE_SCOPE || !SCOPE_PATTERN.test(scope)) {
+    return `invalid scope "${scope}": use lower-case letters, digits and "-" (up to 20, starting with a letter), not "${CORE_SCOPE}"`;
+  }
+
+  for (const other of registry.values()) {
+    if (other.resource !== resource && other.scope === scope) {
+      return `scope "${scope}" is already used by resource ${other.resource}`;
+    }
+  }
+
+  const seen = new Set<string>();
+
+  for (const m of data.methods) {
+    if (!m.tool) {
+      continue;
+    }
+
+    if (!TOOL_PATTERN.test(m.tool)) {
+      return `tool "${m.tool}" (method ${m.method}) must be snake_case`;
+    }
+
+    const name = scopedToolName(scope, m.tool);
+
+    if (name.length > MAX_TOOL_NAME_LENGTH) {
+      return `tool name "${name}" is longer than ${MAX_TOOL_NAME_LENGTH} characters`;
+    }
+
+    if (seen.has(m.tool)) {
+      return `tool "${m.tool}" is declared twice`;
+    }
+    seen.add(m.tool);
+  }
+
+  return undefined;
+};
 
 export type ProviderHostOptions = {
   mp: RpcMp;
@@ -229,17 +339,25 @@ export type ProviderHostOptions = {
   logger?: BridgeLogger;
 };
 
+export type ScopeInfo = {
+  scope: string;
+  resource: string;
+  /** Tool names as the agent sees them */
+  tools: string[];
+};
+
 export type ProviderHost = {
   /**
-   * `core` plus every provider's methods (namespaced `resource/method`). A
-   * provider tool replaces a core tool of the same name; between providers
-   * the first to register wins. Pass it as `createBridge({ methods })`
-   * wrapped in a function so it is re-read on every request.
+   * `core` plus every provider's methods (namespaced `resource/method`, tools
+   * named `<scope>__<tool>`), plus `list_scopes`. Pass it as
+   * `createBridge({ methods })` wrapped in a function so it is re-read on
+   * every request.
    */
   methods(core: Record<string, MethodDef>): Record<string, MethodDef>;
   /** Forwards presence to every provider; merges their answers (numbers add up) */
   onPresence(state: PresenceState): Promise<Record<string, unknown>>;
-  providers(): Array<{ resource: string; tools: string[] }>;
+  /** Registered providers (not the core scope) */
+  providers(): ScopeInfo[];
   dispose(): void;
 };
 
@@ -248,7 +366,7 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
   const ttlMs = options.ttlMs ?? 90_000;
   const timeout = options.callTimeoutMs ?? 12_000;
   const registry = new Map<string, Registration>();
-  const warned = new Set<string>();
+  const hostResource = mp.resources.getCurrentName();
 
   const prune = () => {
     const now = Date.now();
@@ -269,24 +387,49 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
     }
   };
 
+  /** Rejections already logged, so a provider retrying every 30 s logs once */
+  const rejected = new Map<string, string>();
+
   rpc.register(RPC.register, (ctx) => {
     const parsed = registrationSchema.safeParse(JSON.parse(ctx.data));
 
     if (!parsed.success) {
-      throw new BridgeError(`Invalid registration: ${z.prettifyError(parsed.error)}`);
+      return reply({
+        ok: false,
+        error: `invalid registration: ${z.prettifyError(parsed.error)}`,
+      });
     }
 
-    const known = registry.has(parsed.data.resource);
+    prune();
 
-    registry.set(parsed.data.resource, { ...parsed.data, lastSeen: Date.now() });
+    const data = {
+      ...parsed.data,
+      scope: parsed.data.scope ?? defaultScope(parsed.data.resource),
+    };
+    const error = validateRegistration(data, registry);
 
-    if (!known) {
+    if (error) {
+      if (rejected.get(data.resource) !== error) {
+        rejected.set(data.resource, error);
+        logger.warn?.(`MCP provider ${data.resource} rejected: ${error}`);
+      }
+
+      return reply({ ok: false, error });
+    }
+
+    rejected.delete(data.resource);
+
+    const known = registry.get(data.resource);
+
+    registry.set(data.resource, { ...data, lastSeen: Date.now() });
+
+    if (!known || known.scope !== data.scope) {
       logger.success?.(
-        `MCP provider ${parsed.data.resource} registered ${parsed.data.methods.length} method(s)`,
+        `MCP provider ${data.resource} registered ${data.methods.length} method(s) as scope ${data.scope}`,
       );
     }
 
-    return 'ok';
+    return reply({ ok: true, result: null });
   });
 
   rpc.register(RPC.unregister, (ctx) => {
@@ -327,6 +470,15 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
     return response.result;
   };
 
+  const providerList = (): ScopeInfo[] =>
+    [...registry.values()].map((entry) => ({
+      scope: entry.scope,
+      resource: entry.resource,
+      tools: entry.methods.flatMap((m) =>
+        m.tool ? [scopedToolName(entry.scope, m.tool)] : [],
+      ),
+    }));
+
   mp.events.emit(MCP_READY_EVENT);
 
   return {
@@ -334,7 +486,6 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
       prune();
 
       const result = { ...core };
-      const taken = new Set<string>();
       const infoProviders: Registration[] = [];
 
       for (const entry of registry.values()) {
@@ -343,28 +494,13 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
             infoProviders.push(entry);
           }
 
-          if (d.tool) {
-            if (taken.has(d.tool)) {
-              const warning = `${entry.resource}:${d.tool}`;
-
-              if (!warned.has(warning)) {
-                warned.add(warning);
-                logger.warn?.(
-                  `MCP tool ${d.tool} from ${entry.resource} ignored: already provided by another resource`,
-                );
-              }
-
-              continue;
-            }
-
-            taken.add(d.tool);
-          }
-
           result[`${entry.resource}/${d.method}`] = defineMethod({
-            tool: d.tool,
+            tool: d.tool ? scopedToolName(entry.scope, d.tool) : undefined,
             title: d.title,
             description: d.description,
             kind: d.kind as MethodKind,
+            scope: entry.scope,
+            resource: entry.resource,
             params: z.record(z.string(), z.unknown()).default({}),
             inputSchema: d.inputSchema,
             handler: (params) => callMethod(entry, d.method, params),
@@ -372,11 +508,25 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
         }
       }
 
-      for (const [key, def] of Object.entries(core)) {
-        if (def.tool && taken.has(def.tool)) {
-          delete result[key];
-        }
-      }
+      result['bridge.scopes'] = defineMethod({
+        tool: 'list_scopes',
+        title: 'List tool scopes',
+        description:
+          'Which resource each tool comes from: the core scope (tools of the bridge resource, bare names) and one scope per resource that adds tools (named <scope>__<tool>).',
+        kind: 'read',
+        params: z.object({}).default({}),
+        handler: () => [
+          {
+            scope: CORE_SCOPE,
+            resource: hostResource,
+            tools: [
+              ...Object.values(core).flatMap((def) => (def.tool ? [def.tool] : [])),
+              'list_scopes',
+            ],
+          },
+          ...providerList(),
+        ],
+      });
 
       if (infoProviders.length > 0) {
         // server_status shows the core info plus whatever the game modes add
@@ -437,16 +587,14 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
     providers() {
       prune();
 
-      return [...registry.values()].map((entry) => ({
-        resource: entry.resource,
-        tools: entry.methods.flatMap((m) => (m.tool ? [m.tool] : [])),
-      }));
+      return providerList();
     },
 
     dispose() {
       rpc.unregister(RPC.register);
       rpc.unregister(RPC.unregister);
       registry.clear();
+      rejected.clear();
     },
   };
 };

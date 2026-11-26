@@ -5,15 +5,17 @@ Lets an LLM agent inspect and drive your server through
 
 ## Install
 
-1. Copy this folder's `resource.toml` and `server/dist/index.js` (build it with
-   `pnpm build` in a checkout) to `resources/mcp-bridge/` on your server.
+1. Run `pnpm install && pnpm build` in this folder (bundles everything into
+   `server/dist/index.js`). Keep the folder as `resources/mcp-bridge/` on your
+   server, or copy `resource.toml` and `server/dist/index.js` there.
 2. Add it to `server.toml`:
    ```toml
    resources = ["mcp-bridge", "your-gamemode"]
    ```
 3. Set `DEVTOOLS_TOKEN` (environment variable or a `.env` next to
    `server.toml`). Without a token the HTTP bridge stays off.
-4. Point `cybermp-mcp` at the same token (see its README).
+4. Give the MCP server the same token: `DEVTOOLS_TOKEN` in its environment, or
+   the same `.env` (it reads `<project root>/.env`).
 
 ## Settings
 
@@ -21,7 +23,7 @@ Environment variables, or `.env` (the real environment wins):
 
 | Variable | Default | |
 | --- | --- | --- |
-| `DEVTOOLS_TOKEN` | none | Required. Shared secret with `cybermp-mcp` |
+| `DEVTOOLS_TOKEN` | none | Required. Shared secret with the MCP server |
 | `DEVTOOLS_PORT` | `2080` | Listens on `127.0.0.1` only |
 | `DEVTOOLS_AUDIT_FILE` | none | JSONL trail of every write/destructive call |
 | `DEVTOOLS_EVENTS` | `default` | `all` also records noisy events (damage, shooting, meta) |
@@ -32,8 +34,8 @@ Environment variables, or `.env` (the real environment wins):
 ## Built-in tools
 
 `list_players`, `kick_player`, `mute_player`, `set_player_dimension`,
-`get_recent_events`, `wait_for_events`, `get_server_config` (secrets
-redacted), `list_resources`, `start_resource`, `stop_resource`,
+`get_recent_events`, `wait_for_events`, `list_scopes`, `get_server_config`
+(secrets redacted), `list_resources`, `start_resource`, `stop_resource`,
 `restart_resource`, `list_vehicles`, `list_peds`, `list_objects`, and with
 `DEVTOOLS_ALLOW_SPAWN=1`: `hash_name`, `spawn_vehicle`, `spawn_ped`,
 `spawn_object`, `destroy_entity`.
@@ -45,7 +47,7 @@ resource already has:
 
 ```ts
 import { RpcServer } from '@cybermp/rpc-server';
-import { defineMethod, registerMcpProvider } from 'cybermp-mcp-bridge';
+import { defineMethod, registerMcpProvider } from 'cybermp-agent-kit-bridge';
 import z from 'zod';
 
 const rpc = new RpcServer({ name: 'my-gamemode' });
@@ -53,9 +55,10 @@ const rpc = new RpcServer({ name: 'my-gamemode' });
 const provider = registerMcpProvider({
   mp,
   rpc,
+  scope: 'bank', // tools reach the agent as bank__<tool>
   methods: {
     'bank.give': defineMethod({
-      tool: 'give_money', // what the agent sees
+      tool: 'give_money', // the agent sees bank__give_money
       title: 'Give money',
       description: 'Adds money to a player.',
       kind: 'write', // read | write | destructive
@@ -74,10 +77,11 @@ await provider.unregister();
 - **Order doesn't matter.** The bridge can start before or after you, or
   restart, as registration is retried and renewed every 30 s, and the bridge
   announces itself on start.
-- **Names.** A provider's tool replaces a built-in tool of the same name (so
-  your `list_players` can show your own data). Between two providers the first
-  to register keeps the name; the other is logged and ignored. A method named
-  `server.info` (no `tool`) is merged into `server_status`.
+- **Names.** Your tools are named `<scope>__<tool>`; built-in tools keep bare
+  names. The scope defaults to your resource name. If another running resource
+  already holds your scope, your registration is refused and the reason is
+  logged in your resource (see the bridge library README, "Scopes"). A method
+  named `server.info` (no `tool`) is merged into `server_status`.
 - **Safety applies to you too.** Calls to your tools go through the bridge's
   audit trail and through the MCP server's read-only / allow / deny settings.
 - **Everything is JSON.** Arguments, results and errors cross resources as JSON

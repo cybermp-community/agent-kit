@@ -1,10 +1,10 @@
-# cybermp-mcp-bridge
+# cybermp-agent-kit-bridge
 
 Localhost RPC bridge so [`cybermp-mcp`](../mcp) can inspect and drive a
 CyberMP server.
 
 ```ts
-import { createBridge, defineMethod } from 'cybermp-mcp-bridge';
+import { createBridge, defineMethod } from 'cybermp-agent-kit-bridge';
 import z from 'zod';
 
 const bridge = createBridge({
@@ -128,7 +128,7 @@ vehicles only, a bare name (model -> `Vehicle.<name>` TweakDB id, appearance
 A game mode that tracks its own entities (spawners, matches) is not told about
 ones destroyed through these tools. To keep an agent from spawning or removing
 things, leave `spawn` off or use `CYBERMP_MCP_DENY=spawn_*,destroy_entity` in
-`cybermp-mcp`.
+the MCP server's environment.
 
 ## Ready-made player tools
 
@@ -138,9 +138,30 @@ your game mode owns dimensions: `{ 'player.mute': basicMethods(mp)['player.mute'
 
 ## Contributing tools from another resource
 
-With the `mcp-bridge` resource running, `registerMcpProvider({ mp, rpc, methods })`
+With the `mcp-bridge` resource running, `registerMcpProvider({ mp, rpc, scope, methods })`
 registers your `methods` over CyberMP RPC, and `createProviderHost` is what the
 resource uses to receive them. Both use JSON strings on the wire and an RPC
 server named `mcp-bridge` on the host side. See the resource README for the
-walkthrough. `createBridge({ methods })` also accepts a function, evaluated on
+walkthrough.
+
+### Scopes
+
+Every provider has a scope, and its tools reach the agent as
+`<scope>__<tool>`: `scope: 'economy'` plus `tool: 'set_money'` gives
+`economy__set_money`. The bridge's own tools are in the `core` scope and keep
+bare names (`list_players`). So every tool shows which resource it comes from,
+and two resources can't fight over a name.
+
+- `scope` defaults to the resource name, made valid (`My_Mode` -> `my-mode`).
+- A scope is lower-case letters, digits and `-`, up to 20 characters, starting
+  with a letter; `core` is reserved. Tool names are snake_case, and the full
+  name may be at most 48 characters (clients add their own prefix, such as
+  `mcp__cybermp__`, within a 64-character limit).
+- A scope held by another running resource, an invalid name or a duplicate tool
+  rejects the whole registration. The provider logs the reason (`logger`,
+  default `console`) and keeps retrying every 30 s, so stopping the other
+  resource is enough.
+- `bridge.describe` reports `scope` and `resource` for each method, and the
+  `list_scopes` tool lists them for the agent.
+- Allow/deny lists can target a scope: `CYBERMP_MCP_DENY=economy__*`. `createBridge({ methods })` also accepts a function, evaluated on
 every request.

@@ -9,9 +9,8 @@ import {
   fileAudit,
   MCP_BRIDGE_RPC_NAME,
   resourceMethods,
-} from 'cybermp-mcp-bridge';
+} from 'cybermp-agent-kit-bridge';
 import { loadConfig } from './env';
-import { reportHeap } from './heap';
 
 const mp = (globalThis as any).mp as MpServer;
 const config = loadConfig();
@@ -67,5 +66,3 @@ mp.events.on('resourceStop', () => {
   eventLog?.dispose();
   host.dispose();
 });
-
-reportHeap('mcp-bridge');
