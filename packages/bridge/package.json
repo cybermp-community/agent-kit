@@ -1,0 +1,41 @@
+{
+  "name": "cybermp-agent-kit-bridge",
+  "version": "0.1.0",
+  "description": "Localhost CyberMP RPC bridge for cybermp-agent-kit.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mo3g666/cybermp-agent-kit.git",
+    "directory": "packages/bridge"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "type:check": "tsc --noEmit -p .",
+    "prepublishOnly": "pnpm run build",
+    "prepare": "pnpm run build"
+  },
+  "peerDependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.9.3",
+    "zod": "^4.6.7"
+  }
+}
