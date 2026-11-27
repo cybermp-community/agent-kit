@@ -95,7 +95,7 @@ The package also ships the [CyberMP session review skill](packages/agent-kit/ski
 You can print copy-pasteable configuration for any editor at any time:
 
 ```bash
-npx @cybermp-community/agent-kit config [cursor|claude|antigravity|cline|windsurf|zed|all]
+npx @cybermp-community/agent-kit config [cursor|claude|antigravity|cline|windsurf|zed|hermes|all]
 ```
 
 ### Cursor (`.cursor/mcp.json`)
@@ -185,6 +185,7 @@ On Windows, `init` and `config` automatically use `npx.cmd` so that editors can 
 Hermes keeps MCP servers and skills in its own profile instead of a project file, so register them once:
 
 ```bash
+npx @cybermp-community/agent-kit config hermes   # prints the command below
 hermes mcp add cybermp --command npx --args -y @cybermp-community/agent-kit run
 hermes mcp test cybermp
 ```
