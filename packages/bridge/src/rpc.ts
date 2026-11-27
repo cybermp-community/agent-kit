@@ -11,6 +11,7 @@ import {
   MAX_TOOL_NAME_LENGTH,
   type MethodDef,
   type MethodKind,
+  type PresenceMeta,
   type PresenceState,
   SCOPE_PATTERN,
   scopedToolName,
@@ -144,7 +145,7 @@ export type McpProviderOptions = {
   /** Default: `console` */
   logger?: BridgeLogger;
   /** Called when an agent attaches/detaches; the result is merged into the bridge's reply */
-  onPresence?(state: PresenceState): unknown;
+  onPresence?(state: PresenceState, meta?: PresenceMeta): unknown;
   /** RPC name of the bridge resource. Default {@link MCP_BRIDGE_RPC_NAME} */
   bridgeName?: string;
   /** Re-register this often (the bridge forgets silent providers). Default 30 s */
@@ -216,16 +217,24 @@ export const registerMcpProvider = (options: McpProviderOptions): McpProvider =>
     }
   });
 
-  rpc.register(RPC.presence, async (ctx) => {
-    const request = parseJson(ctx.data);
-    const state = isRecord(request) ? request.state : undefined;
+  const presenceSchema = z.object({
+    state: z.enum(['connected', 'listening', 'disconnected']),
+    session: z.string().min(1).max(128).optional(),
+    seq: z.number().int().min(0).optional(),
+  });
 
-    if (state !== 'connected' && state !== 'listening' && state !== 'disconnected') {
+  rpc.register(RPC.presence, async (ctx) => {
+    const parsed = presenceSchema.safeParse(parseJson(ctx.data));
+
+    if (!parsed.success) {
       return 'null';
     }
 
+    const { state, ...params } = parsed.data;
+    const meta = params.session !== undefined || params.seq !== undefined ? params : undefined;
+
     try {
-      return JSON.stringify((await options.onPresence?.(state)) ?? null, jsonReplacer);
+      return JSON.stringify((await options.onPresence?.(state, meta)) ?? null, jsonReplacer);
     } catch (e) {
       logger.warn?.(`MCP presence handler of ${resource} failed`, e);
       return 'null';
@@ -408,7 +417,7 @@ export type ProviderHost = {
    */
   methods(core: Record<string, MethodDef>): Record<string, MethodDef>;
   /** Forwards presence to every provider; merges their answers (numbers add up) */
-  onPresence(state: PresenceState): Promise<Record<string, unknown>>;
+  onPresence(state: PresenceState, meta?: PresenceMeta): Promise<Record<string, unknown>>;
   /** Registered providers (not the core scope) */
   providers(): ScopeInfo[];
   dispose(): void;
@@ -611,14 +620,15 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
       return result;
     },
 
-    async onPresence(state) {
+    async onPresence(state, meta) {
       prune();
 
+      const payload = meta ? { state, ...meta } : { state };
       const merged: Record<string, unknown> = {};
       const answers = await Promise.all(
         [...registry.values()].map(async (entry) => {
           try {
-            return parseJson(await callProvider(entry, RPC.presence, { state }));
+            return parseJson(await callProvider(entry, RPC.presence, payload));
           } catch {
             return null;
           }

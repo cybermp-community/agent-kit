@@ -99,9 +99,21 @@ strings.
 | Method | Params | Result |
 |---|---|---|
 | `bridge.describe` | none | Array of `{method, tool, title, description, kind, scope, resource?, inputSchema}`. `kind` is `read`, `write` or `destructive`; `inputSchema` is a JSON Schema object; `tool` is the full name the agent sees. Older bridges omit `scope` and `resource` |
-| `bridge.presence` | `{state: "connected" \| "listening" \| "disconnected"}` | Anything; returned to the caller |
+| `bridge.presence` | `{state: "connected" \| "listening" \| "disconnected", session?: string, seq?: number}` | Anything; returned to the caller. `session` identifies a CLI run, and `seq` increases within that run. Both may be omitted by legacy callers. |
 | `server.info` | none | Object merged into `server_status` (players, uptime...) |
 | any described `method` | its `inputSchema` | The tool's result |
 
 Only methods with a `tool` become MCP tools; others (like `server.info`) are
 internal.
+
+Upgrade the CLI, bridge library, and `mcp-bridge` resource together. Presence
+protection requires both `session` and `seq` to reach the receiver unchanged,
+including through any custom `onPresence(state, meta)` callback. A newcomer takes
+ownership on its second report, so one last heartbeat from a process that already
+stopped cannot steal it; a `disconnected` is final for its own session only, and
+a waiting session takes over as soon as the owner reports that it stopped. A
+report the server accepted before the disconnect can still land out of order:
+presence may then look wrong until the live process has two accepted reports in a
+row, without an intervening contender. See the
+[bridge library README](../packages/bridge/README.md#letting-players-talk-to-the-agent)
+for integration and timing options.

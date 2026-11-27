@@ -52,6 +52,8 @@ import z from 'zod';
 
 const rpc = new RpcServer({ name: 'my-gamemode' });
 let agentAttached = false;
+let attachedSession: string | undefined;
+const endedSessions = new Set<string>();
 
 const provider = registerMcpProvider({
   mp,
@@ -68,9 +70,33 @@ const provider = registerMcpProvider({
     }),
   },
   // optional: react to an agent attaching/detaching, e.g. enable a feature.
+  // For anything beyond a flag, use `createAgentInbox` (bridge library): it
+  // tracks sessions, sequence numbers and disconnects for you. This sample
+  // only clears the flag for the session that reported in last, and never
+  // revives a session whose disconnect was already seen.
   // A returned object is merged into the bridge's reply
-  onPresence: (state) => {
-    agentAttached = state !== 'disconnected';
+  onPresence: (state, meta) => {
+    const session = meta?.session;
+
+    if (session !== undefined && endedSessions.has(session)) {
+      return;
+    }
+
+    if (state === 'disconnected') {
+      if (session !== undefined) {
+        endedSessions.add(session);
+      }
+
+      if (session === undefined || session === attachedSession) {
+        attachedSession = undefined;
+        agentAttached = false;
+      }
+
+      return;
+    }
+
+    attachedSession = session ?? attachedSession;
+    agentAttached = true;
   },
 });
 

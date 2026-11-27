@@ -22,7 +22,7 @@ export const hasBridgeToken = (env: Env) => Boolean(env.DEVTOOLS_TOKEN);
 export const callBridge = async (
   method: string,
   params: Record<string, unknown> = {},
-  options: { env?: Env; timeoutMs?: number } = {},
+  options: { env?: Env; timeoutMs?: number; signal?: AbortSignal } = {},
 ) => {
   const env = options.env ?? readEnv();
   const token = env.DEVTOOLS_TOKEN;
@@ -34,51 +34,69 @@ export const callBridge = async (
     );
   }
 
-  let response: Response;
+  // `AbortSignal.any` needs Node 20.3, and the CLI supports 20.0
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel, { once: true });
+
+  // A signal that is already aborted must not send the request at all
+  if (options.signal?.aborted) {
+    controller.abort();
+  }
 
   try {
-    response = await fetch(`http://127.0.0.1:${port}/rpc`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ method, params }),
-      signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
-    });
-  } catch (e) {
-    const cause = (e as { cause?: { code?: string } })?.cause?.code ?? (e as Error).name;
+    let response: Response;
 
-    throw new BridgeError(
-      `Game bridge unreachable at 127.0.0.1:${port} (${cause}). Either the server is stopped, the resource hosting the bridge is restarting (retry in a few seconds), or it does not run the bridge. Use server_status to check the process.`,
-    );
+    try {
+      response = await fetch(`http://127.0.0.1:${port}/rpc`, {
+        method: 'POST',
+        headers: {
+          authorization: ['Bearer', token].join(' '),
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ method, params }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      const cause = (e as { cause?: { code?: string } })?.cause?.code ?? (e as Error).name;
+
+      throw new BridgeError(
+        `Game bridge unreachable at 127.0.0.1:${port} (${cause}). Either the server is stopped, the resource hosting the bridge is restarting (retry in a few seconds), or it does not run the bridge. Use server_status to check the process.`,
+      );
+    }
+
+    if (response.status === 401) {
+      throw new BridgeError(
+        'The game bridge rejected the token: DEVTOOLS_TOKEN differs from the one the server loaded at startup',
+      );
+    }
+
+    let body: Partial<BridgeResponse> | null = null;
+
+    try {
+      // The deadline covers the body too: a bridge that sends headers and
+      // stalls must not hold a caller (or `stop()`) past the timeout
+      body = (await response.json()) as Partial<BridgeResponse> | null;
+    } catch {
+      // Not JSON, so we handle it below
+    }
+
+    if (!body || typeof body !== 'object' || typeof body.ok !== 'boolean') {
+      throw new BridgeError(
+        `127.0.0.1:${port} answered HTTP ${response.status} without a bridge reply: another program may be using the port (see DEVTOOLS_PORT), or the bridge is outdated`,
+      );
+    }
+
+    if (!body.ok) {
+      throw new BridgeError(String((body as { error?: unknown }).error ?? `HTTP ${response.status}`));
+    }
+
+    return body.result;
+  } finally {
+    clearTimeout(deadline);
+    options.signal?.removeEventListener('abort', cancel);
   }
-
-  if (response.status === 401) {
-    throw new BridgeError(
-      'The game bridge rejected the token: DEVTOOLS_TOKEN differs from the one the server loaded at startup',
-    );
-  }
-
-  let body: Partial<BridgeResponse> | null = null;
-
-  try {
-    body = (await response.json()) as Partial<BridgeResponse> | null;
-  } catch {
-    // Not JSON, so we handle it below
-  }
-
-  if (!body || typeof body !== 'object' || typeof body.ok !== 'boolean') {
-    throw new BridgeError(
-      `127.0.0.1:${port} answered HTTP ${response.status} without a bridge reply: another program may be using the port (see DEVTOOLS_PORT), or the bridge is outdated`,
-    );
-  }
-
-  if (!body.ok) {
-    throw new BridgeError(String((body as { error?: unknown }).error ?? `HTTP ${response.status}`));
-  }
-
-  return body.result;
 };
 
 /** One entry of `bridge.describe` */

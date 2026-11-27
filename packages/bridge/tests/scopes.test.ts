@@ -339,4 +339,38 @@ describe('provider host edge cases', () => {
 
     await provider.unregister();
   });
+
+  it('forwards presence session metadata through host.onPresence to providers', async () => {
+    const world = createWorld();
+    const host = createProviderHost({
+      mp: world.mpFor('mcp-bridge'),
+      rpc: world.rpcFor('mcp-bridge'),
+      logger: recordingLogger().logger,
+    });
+    const received: Array<[string, unknown]> = [];
+    const provider = registerMcpProvider({
+      mp: world.mpFor('demo'),
+      rpc: world.rpcFor('demo'),
+      methods: moneyMethods,
+      onPresence: (state, meta) => {
+        received.push([state, meta]);
+        return { pending: 1 };
+      },
+      logger: recordingLogger().logger,
+      retryMs: 60_000,
+    });
+    await flush();
+
+    expect(await host.onPresence('connected')).toEqual({ pending: 1 });
+    expect(await host.onPresence('disconnected', { session: 's1', seq: 3 })).toEqual({
+      pending: 1,
+    });
+    expect(received).toEqual([
+      ['connected', undefined],
+      ['disconnected', { session: 's1', seq: 3 }],
+    ]);
+
+    await provider.unregister();
+    host.dispose();
+  });
 });
