@@ -14,9 +14,8 @@ on:
         required: true
         type: string
       dist-tag:
-        description: 'npm dist-tag to publish under'
+        description: 'npm dist-tag (default: latest for a stable version, beta for a prerelease)'
         required: false
-        default: 'latest'
         type: string
 
 permissions:
@@ -83,7 +82,7 @@ jobs:
         run: node scripts/release.mjs publish --artifacts artifacts --dist-tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          DIST_TAG: ${{ inputs.dist-tag || 'latest' }}
+          DIST_TAG: ${{ inputs.dist-tag }}
 
       - name: Attach the verified tarballs to the GitHub release
         if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
@@ -91,6 +90,7 @@ jobs:
         with:
           files: artifacts/*.tgz
           tag_name: ${{ inputs.tag || github.ref_name }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

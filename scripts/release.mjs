@@ -42,6 +42,27 @@ export class ReleaseError extends Error {
   }
 }
 
+/**
+ * npm writes to `latest` unless told otherwise, so a prerelease must never fall
+ * through to it: betas default to `beta`, and asking for `latest` is an error.
+ */
+export function resolveDistTag(version, requested) {
+  const prerelease = version.includes('-');
+  const tag = requested ?? (prerelease ? 'beta' : 'latest');
+
+  if (prerelease && tag === 'latest') {
+    throw new ReleaseError(
+      `${version} is a prerelease: publish it under beta/next, not latest`,
+    );
+  }
+
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(tag)) {
+    throw new ReleaseError(`Invalid dist-tag ${tag}`);
+  }
+
+  return tag;
+}
+
 export function tarballName(name, version) {
   return `${name.replace(/^@/, '').replace(/\//g, '-')}-${version}.tgz`;
 }
@@ -296,7 +317,7 @@ async function main(argv) {
 
   if (command === 'publish') {
     const artifactsDir = path.resolve(flag(args, 'artifacts', 'artifacts'));
-    const distTag = flag(args, 'dist-tag', 'latest');
+    const distTag = resolveDistTag(packages[0].version, flag(args, 'dist-tag'));
     const registry = flag(args, 'registry', REGISTRY);
     verifyTarballs(root, artifactsDir);
     const results = await releasePackages({
