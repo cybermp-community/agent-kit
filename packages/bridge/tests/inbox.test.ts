@@ -291,19 +291,44 @@ describe('createAgentInbox', () => {
     expect(remaining).not.toContain('old-0');
   });
 
-  it('ignores sessionless legacy reports only while a session is active', () => {
+  it('lets a sessionless listener refresh listening without stealing ownership', () => {
+    vi.useFakeTimers();
+    setup({ presenceTtlMs: 1_000, listeningTtlMs: 300 });
+    inbox!.onPresence('connected', { session: 'cli', seq: 1 });
+    const before = inbox!.exportState();
+
+    // Helper scripts report listening without knowing the CLI's session
+    vi.advanceTimersByTime(200);
+    inbox!.onPresence('listening');
+    expect(inbox!.isListening()).toBe(true);
+    expect(inbox!.exportState()).toMatchObject({
+      activeSession: 'cli',
+      lastSeenAt: before.lastSeenAt,
+    });
+
+    // The refresh expires like any other listening state
+    vi.advanceTimersByTime(301);
+    expect(inbox!.isListening()).toBe(false);
+  });
+
+  it('lets a sessionless listener refresh without changing ownership', () => {
     vi.useFakeTimers();
     setup();
     inbox!.onPresence('listening');
     expect(inbox!.isListening()).toBe(true);
 
     inbox!.onPresence('connected', { session: 'tracked', seq: 1 });
+    // Helper scripts announce listening without a session id
     inbox!.onPresence('listening');
+    expect(inbox!.isConnected()).toBe(true);
+    expect(inbox!.isListening()).toBe(true);
+
+    // A sessionless disconnect must not take the tracked agent offline
     inbox!.onPresence('disconnected');
     expect(inbox!.isConnected()).toBe(true);
-    expect(inbox!.isListening()).toBe(false);
 
     inbox!.onPresence('disconnected', { session: 'tracked', seq: 2 });
+    expect(inbox!.isConnected()).toBe(false);
     inbox!.onPresence('listening');
     expect(inbox!.isListening()).toBe(true);
   });
