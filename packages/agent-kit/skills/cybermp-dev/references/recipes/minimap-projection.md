@@ -11,7 +11,7 @@ sectionPriorityAliases:
 
 This recipe describes the supplied `cybermp-mcp-minimap` implementation. Use [INK widgets](../ink-widgets.md) for general attachment, layout, color, pooling and readback; those techniques apply to other native game UI too. The existing [single-shape diagnostic](minimap-zones.md) remains a smaller rendering probe and contains no world projection.
 
-Warning: rendering, vehicle/interior behavior and restart recovery below are author-reported observations on server v4.0.5-beta.2 Linux, with client and game builds unrecorded. The [audit](https://github.com/mo3g666/cybermp-agent-kit/blob/main/packages/agent-kit/docs/audits/2026-11-22-ink-minimap.md) identifies the supplied snapshot and separates source tests from game evidence. These formulas and tuning values need validation on the target HUD.
+Warning: rendering, vehicle/interior behavior and restart recovery below are author-reported observations on server v4.0.5-beta.2 Linux, with client and game builds unrecorded. The [audit](https://github.com/mo3g666/cybermp-community-agent-kit/blob/main/packages/agent-kit/docs/audits/2026-11-22-ink-minimap.md) identifies the supplied snapshot and separates source tests from game evidence. These formulas and tuning values need validation on the target HUD.
 
 ## Coordinate transform
 

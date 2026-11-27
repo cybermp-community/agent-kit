@@ -193,7 +193,7 @@ hermes mcp test cybermp
 The `cybermp-dev` skill can be installed straight from this repository:
 
 ```bash
-hermes skills install https://raw.githubusercontent.com/mo3g666/cybermp-agent-kit/main/packages/agent-kit/skills/cybermp-dev/SKILL.md
+hermes skills install https://raw.githubusercontent.com/mo3g666/cybermp-community-agent-kit/main/packages/agent-kit/skills/cybermp-dev/SKILL.md
 ```
 
 If a project carries its own copy under `.agents/skills/`, trust that folder instead with `hermes skills trust`. Live server tools need nothing extra beyond the setup below: the MCP server reads `DEVTOOLS_TOKEN` from the server folder, exactly as it does for other editors.
@@ -309,7 +309,6 @@ What stays the same:
 
 - The CLI binary is still `cybermp-agent-kit`, and the MCP server key in editor configurations is still `cybermp`.
 - The game resource id is still `mcp-bridge`; `init --bridge` keeps writing `resources/mcp-bridge` and adding `"mcp-bridge"` to `server.toml`.
-- GitHub links still point to `github.com/mo3g666/cybermp-agent-kit` until the repository is renamed.
 
 Steps for an existing project:
 
