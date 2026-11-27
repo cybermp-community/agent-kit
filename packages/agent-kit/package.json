@@ -2,6 +2,16 @@
   "name": "@cybermp-community/agent-kit",
   "version": "2.0.0",
   "license": "MIT",
+  "author": {
+    "name": "Nikita Kudiyarov",
+    "url": "https://github.com/mo3g666"
+  },
+  "contributors": [
+    {
+      "name": "Leonardo Neumann",
+      "url": "https://github.com/leonardohn"
+    }
+  ],
   "description": "CyberMP Community Agent Kit: CLI, MCP server and agent skills for CyberMP multiplayer development",
   "type": "module",
   "repository": {

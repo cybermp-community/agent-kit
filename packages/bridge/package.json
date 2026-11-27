@@ -3,6 +3,16 @@
   "version": "2.0.0",
   "description": "Localhost CyberMP RPC bridge for the CyberMP Community Agent Kit.",
   "license": "MIT",
+  "author": {
+    "name": "Nikita Kudiyarov",
+    "url": "https://github.com/mo3g666"
+  },
+  "contributors": [
+    {
+      "name": "Leonardo Neumann",
+      "url": "https://github.com/leonardohn"
+    }
+  ],
   "type": "module",
   "repository": {
     "type": "git",
@@ -17,7 +27,10 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "LICENSE"],
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },
