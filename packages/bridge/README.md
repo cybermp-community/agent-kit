@@ -1,7 +1,8 @@
 # cybermp-agent-kit-bridge
 
-Localhost RPC bridge so [`cybermp-mcp`](../mcp) can inspect and drive a
-CyberMP server.
+Localhost RPC bridge so the MCP server of
+[`cybermp-agent-kit`](https://github.com/mo3g666/cybermp-agent-kit) can inspect
+and drive a CyberMP server.
 
 ```ts
 import { createBridge, defineMethod } from 'cybermp-agent-kit-bridge';

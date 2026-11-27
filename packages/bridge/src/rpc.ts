@@ -72,6 +72,46 @@ type Reply = { ok: true; result: unknown } | { ok: false; error: string };
 
 const reply = (value: Reply) => JSON.stringify(value, jsonReplacer);
 
+/** `JSON.parse` that gives `undefined` instead of throwing */
+const parseJson = (text: unknown): unknown => {
+  if (typeof text !== 'string') {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Keys that would reach the prototype instead of becoming own properties */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Copies the keys of parsed JSON onto `target`; numbers already there are
+ * added to when `add` is set.
+ */
+const mergeInto = (target: Record<string, unknown>, source: unknown, add = false) => {
+  if (!isRecord(source)) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(source)) {
+    if (UNSAFE_KEYS.has(key)) {
+      continue;
+    }
+
+    target[key] =
+      add && typeof value === 'number' && typeof target[key] === 'number'
+        ? (target[key] as number) + value
+        : value;
+  }
+};
+
 /** The host answers a registration with a {@link Reply}; anything else counts as accepted */
 const registrationError = (answer: unknown) => {
   if (typeof answer !== 'string') {
@@ -142,11 +182,14 @@ export const registerMcpProvider = (options: McpProviderOptions): McpProvider =>
 
   rpc.register(RPC.call, async (ctx) => {
     try {
-      const { method, params } = JSON.parse(ctx.data) as {
-        method: string;
-        params?: unknown;
-      };
-      const def = methods[method];
+      const request = parseJson(ctx.data);
+
+      if (!isRecord(request) || typeof request.method !== 'string') {
+        return reply({ ok: false, error: 'Malformed call from the bridge' });
+      }
+
+      const { method, params } = request;
+      const def = Object.hasOwn(methods, method) ? methods[method] : undefined;
 
       if (!def) {
         return reply({ ok: false, error: `Unknown method: ${method}` });
@@ -174,9 +217,19 @@ export const registerMcpProvider = (options: McpProviderOptions): McpProvider =>
   });
 
   rpc.register(RPC.presence, async (ctx) => {
-    const { state } = JSON.parse(ctx.data) as { state: PresenceState };
+    const request = parseJson(ctx.data);
+    const state = isRecord(request) ? request.state : undefined;
 
-    return JSON.stringify((await options.onPresence?.(state)) ?? null, jsonReplacer);
+    if (state !== 'connected' && state !== 'listening' && state !== 'disconnected') {
+      return 'null';
+    }
+
+    try {
+      return JSON.stringify((await options.onPresence?.(state)) ?? null, jsonReplacer);
+    } catch (e) {
+      logger.warn?.(`MCP presence handler of ${resource} failed`, e);
+      return 'null';
+    }
   });
 
   let stopped = false;
@@ -391,7 +444,7 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
   const rejected = new Map<string, string>();
 
   rpc.register(RPC.register, (ctx) => {
-    const parsed = registrationSchema.safeParse(JSON.parse(ctx.data));
+    const parsed = registrationSchema.safeParse(parseJson(ctx.data));
 
     if (!parsed.success) {
       return reply({
@@ -433,9 +486,11 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
   });
 
   rpc.register(RPC.unregister, (ctx) => {
-    const { resource } = JSON.parse(ctx.data) as { resource: string };
+    const request = parseJson(ctx.data);
 
-    registry.delete(resource);
+    if (isRecord(request) && typeof request.resource === 'string') {
+      registry.delete(request.resource);
+    }
 
     return 'ok';
   });
@@ -459,12 +514,14 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
   };
 
   const callMethod = async (entry: Registration, method: string, params: unknown) => {
-    const response = JSON.parse(
-      await callProvider(entry, RPC.call, { method, params }),
-    ) as Reply;
+    const response = parseJson(await callProvider(entry, RPC.call, { method, params }));
+
+    if (!isRecord(response) || typeof response.ok !== 'boolean') {
+      throw new BridgeError(`Resource ${entry.resource} sent a malformed answer to ${method}`);
+    }
 
     if (!response.ok) {
-      throw new BridgeError(response.error);
+      throw new BridgeError(String(response.error ?? 'Unknown error'));
     }
 
     return response.result;
@@ -540,7 +597,7 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
 
             for (const entry of infoProviders) {
               try {
-                Object.assign(info, await callMethod(entry, 'server.info', {}));
+                mergeInto(info, await callMethod(entry, 'server.info', {}));
               } catch {
                 // A provider that is down must not break server_status
               }
@@ -561,7 +618,7 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
       const answers = await Promise.all(
         [...registry.values()].map(async (entry) => {
           try {
-            return JSON.parse(await callProvider(entry, RPC.presence, { state }));
+            return parseJson(await callProvider(entry, RPC.presence, { state }));
           } catch {
             return null;
           }
@@ -569,16 +626,7 @@ export const createProviderHost = (options: ProviderHostOptions): ProviderHost =
       );
 
       for (const answer of answers) {
-        if (!answer || typeof answer !== 'object') {
-          continue;
-        }
-
-        for (const [key, value] of Object.entries(answer)) {
-          merged[key] =
-            typeof value === 'number' && typeof merged[key] === 'number'
-              ? (merged[key] as number) + value
-              : value;
-        }
+        mergeInto(merged, answer, true);
       }
 
       return merged;

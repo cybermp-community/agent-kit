@@ -9,8 +9,9 @@ import {
   fileAudit,
   MCP_BRIDGE_RPC_NAME,
   resourceMethods,
+  type PresenceState,
 } from 'cybermp-agent-kit-bridge';
-import { loadConfig } from './env';
+import { bridgePort, loadConfig, startDelayMs } from './env';
 
 const mp = (globalThis as any).mp as MpServer;
 const config = loadConfig();
@@ -45,16 +46,21 @@ const core = {
   ...entityMethods(mp, { spawn: config.DEVTOOLS_ALLOW_SPAWN === '1' }),
 };
 
-const START_DELAY_MS =
-  Number.parseInt(config.DEVTOOLS_START_DELAY_MS ?? '', 10) || 30_000;
+const port = bridgePort(config);
+
+if (Number.isNaN(port)) {
+  log.warn(`DEVTOOLS_PORT=${config.DEVTOOLS_PORT} is not a port (1-65535)`);
+}
+
+const START_DELAY_MS = startDelayMs(config);
 const serverJustStarted = process.uptime() < 60;
 
 const bridge = createBridge({
   token,
-  port: Number.parseInt(config.DEVTOOLS_PORT ?? '', 10) || undefined,
+  port,
   listenDelayMs: serverJustStarted ? START_DELAY_MS : 0,
   methods: () => host.methods(core),
-  onPresence: (state) => host.onPresence(state),
+  onPresence: (state: PresenceState) => host.onPresence(state),
   onAudit: config.DEVTOOLS_AUDIT_FILE
     ? fileAudit(config.DEVTOOLS_AUDIT_FILE)
     : undefined,

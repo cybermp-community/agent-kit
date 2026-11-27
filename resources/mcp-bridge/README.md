@@ -1,7 +1,7 @@
 # mcp-bridge (CyberMP resource)
 
-Lets an LLM agent inspect and drive your server through
-[`cybermp-mcp`](../../tools/mcp).
+Lets an LLM agent inspect and drive your server through the MCP server of
+[`cybermp-agent-kit`](https://github.com/mo3g666/cybermp-agent-kit).
 
 ## Install
 
@@ -51,6 +51,7 @@ import { defineMethod, registerMcpProvider } from 'cybermp-agent-kit-bridge';
 import z from 'zod';
 
 const rpc = new RpcServer({ name: 'my-gamemode' });
+let agentAttached = false;
 
 const provider = registerMcpProvider({
   mp,
@@ -66,8 +67,11 @@ const provider = registerMcpProvider({
       handler: ({ playerId, amount }) => bank.give(playerId, amount),
     }),
   },
-  // optional: react to an agent attaching/detaching, e.g. enable a feature
-  onPresence: (state) => ({ pending: inbox.pendingCount() }),
+  // optional: react to an agent attaching/detaching, e.g. enable a feature.
+  // A returned object is merged into the bridge's reply
+  onPresence: (state) => {
+    agentAttached = state !== 'disconnected';
+  },
 });
 
 // when your resource stops
@@ -80,8 +84,10 @@ await provider.unregister();
 - **Names.** Your tools are named `<scope>__<tool>`; built-in tools keep bare
   names. The scope defaults to your resource name. If another running resource
   already holds your scope, your registration is refused and the reason is
-  logged in your resource (see the bridge library README, "Scopes"). A method
-  named `server.info` (no `tool`) is merged into `server_status`.
+  logged in your resource (see the
+  [bridge library README](https://github.com/mo3g666/cybermp-agent-kit/blob/main/packages/bridge/README.md),
+  "Scopes"). A method named `server.info` (no `tool`) is merged into
+  `server_status`.
 - **Safety applies to you too.** Calls to your tools go through the bridge's
   audit trail and through the MCP server's read-only / allow / deny settings.
 - **Everything is JSON.** Arguments, results and errors cross resources as JSON

@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { appendFileSync } from 'node:fs';
 import {
   createServer,
@@ -201,25 +201,64 @@ export const describeMethods = (
       : [],
   );
 
+/**
+ * Rejects bodies over {@link MAX_BODY_BYTES} without closing the socket, so
+ * the caller can still answer; the rest of the body is ignored and the
+ * connection is closed once the answer is sent (see `handle`).
+ */
 const readBody = (req: IncomingMessage) =>
   new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
+    let settled = false;
+
+    const fail = (error: Error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    };
 
     req.on('data', (chunk: Buffer) => {
-      size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(new BridgeError('Request body too large'));
-        req.destroy();
+      if (settled) {
         return;
       }
+
+      size += chunk.length;
+
+      if (size > MAX_BODY_BYTES) {
+        fail(new BridgeError(`Request body too large (max ${MAX_BODY_BYTES} bytes)`));
+        return;
+      }
+
       chunks.push(chunk);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
+    req.on('end', () => {
+      if (!settled) {
+        settled = true;
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      }
+    });
+    req.on('error', fail);
+    req.on('aborted', () => fail(new BridgeError('Request aborted')));
+    req.on('close', () => {
+      if (!req.complete) {
+        fail(new BridgeError('Request aborted'));
+      }
+    });
   });
 
 const send = (res: ServerResponse, status: number, body: unknown) => {
+  if (res.writableEnded) {
+    return;
+  }
+
+  if (res.headersSent) {
+    // A partial answer can't be fixed, so drop the connection instead
+    res.destroy();
+    return;
+  }
+
   const json = JSON.stringify(body, jsonReplacer);
 
   res.writeHead(status, {
@@ -228,6 +267,15 @@ const send = (res: ServerResponse, status: number, body: unknown) => {
   });
   res.end(json);
 };
+
+const isValidPort = (port: number) => Number.isInteger(port) && port >= 0 && port <= 65_535;
+
+/** Fixed-length digest, so comparing tokens does not leak their length */
+const digest = (value: string) => createHash('sha256').update(value).digest();
+
+const PRESENCE_PARAMS = z.object({
+  state: z.enum(['connected', 'listening', 'disconnected']),
+});
 
 /**
  * Starts the bridge with `POST /rpc {"method", "params"}` with
@@ -239,7 +287,7 @@ export const createBridge = (options: BridgeOptions): Bridge => {
   const { token, logger = {} } = options;
   const getMethods = async () =>
     typeof options.methods === 'function' ? options.methods() : options.methods;
-  const port = options.port || DEFAULT_PORT;
+  const port = options.port ?? DEFAULT_PORT;
   const host = options.host ?? DEFAULT_HOST;
 
   if (!token) {
@@ -247,14 +295,17 @@ export const createBridge = (options: BridgeOptions): Bridge => {
     return { stop() {} };
   }
 
-  const expected = Buffer.from(token);
+  if (!isValidPort(port)) {
+    logger.warn?.(`MCP bridge disabled: invalid port ${port} (use 1-65535)`);
+    return { stop() {} };
+  }
+
+  const expected = digest(token);
 
   const isAuthorized = (req: IncomingMessage) => {
-    const given = Buffer.from(
-      (req.headers.authorization ?? '').replace(/^Bearer\s+/i, ''),
-    );
+    const match = /^Bearer[ \t]+(\S.*)$/i.exec(req.headers.authorization ?? '');
 
-    return given.length === expected.length && timingSafeEqual(given, expected);
+    return Boolean(match) && timingSafeEqual(digest(match![1].trim()), expected);
   };
 
   const call = async (method: string, rawParams: unknown) => {
@@ -263,14 +314,19 @@ export const createBridge = (options: BridgeOptions): Bridge => {
     }
 
     if (method === 'bridge.presence') {
-      const { state } = z
-        .object({ state: z.enum(['connected', 'listening', 'disconnected']) })
-        .parse(rawParams ?? {});
+      const parsed = PRESENCE_PARAMS.safeParse(rawParams ?? {});
 
-      return (await options.onPresence?.(state)) ?? null;
+      if (!parsed.success) {
+        throw new BridgeError(`Invalid params: ${z.prettifyError(parsed.error)}`);
+      }
+
+      return (await options.onPresence?.(parsed.data.state)) ?? null;
     }
 
-    const def = (await getMethods())[method];
+    const methods = await getMethods();
+    // Not `methods[method]`, since "__proto__" or
+    // "toString" would find Object.prototype
+    const def = Object.hasOwn(methods, method) ? methods[method] : undefined;
 
     if (!def) {
       throw new BridgeError(`Unknown method: ${method}`);
@@ -324,6 +380,12 @@ export const createBridge = (options: BridgeOptions): Bridge => {
     }
 
     let method = '?';
+    // Stop reading an oversized or broken body once the answer is out
+    res.once('finish', () => {
+      if (!req.complete) {
+        req.destroy();
+      }
+    });
 
     try {
       const body = JSON.parse(await readBody(req)) as {
@@ -363,12 +425,25 @@ export const createBridge = (options: BridgeOptions): Bridge => {
       return;
     }
 
+    let listening = false;
     const candidate = createServer((req, res) => {
       void handle(req, res);
     });
 
-    candidate.once('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE' && attempt < LISTEN_RETRIES) {
+    // Known before `listen` completes, so `stop()` in between still closes it
+    server = candidate;
+
+    candidate.on('error', (err: NodeJS.ErrnoException) => {
+      if (listening) {
+        logger.warn?.('MCP bridge server error', err.message);
+        return;
+      }
+
+      if (server === candidate) {
+        server = undefined;
+      }
+
+      if (err.code === 'EADDRINUSE' && attempt < LISTEN_RETRIES && !stopped) {
         retryTimer = setTimeout(() => listen(attempt + 1), LISTEN_RETRY_DELAY_MS);
         return;
       }
@@ -377,7 +452,13 @@ export const createBridge = (options: BridgeOptions): Bridge => {
     });
 
     candidate.listen(port, host, () => {
-      server = candidate;
+      listening = true;
+
+      if (stopped) {
+        candidate.close();
+        return;
+      }
+
       logger.success?.(`MCP bridge listening on http://${host}:${port}/rpc`);
     });
   };
@@ -397,9 +478,12 @@ export const createBridge = (options: BridgeOptions): Bridge => {
         clearTimeout(retryTimer);
       }
 
-      server?.closeAllConnections();
-      server?.close();
-      server = undefined;
+      if (server) {
+        server.closeAllConnections();
+        // Not listening yet, as the listen callback closes it once bound
+        server.close(() => {});
+        server = undefined;
+      }
     },
   };
 };

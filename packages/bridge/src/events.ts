@@ -145,7 +145,7 @@ export type EventLogOptions = {
    * the noisy ones too) or an explicit list of event names.
    */
   events?: 'default' | 'all' | string[];
-  /** Entries kept in memory (oldest are dropped). Default 1000 */
+  /** Entries kept in memory (oldest are dropped). Default 1000, at least 1 */
   capacity?: number;
 };
 
@@ -171,7 +171,7 @@ export const createEventLog = (
   mp: EventsMp,
   options: EventLogOptions = {},
 ): EventLog => {
-  const capacity = options.capacity ?? 1000;
+  const capacity = Math.max(1, Math.floor(options.capacity ?? 1000) || 1);
   const names =
     options.events === 'all'
       ? [...DEFAULT_EVENTS, ...NOISY_EVENTS]
@@ -183,8 +183,21 @@ export const createEventLog = (
   let entries: LoggedEvent[] = [];
   const nicknames = new Map<number, string>();
   let waiters: Array<() => void> = [];
+  let disposed = false;
+
+  const wakeAll = () => {
+    const ready = waiters;
+    waiters = [];
+    for (const wake of ready) {
+      wake();
+    }
+  };
 
   const record = (type: string, data: Record<string, unknown> = {}) => {
+    if (disposed) {
+      return;
+    }
+
     const playerId = data.playerId;
 
     if (typeof playerId === 'number') {
@@ -209,11 +222,7 @@ export const createEventLog = (
       entries = entries.slice(-capacity);
     }
 
-    const ready = waiters;
-    waiters = [];
-    for (const wake of ready) {
-      wake();
-    }
+    wakeAll();
   };
 
   const listeners = names.map((name) => {
@@ -240,6 +249,18 @@ export const createEventLog = (
 
     return { name, listener };
   });
+
+  if (!names.includes('playerDisconnected')) {
+    // Not recorded, but nicknames of players who left must still be forgotten
+    const listener = (playerId: unknown) => {
+      if (typeof playerId === 'number') {
+        nicknames.delete(playerId);
+      }
+    };
+
+    mp.events.on('playerDisconnected', listener);
+    listeners.push({ name: 'playerDisconnected', listener });
+  }
 
   const select = (since: number, types?: string[], limit = 100) => {
     const matching = entries.filter(
@@ -294,7 +315,8 @@ export const createEventLog = (
         for (;;) {
           const result = select(since, types, limit);
 
-          if (result.events.length > 0 || Date.now() >= deadline) {
+          // After dispose() nothing new can arrive, answer now so shutdown is not held up
+          if (result.events.length > 0 || disposed || Date.now() >= deadline) {
             return result;
           }
 
@@ -317,15 +339,15 @@ export const createEventLog = (
     methods,
     record,
     dispose() {
+      disposed = true;
+
       for (const { name, listener } of listeners) {
         mp.events.off(name, listener);
       }
 
-      const ready = waiters;
-      waiters = [];
-      for (const wake of ready) {
-        wake();
-      }
+      wakeAll();
+      entries = [];
+      nicknames.clear();
     },
   };
 };
