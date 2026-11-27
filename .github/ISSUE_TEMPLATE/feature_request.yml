@@ -1,0 +1,57 @@
+name: Feature request
+description: Propose a capability or a behaviour the kit does not have yet
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before the solution: what you are trying to do and
+        where the kit gets in the way. Proposals that name a concrete use case
+        are easier to evaluate than ones that name an API.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to accomplish, and what the kit makes hard or impossible today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: What the kit should do instead. Include the command, config or type shape you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you tried, and why they are not enough.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Area
+      options:
+        - CLI (packages/agent-kit)
+        - Bridge library (packages/bridge)
+        - MCP resource template (resources/mcp-bridge)
+        - Skills and rules shipped in the kit
+        - Documentation
+        - Release and CI
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and pull requests for this proposal.
+          required: true
+        - label: I am willing to open a pull request for it.
+          required: false
