@@ -6,14 +6,14 @@ with no logs folder and no token, clients see only the five docs tools.
 
 ```
  MCP client ──stdio── cybermp-agent-kit ──HTTP 127.0.0.1:2080── mcp-bridge resource ──RPC── your resources
-                         │                                         (cybermp-agent-kit-bridge)
+                         │                                         (@cybermp-community/agent-kit-bridge)
                          └── reads logs/ and the process list
 ```
 
 ## Setup
 
 1. In the server folder (the one with `server.toml` and `resources/`):
-   `npx cybermp-agent-kit init --bridge`. This copies
+   `npx @cybermp-community/agent-kit init --bridge`. This copies
    [`resources/mcp-bridge`](../resources/mcp-bridge/README.md) and writes a
    random `DEVTOOLS_TOKEN` to `.env`. Both the resource and the MCP server read
    that file, so the token never goes into an editor configuration.

@@ -10,13 +10,13 @@ import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotoc
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
-function pack(destination: string): string {
+function pack(destination: string, cwd = root): string {
   const packageManager = process.env.npm_execpath || 'pnpm';
   const args = ['pack', '--pack-destination', destination];
   const isScript = /\.[cm]?js$/i.test(packageManager);
   return execFileSync(isScript ? process.execPath : packageManager,
     isScript ? [packageManager, ...args] : args,
-    { cwd: root, encoding: 'utf8' }).trim().split('\n').at(-1)!;
+    { cwd, encoding: 'utf8' }).trim().split('\n').at(-1)!;
 }
 
 it('serves the installed package with the locked production dependencies', async () => {
@@ -27,6 +27,9 @@ it('serves the installed package with the locked production dependencies', async
     execFileSync('tar', ['-xzf', tarball, '-C', temp]);
     const installed = path.join(temp, 'package');
     const metadata = JSON.parse(fs.readFileSync(path.join(installed, 'package.json'), 'utf8'));
+    expect(metadata.name).toBe('@cybermp-community/agent-kit');
+    expect(metadata.version).toBe('2.0.0');
+    expect(metadata.license).toBe('MIT');
     for (const name of Object.keys(metadata.dependencies)) {
       const target = path.join(installed, 'node_modules', name);
       fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -35,6 +38,15 @@ it('serves the installed package with the locked production dependencies', async
     expect(fs.existsSync(path.join(installed, 'node_modules/@cybermp/client-types'))).toBe(false);
     // Every shipped runtime asset lives in the CLI package, not at the repository root
     const packedFiles = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).split('\n');
+    // Project code is MIT; the third-party data notices ship untouched alongside it
+    const packedLicense = execFileSync(
+      'tar', ['-xzf', tarball, '-O', 'package/LICENSE'], { encoding: 'utf8' },
+    );
+    expect(packedLicense).toContain('MIT License');
+    expect(packedLicense).toContain('Copyright (c) 2026 Nikita Kudiyarov and contributors');
+    for (const notice of ['data/LICENSE-cybermp-client-types', 'data/LICENSE-ink-minimap']) {
+      expect(packedFiles, notice).toContain(`package/${notice}`);
+    }
     for (const asset of ['data', 'docs/live-server.md', 'plugins', 'rules', 'skills', 'templates']) {
       expect(
         packedFiles.some((file) => file === `package/${asset}` || file.startsWith(`package/${asset}/`)),
@@ -48,7 +60,7 @@ it('serves the installed package with the locked production dependencies', async
     const bridgeVersion = JSON.parse(
       fs.readFileSync(path.join(root, '../bridge/package.json'), 'utf8'),
     ).version;
-    expect(resourceManifest.dependencies['cybermp-agent-kit-bridge']).toBe(bridgeVersion);
+    expect(resourceManifest.dependencies['@cybermp-community/agent-kit-bridge']).toBe(bridgeVersion);
     // The resource template `init --bridge` copies ships in the tarball, without build leftovers
     for (const file of ['resource.toml', 'package.json', 'tsconfig.json', 'src/index.ts', 'src/env.ts', 'README.md']) {
       expect(packedFiles, file).toContain(`package/resources/mcp-bridge/${file}`);
@@ -57,7 +69,9 @@ it('serves the installed package with the locked production dependencies', async
     // The installed package resolves its own root, #imports and public exports
     const consumer = path.join(temp, 'consumer');
     fs.mkdirSync(path.join(consumer, 'node_modules'), { recursive: true });
-    fs.symlinkSync(installed, path.join(consumer, 'node_modules', metadata.name), 'junction');
+    const consumerPackage = path.join(consumer, 'node_modules', metadata.name);
+    fs.mkdirSync(path.dirname(consumerPackage), { recursive: true });
+    fs.symlinkSync(installed, consumerPackage, 'junction');
     const probe = execFileSync(process.execPath, ['--input-type=module', '-e', `
       const { getPackageRoot } = await import(${JSON.stringify(pathToFileURL(path.join(installed, 'dist/src/cli/init.js')).href)});
       const { packageVersion } = await import(${JSON.stringify(pathToFileURL(path.join(installed, 'dist/src/version.js')).href)});
@@ -87,7 +101,7 @@ it('serves the installed package with the locked production dependencies', async
     ], { cwd: project, encoding: 'utf8' });
     expect(fs.existsSync(path.join(project, 'resources/mcp-bridge/resource.toml'))).toBe(true);
     expect(fs.readFileSync(path.join(project, 'resources/mcp-bridge/src/index.ts'), 'utf8'))
-      .toContain("from 'cybermp-agent-kit-bridge'");
+      .toContain("from '@cybermp-community/agent-kit-bridge'");
     expect(fs.existsSync(path.join(project, 'resources/mcp-bridge/dist'))).toBe(false);
     expect(fs.readFileSync(path.join(project, '.env'), 'utf8')).toMatch(/^DEVTOOLS_TOKEN=[0-9a-f]{48}$/m);
     expect(fs.readFileSync(path.join(project, '.gitignore'), 'utf8')).toBe('.env\n');
@@ -325,3 +339,30 @@ it('serves the installed package with the locked production dependencies', async
     fs.rmSync(temp, { recursive: true, force: true });
   }
 }, 30_000);
+
+it('packs the bridge for publication with the community name and MIT text', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-bridge-pack-'));
+  try {
+    const tarball = pack(temp, path.resolve(root, '../bridge'));
+    const metadata = JSON.parse(execFileSync(
+      'tar', ['-xzf', tarball, '-O', 'package/package.json'], { encoding: 'utf8' },
+    ));
+    expect(metadata.name).toBe('@cybermp-community/agent-kit-bridge');
+    expect(metadata.version).toBe('2.0.0');
+    expect(metadata.license).toBe('MIT');
+
+    const files = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).split('\n');
+    for (const file of ['package/LICENSE', 'package/dist/index.js', 'package/dist/index.d.ts']) {
+      expect(files, file).toContain(file);
+    }
+
+    const license = execFileSync(
+      'tar', ['-xzf', tarball, '-O', 'package/LICENSE'], { encoding: 'utf8' },
+    );
+    expect(license).toContain('MIT License');
+    expect(license).toContain('Copyright (c) 2026 Nikita Kudiyarov and contributors');
+    expect(files.some((file) => /^package\/(src|tests)\//.test(file))).toBe(false);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+}, 120_000);

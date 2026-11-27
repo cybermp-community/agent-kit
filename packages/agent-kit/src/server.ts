@@ -42,7 +42,7 @@ export function createCyberMpServerWithLive(options: CyberMpServerOptions = {}):
     .join(' ');
 
   const server = new McpServer(
-    { name: 'cybermp-agent-kit', version: packageVersion },
+    { name: 'cybermp-community-agent-kit', version: packageVersion },
     instructions ? { instructions } : undefined,
   );
 

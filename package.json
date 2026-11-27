@@ -1,8 +1,9 @@
 {
-  "name": "cybermp-agent-kit-monorepo",
-  "version": "0.0.0",
+  "name": "cybermp-community-agent-kit",
+  "version": "2.0.0",
   "private": true,
-  "description": "Workspace for the CyberMP agent kit CLI, bridge and resource template",
+  "license": "MIT",
+  "description": "Workspace for the CyberMP Community Agent Kit CLI, bridge and resource template",
   "type": "module",
   "scripts": {
     "build": "pnpm run build:bridge && pnpm run build:agent-kit && pnpm run build:resource",

@@ -1,8 +1,8 @@
 {
-  "name": "cybermp-agent-kit",
-  "version": "1.3.1",
-  "license": "GPL-3.0-or-later",
-  "description": "CyberMP AI Agent Toolkit & MCP Server",
+  "name": "@cybermp-community/agent-kit",
+  "version": "2.0.0",
+  "license": "MIT",
+  "description": "CyberMP Community Agent Kit: CLI, MCP server and agent skills for CyberMP multiplayer development",
   "type": "module",
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
   },
   "files": [
     "dist",
+    "LICENSE",
     "data",
     "docs/knowledge-inventory.md",
     "docs/live-server.md",

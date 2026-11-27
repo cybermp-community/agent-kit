@@ -1,7 +1,7 @@
 # mcp-bridge (CyberMP resource)
 
 Lets an LLM agent inspect and drive your server through the MCP server of
-[`cybermp-agent-kit`](https://github.com/mo3g666/cybermp-agent-kit).
+[`@cybermp-community/agent-kit`](https://github.com/mo3g666/cybermp-agent-kit).
 
 ## Install
 
@@ -47,7 +47,7 @@ resource already has:
 
 ```ts
 import { RpcServer } from '@cybermp/rpc-server';
-import { defineMethod, registerMcpProvider } from 'cybermp-agent-kit-bridge';
+import { defineMethod, registerMcpProvider } from '@cybermp-community/agent-kit-bridge';
 import z from 'zod';
 
 const rpc = new RpcServer({ name: 'my-gamemode' });

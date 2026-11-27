@@ -1,8 +1,8 @@
 {
-  "name": "cybermp-agent-kit-bridge",
-  "version": "0.1.0",
-  "description": "Localhost CyberMP RPC bridge for cybermp-agent-kit.",
-  "license": "GPL-3.0-or-later",
+  "name": "@cybermp-community/agent-kit-bridge",
+  "version": "2.0.0",
+  "description": "Localhost CyberMP RPC bridge for the CyberMP Community Agent Kit.",
+  "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE"],
   "engines": {
     "node": ">=20.0.0"
   },

@@ -91,7 +91,7 @@ function selectExample(guide: GuideRecord, query: string, terms: string[]): numb
 export function formatGuide(guide: GuideRecord, query: string): string {
   const terms = identifiers(query);
   const heading = guide.sectionTitle ? `${guide.title} -> ${guide.sectionTitle}` : guide.title;
-  const source = guide.sourceKind === 'cybermp-docs' ? 'CyberMP Docs' : 'CyberMP Agent Kit';
+  const source = guide.sourceKind === 'cybermp-docs' ? 'CyberMP Docs' : 'CyberMP Community Agent Kit';
   const lines = [
     `### [${heading}](${guide.url})`,
     `**Source:** ${source} · **Environment:** ${guide.environment ?? 'unspecified'} · **Revision:** ${guide.sourceRevision ?? 'unspecified'}`,

@@ -9,7 +9,7 @@ import {
   fileAudit,
   MCP_BRIDGE_RPC_NAME,
   resourceMethods,
-} from 'cybermp-agent-kit-bridge';
+} from '@cybermp-community/agent-kit-bridge';
 import { bridgePort, loadConfig, startDelayMs } from './env';
 
 const mp = (globalThis as any).mp as MpServer;

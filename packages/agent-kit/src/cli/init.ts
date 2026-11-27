@@ -99,7 +99,8 @@ export function setupBridge(cwd: string, force = false): BridgeSetup {
 }
 
 /**
- * Resolves the root directory of the cybermp-agent-kit package containing templates and skills.
+ * Resolves the root directory of the @cybermp-community/agent-kit package
+ * containing templates and skills.
  */
 export function getPackageRoot(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -123,11 +124,16 @@ export function resolveMcpServerCommand(
   cwd: string = process.cwd(),
   isWindows: boolean = process.platform === 'win32'
 ): { command: string; args: string[] } {
-  const localCli = path.join(cwd, 'node_modules', 'cybermp-agent-kit', 'dist', 'bin', 'cli.js');
+  const localCli = path.join(
+    cwd, 'node_modules', '@cybermp-community', 'agent-kit', 'dist', 'bin', 'cli.js',
+  );
   if (fs.existsSync(localCli)) {
-    return { command: 'node', args: ['./node_modules/cybermp-agent-kit/dist/bin/cli.js'] };
+    return {
+      command: 'node',
+      args: ['./node_modules/@cybermp-community/agent-kit/dist/bin/cli.js'],
+    };
   }
-  return { command: isWindows ? 'npx.cmd' : 'npx', args: ['-y', 'cybermp-agent-kit'] };
+  return { command: isWindows ? 'npx.cmd' : 'npx', args: ['-y', '@cybermp-community/agent-kit'] };
 }
 
 /**
@@ -407,7 +413,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       console.log('Skipping existing resources/mcp-bridge (use --force to overwrite)');
     } else if (setup.resource === 'missing') {
       console.warn(
-        'Warning: the mcp-bridge resource template is missing from this cybermp-agent-kit install, so resources/mcp-bridge was not created. Reinstall the package, or copy resources/mcp-bridge from the repository.',
+        'Warning: the mcp-bridge resource template is missing from this CyberMP Community Agent Kit install, so resources/mcp-bridge was not created. Reinstall the package, or copy resources/mcp-bridge from the repository.',
       );
     }
     if (setup.gitignore === 'added') {
