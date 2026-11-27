@@ -1,7 +1,7 @@
 # @cybermp-community/agent-kit-bridge
 
 Localhost RPC bridge so the MCP server of
-[`@cybermp-community/agent-kit`](https://github.com/mo3g666/cybermp-community-agent-kit) can inspect
+[`@cybermp-community/agent-kit`](https://github.com/cybermp-community/agent-kit) can inspect
 and drive a CyberMP server.
 
 ```ts
