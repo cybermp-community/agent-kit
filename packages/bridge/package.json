@@ -27,6 +27,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "type:check": "tsc --noEmit -p .",
+    "test": "vitest run",
     "prepublishOnly": "pnpm run build",
     "prepare": "pnpm run build"
   },
@@ -36,6 +37,7 @@
   "devDependencies": {
     "@types/node": "^22.13.0",
     "typescript": "^5.9.3",
+    "vitest": "^3.0.5",
     "zod": "^4.6.7"
   }
 }

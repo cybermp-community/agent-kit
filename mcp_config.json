@@ -3,7 +3,7 @@
     "cybermp": {
       "command": "node",
       "args": [
-        "${PLUGIN_ROOT}/dist/bin/cli.js",
+        "${PLUGIN_ROOT}/packages/agent-kit/dist/bin/cli.js",
         "run"
       ]
     }

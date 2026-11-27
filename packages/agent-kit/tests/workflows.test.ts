@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import YAML from 'yaml';
 
 describe('GitHub Actions Workflows', () => {
-  const rootDir = path.resolve(__dirname, '..');
+  const rootDir = path.resolve(__dirname, '../../..');
   const workflowsDir = path.join(rootDir, '.github', 'workflows');
 
   const testWorkflowPath = path.join(workflowsDir, 'test.yml');

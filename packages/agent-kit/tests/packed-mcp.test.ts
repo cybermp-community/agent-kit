@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -33,12 +33,51 @@ it('serves the installed package with the locked production dependencies', async
       fs.symlinkSync(fs.realpathSync(path.join(root, 'node_modules', name)), target, 'junction');
     }
     expect(fs.existsSync(path.join(installed, 'node_modules/@cybermp/client-types'))).toBe(false);
-    // The resource template `init --bridge` copies ships in the tarball, without build leftovers
+    // Every shipped runtime asset lives in the CLI package, not at the repository root
     const packedFiles = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).split('\n');
+    for (const asset of ['data', 'docs/live-server.md', 'plugins', 'rules', 'skills', 'templates']) {
+      expect(
+        packedFiles.some((file) => file === `package/${asset}` || file.startsWith(`package/${asset}/`)),
+        asset,
+      ).toBe(true);
+    }
+    // The staged resource keeps a plain, exact bridge version rather than workspace:*
+    const resourceManifest = JSON.parse(execFileSync(
+      'tar', ['-xzf', tarball, '-O', 'package/resources/mcp-bridge/package.json'], { encoding: 'utf8' },
+    ));
+    const bridgeVersion = JSON.parse(
+      fs.readFileSync(path.join(root, '../bridge/package.json'), 'utf8'),
+    ).version;
+    expect(resourceManifest.dependencies['cybermp-agent-kit-bridge']).toBe(bridgeVersion);
+    // The resource template `init --bridge` copies ships in the tarball, without build leftovers
     for (const file of ['resource.toml', 'package.json', 'tsconfig.json', 'src/index.ts', 'src/env.ts', 'README.md']) {
       expect(packedFiles, file).toContain(`package/resources/mcp-bridge/${file}`);
     }
     expect(packedFiles.filter((file) => /resources\/mcp-bridge\/node_modules\//.test(file))).toEqual([]);
+    // The installed package resolves its own root, #imports and public exports
+    const consumer = path.join(temp, 'consumer');
+    fs.mkdirSync(path.join(consumer, 'node_modules'), { recursive: true });
+    fs.symlinkSync(installed, path.join(consumer, 'node_modules', metadata.name), 'junction');
+    const probe = execFileSync(process.execPath, ['--input-type=module', '-e', `
+      const { getPackageRoot } = await import(${JSON.stringify(pathToFileURL(path.join(installed, 'dist/src/cli/init.js')).href)});
+      const { packageVersion } = await import(${JSON.stringify(pathToFileURL(path.join(installed, 'dist/src/version.js')).href)});
+      const { getTypeInfo } = await import(${JSON.stringify(pathToFileURL(path.join(installed, 'dist/src/engine/types-engine.js')).href)});
+      const root = await import(${JSON.stringify(metadata.name)});
+      const client = await import(${JSON.stringify(`${metadata.name}/client`)});
+      console.log(JSON.stringify({
+        packageRoot: getPackageRoot(),
+        version: packageVersion,
+        nativeType: getTypeInfo('inkCircleWidget', 'client').type?.name ?? null,
+        clientExports: Object.keys(client).sort(),
+        rootExport: typeof root.callBridge,
+      }));
+    `], { cwd: consumer, encoding: 'utf8' });
+    const resolved = JSON.parse(probe.trim().split('\n').at(-1)!);
+    expect(resolved.packageRoot).toBe(fs.realpathSync(installed));
+    expect(resolved.version).toBe(metadata.version);
+    expect(resolved.nativeType).toBe('inkCircleWidget');
+    expect(resolved.clientExports).toContain('callBridge');
+    expect(resolved.rootExport).toBe('function');
     // `init --bridge` from the installed package sets up a fresh server project
     const project = path.join(temp, 'project');
     fs.mkdirSync(project);

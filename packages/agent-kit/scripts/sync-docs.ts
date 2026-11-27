@@ -163,7 +163,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     ? undefined
     : nextArg && !nextArg.startsWith('-')
       ? path.resolve(nextArg)
-      : path.resolve('../CyberMP-Docs/src/content/docs/guides');
+      : path.resolve('../../../CyberMP-Docs/src/content/docs/guides');
 
   syncDocs({ sourceDir, expectedFiles: KNOWN_GUIDES }).catch((error) => {
     console.error(error.message);

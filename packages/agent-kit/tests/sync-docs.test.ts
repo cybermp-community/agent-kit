@@ -171,7 +171,7 @@ import { Steps } from '@astrojs/starlight/components';
   it('syncs real guides from local CyberMP-Docs directory if present', async () => {
     const realGuidesDir =
       process.env.CYBERMP_DOCS_DIR ||
-      path.resolve(__dirname, '../../CyberMP-Docs/src/content/docs/guides');
+      path.resolve(__dirname, '../../../CyberMP-Docs/src/content/docs/guides');
     if (!fs.existsSync(realGuidesDir)) {
       return; // Skip if directory absent
     }
