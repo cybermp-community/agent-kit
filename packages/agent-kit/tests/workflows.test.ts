@@ -243,6 +243,8 @@ describe('release.yml Configuration', () => {
     const runs = runText(job);
 
     expect(runs).toContain('pnpm install --frozen-lockfile');
+    // A tag can point at a commit nobody tested: the release runs the suite too
+    expect(runs).toContain('pnpm test');
     expect(runs).toContain('node scripts/release.mjs check-tag');
     expect(runs).toContain('pnpm --dir packages/bridge run build');
     expect(runs).toContain('pnpm --dir packages/agent-kit run build');
