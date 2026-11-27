@@ -828,7 +828,7 @@ export function parseGuides(docsDir?: string, projectRoot: string = PROJECT_ROOT
     for (const doc of refFiles) {
       const content = fs.readFileSync(doc.fullPath, 'utf-8');
       const slug = `references/${doc.relPath.replace(/\.md$/, '').replace(/\\/g, '/')}`;
-      const url = `https://github.com/cybermp-community/agent-kit/blob/main/skills/cybermp-dev/references/${doc.relPath.replace(/\\/g, '/')}`;
+      const url = `https://github.com/cybermp-community/agent-kit/blob/main/packages/agent-kit/skills/cybermp-dev/references/${doc.relPath.replace(/\\/g, '/')}`;
       let { title, description } = extractDocMetadata(content);
       const baseName = path.basename(doc.relPath, path.extname(doc.relPath));
       if (!title || title === 'Untitled') {

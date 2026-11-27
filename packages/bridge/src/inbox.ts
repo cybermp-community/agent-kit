@@ -507,6 +507,14 @@ export const createAgentInbox = <TMeta = undefined>(
         // Legacy agents send no session id: they may take over an idle inbox
         // but never displace a sessioned agent that is still active.
         if (activeSession !== undefined) {
+          // Helper scripts announce a listening state without knowing the CLI's
+          // session, so that one state may be refreshed; ownership, presence
+          // freshness and disconnects stay with the sessioned agent.
+          if (state === 'listening') {
+            lastListeningAt = now;
+            sweep();
+          }
+
           return { pending: queue.length };
         }
 

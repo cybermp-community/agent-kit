@@ -80,7 +80,7 @@ export function lookupTweakDb(query = '', category = 'all', limit = 10): TweakDb
 
   if (results.some((record) => record.kind === 'workspot-search-label')) {
     lines.push('', 'For `PlayInDeviceSimple`, resolve the device and actor in the client. Inspect the device and its `.workspot` asset in the target build.',
-      '[Workspot asset and playback guide](https://github.com/cybermp-community/agent-kit/blob/main/skills/cybermp-dev/references/animations-and-workspots.md)');
+      '[Workspot asset and playback guide](https://github.com/cybermp-community/agent-kit/blob/main/packages/agent-kit/skills/cybermp-dev/references/animations-and-workspots.md)');
   }
 
   return {
