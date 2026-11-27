@@ -1,0 +1,95 @@
+name: Bug report
+description: The CLI, the bridge or the MCP resource does not do what the docs say
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Search the existing issues first, and keep one
+        problem per issue: two unrelated bugs are two issues.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The actual behaviour, including the exact error text.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: The behaviour the documentation or the types promise.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran, the config involved and the smallest input that shows the bug.
+      placeholder: |
+        1. `npx @cybermp-community/agent-kit init`
+        2. ...
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - CLI (packages/agent-kit)
+        - Bridge library (packages/bridge)
+        - MCP resource template (resources/mcp-bridge)
+        - Skills and rules shipped in the kit
+        - Documentation
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Kit version
+      description: Output of `cybermp-agent-kit --version`, or the version in your manifest.
+      placeholder: 2.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node -v`. The kit supports Node 22 and newer.
+      placeholder: v22.18.0
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - WSL
+        - Other (say which in the description)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and output
+      description: Relevant output, stack traces, or a failing test. Redact tokens and server addresses.
+      render: shell
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and pull requests for this problem.
+          required: true
+        - label: I can reproduce this on the latest release.
+          required: true
