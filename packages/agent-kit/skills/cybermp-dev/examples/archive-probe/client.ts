@@ -24,7 +24,7 @@ function reportStreaming(netId: number, gameId: number, inStream: boolean): void
   if (netId !== trackedNetworkId || streamState === inStream) return;
   streamState = inStream;
   console.log(`[kitprop] ${inStream ? 'STREAM_IN' : 'STREAM_OUT'} Network ID=${netId}, local Game ID=${gameId}`);
-  const message = inStream ? 'Стена вернулась в стриминг' : 'Стена вышла из стриминга';
+  const message = inStream ? 'Prop is back in streaming' : 'Prop left streaming';
   try {
     mp.game.GetPlayer()?.SetWarningMessage(`${message} (Network ID=${netId})`);
   } catch (error) {
