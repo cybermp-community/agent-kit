@@ -102,6 +102,34 @@ describe('Agent Skills & Plugins', () => {
     }
   });
 
+  it('links every support file from SKILL.md so remote installs are complete', () => {
+    // The Hermes skill hub installs SKILL.md plus only the paths it links, and only under these
+    // directories; any other file is dropped without an error. A link written as
+    // `skills/<name>/references/<file>.md` fails the same way, because the first segment must be
+    // the allowlisted directory. Mirror the hub rule here so a hollow remote install fails in CI.
+    const allowedDirs = ['references', 'templates', 'scripts', 'assets', 'examples'];
+    const linkPattern = new RegExp(
+      `(?:\\]\\(|\`|(?:^|[\\s"']))((?:${allowedDirs.join('|')})/[^\\s)\`"'<>]+)`,
+      'gm',
+    );
+    const skillDir = path.join(rootDir, 'skills/cybermp-dev');
+    const linked = new Set<string>();
+    for (const match of fs.readFileSync(skillPath, 'utf-8').matchAll(linkPattern)) {
+      linked.add(path.posix.normalize(match[1].replace(/[.,;:]+$/, '').split('#')[0]));
+    }
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const entryPath = path.join(dir, entry.name);
+        return entry.isDirectory() ? walk(entryPath) : [entryPath];
+      });
+    const supportFiles = walk(skillDir)
+      .map((file) => path.relative(skillDir, file).split(path.sep).join('/'))
+      .filter((relativePath) => relativePath !== 'SKILL.md' && allowedDirs.includes(relativePath.split('/')[0]))
+      .sort();
+
+    expect(supportFiles.filter((file) => !linked.has(file))).toEqual([]);
+  });
+
   describe('Offline References', () => {
     it('provides core events catalog in events.md', () => {
       expect(fs.existsSync(eventsRefPath)).toBe(true);

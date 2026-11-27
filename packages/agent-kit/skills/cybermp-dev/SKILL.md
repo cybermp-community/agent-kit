@@ -69,7 +69,7 @@ Because CyberMP is newer than legacy multiplayer platforms (FiveM, alt:V, RAGEMP
 | `mp.players.local` | RAGEMP | Local client player context |
 | `OnPlayerConnect` / `SetPlayerPos` | SA-MP | `mp.events.on('playerConnected', (id, tempId) => ...)` / server-authorized client teleport |
 
-For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See `skills/cybermp-dev/references/lua-events.md`.
+For CyberMP Lua, use `mp.events.add(name, fn)` for local listeners. The JavaScript and TypeScript listener is `mp.events.on(name, fn)`. See the [Lua events reference](references/lua-events.md).
 
 ---
 
@@ -262,9 +262,11 @@ If the MCP server is unavailable or running in a skill-only mode:
    - [INK Widget Lifecycle, Layout & Diagnostics](references/ink-widgets.md): General native UI attachment, canvas composition, tint, pooling and delayed readback; applicable beyond the minimap.
    - [INK HUD and Minimap](references/ui-ink-and-minimap.md)
    - [World Regions on the Native Minimap](references/recipes/minimap-projection.md): Measured projection, zoom/camera timing and streaming, with source-specific evidence limits.
+   - [Minimap Diagnostic Zones](references/recipes/minimap-zones.md): The smaller single-shape INK rendering probe, companion to the world projection recipe.
    - [Archive Prop Workflow](references/recipes/archive-prop.md)
    - [Archive Mod Compatibility](references/archive-mod-compatibility.md): Identify loader dependencies and verify delivery, engine loading, local effects and replication.
    - [Core Events Catalog](references/events.md): Full listener signatures and event parameters for Server, Client, Browser.
+   - [Lua Events](references/lua-events.md): Lua bindings for the same lifecycle events, and how `resource.toml` picks the runtime.
    - [RPC Flows Matrix](references/rpc-flows.md): Complete paired code snippets for inter-process communication.
    - [Resource Structure & Toolchain](references/resource-structure.md): Standard directory layout, `package.json`, and `tsconfig.json`.
    - [World Interaction Recipe](references/recipes/world-interaction.md): Native `[F]` prompt via `SendInputHintData`, `MappinSystem`, and `onInputKeyEvent`.
@@ -286,6 +288,10 @@ If the MCP server is unavailable or running in a skill-only mode:
 3. **Starter Examples**:
    - [Server Starter Example](examples/basic-resource/server.ts)
    - [Client Starter Example](examples/basic-resource/client.ts)
+   - [Basic resource manifest](examples/basic-resource/resource.toml): the `resource.toml` the two starters above load.
+   - Archive probe: [README](examples/archive-probe/README.md), [server](examples/archive-probe/server.ts), [client](examples/archive-probe/client.ts), [protocol](examples/archive-probe/protocol.ts), [manifest](examples/archive-probe/resource.toml), [archive manifest](examples/archive-probe/resource.archive.toml).
+   - Archive prop: [client](examples/archive-prop/client.ts), [manifest](examples/archive-prop/resource.toml), [generator](examples/archive-prop/make-cube.py), [model](examples/archive-prop/cube.glb).
+   - Minimap diagnostic: [client](examples/minimap-diagnostic/client.ts), [manifest](examples/minimap-diagnostic/resource.toml).
 
 ---
 
