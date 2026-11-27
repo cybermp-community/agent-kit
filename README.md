@@ -19,14 +19,14 @@ An offline-first Model Context Protocol (MCP) server, universal agent skills, an
 - 🔍 **Native REDengine Introspection**: Versioned declarations and inheritance resolution for REDengine classes such as `ScriptGameInstance`, `TeleportationFacility`, and `inkCircleWidget`. The npm package includes the native index and identifies the source types version in responses.
 - 📚 **Offline Guides & Recipes Search**: Full-text search across bundled references and upstream summaries covering vehicle mechanics, camera components, CEF UI integration, local storage (`mp.localStorage`), Discord Rich Presence, and 3D spatial math.
 - 🔄 **Cross-Boundary RPC Verification**: Generates paired, type-safe RPC flow templates across isolated execution environments: Server (Node.js), Client (in-game V8), and CEF (Chromium).
-- 🎮 **Live Server Tools (opt-in)**: Next to a running CyberMP server, the agent can read its status and logs and use tools the game server offers through a localhost bridge (players, events, resources, entities, and tools your own resources add). Off until configured; see [Live server tools](docs/live-server.md).
+- 🎮 **Live Server Tools (opt-in)**: Next to a running CyberMP server, the agent can read its status and logs and use tools the game server offers through a localhost bridge (players, events, resources, entities, and tools your own resources add). Off until configured; see [Live server tools](packages/agent-kit/docs/live-server.md).
 - 🤖 **Universal AI Editor Support**: Pre-configured rules and skills for Cursor, Claude Code / Desktop, Google Antigravity, Cline / Roo Code, Windsurf, and Zed.
 
 ---
 
 ## Quick Start
 
-The package also ships the [CyberMP session review skill](skills/cybermp-session-review/SKILL.md). For Codex, copy the entire `skills/cybermp-session-review` directory into your personal or project `.agents/skills` directory. Invoke `$cybermp-session-review` in a chat you want to review.
+The package also ships the [CyberMP session review skill](packages/agent-kit/skills/cybermp-session-review/SKILL.md). For Codex, copy the entire `skills/cybermp-session-review` directory into your personal or project `.agents/skills` directory. Invoke `$cybermp-session-review` in a chat you want to review.
 
 Initialize CyberMP rules and MCP configuration in your project with a single command:
 
@@ -172,7 +172,7 @@ These appear only when the MCP server runs next to a CyberMP server; with nothin
 | `DEVTOOLS_TOKEN` is set (environment or `<root>/.env`) | The `triage-server`, `investigate-player` and `post-crash-analysis` prompts |
 | ...and the server runs the `mcp-bridge` resource | Every tool the bridge offers (`list_players`, `get_recent_events`, `list_resources`, ...) and tools added by your resources as `<scope>__<tool>` |
 
-Both are re-checked every 10 seconds, so starting the server or adding the token needs no restart. `CYBERMP_MCP_MODE=readonly`, `CYBERMP_MCP_ALLOW` and `CYBERMP_MCP_DENY` limit what the agent may use. Details, all settings and the bridge protocol: [docs/live-server.md](docs/live-server.md). The bridge library for server resources is [`cybermp-agent-kit-bridge`](packages/bridge/README.md).
+Both are re-checked every 10 seconds, so starting the server or adding the token needs no restart. `CYBERMP_MCP_MODE=readonly`, `CYBERMP_MCP_ALLOW` and `CYBERMP_MCP_DENY` limit what the agent may use. Details, all settings and the bridge protocol: [docs/live-server.md](packages/agent-kit/docs/live-server.md). The bridge library for server resources is [`cybermp-agent-kit-bridge`](packages/bridge/README.md).
 
 ---
 

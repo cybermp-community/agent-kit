@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@cybermp/rpc-server": "0.2.0",
-    "cybermp-agent-kit-bridge": "^0.1.0",
+    "cybermp-agent-kit-bridge": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

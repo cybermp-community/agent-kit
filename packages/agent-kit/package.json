@@ -1,0 +1,80 @@
+{
+  "name": "cybermp-agent-kit",
+  "version": "1.3.1",
+  "license": "GPL-3.0-or-later",
+  "description": "CyberMP AI Agent Toolkit & MCP Server",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mo3g666/cybermp-agent-kit.git",
+    "directory": "packages/agent-kit"
+  },
+  "homepage": "https://github.com/mo3g666/cybermp-agent-kit#readme",
+  "bugs": {
+    "url": "https://github.com/mo3g666/cybermp-agent-kit/issues"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./client": {
+      "types": "./dist/src/client.d.ts",
+      "default": "./dist/src/client.js"
+    }
+  },
+  "imports": {
+    "#package-info": "./package.json",
+    "#native-types": "./data/native-types.json.gz"
+  },
+  "bin": {
+    "cybermp-agent-kit": "./dist/bin/cli.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "data",
+    "docs/knowledge-inventory.md",
+    "docs/live-server.md",
+    "skills",
+    "plugins",
+    "templates",
+    "resources",
+    "rules"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/cli.js', 0o755)\"",
+    "build:native": "node --import tsx scripts/build-native-index.ts",
+    "build:index": "node --import tsx scripts/build-index.ts",
+    "sync:docs": "node --import tsx scripts/sync-docs.ts",
+    "prepare:pack": "node --import tsx scripts/prepare-pack.ts",
+    "test": "vitest run",
+    "pretest": "pnpm run prepare:pack",
+    "check:examples": "tsc --strict --noEmit --target ES2022 --module NodeNext --skipLibCheck skills/cybermp-dev/examples/archive-prop/client.ts skills/cybermp-dev/examples/archive-probe/client.ts skills/cybermp-dev/examples/archive-probe/server.ts skills/cybermp-dev/examples/minimap-diagnostic/client.ts skills/cybermp-dev/examples/basic-resource/server.ts skills/cybermp-dev/examples/basic-resource/client.ts",
+    "test:packed": "vitest run --config vitest.packed.config.ts",
+    "prepack": "pnpm run prepare:pack && pnpm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "commander": "^13.1.0",
+    "minisearch": "^7.1.2",
+    "prompts": "^2.4.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cybermp/browser-types": "^2.0.1",
+    "@cybermp/client-types": "^2.3.6",
+    "@cybermp/server-types": "^3.2.8",
+    "@types/node": "^22.13.0",
+    "@types/prompts": "^2.4.9",
+    "ts-morph": "^25.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5",
+    "yaml": "^2.9.1"
+  }
+}

@@ -14,14 +14,14 @@ import {
   createBridge,
   defineMethod,
   type MethodDef,
-} from '../packages/bridge/src/index.ts';
+} from '../../bridge/src/index.ts';
 import {
   createProviderHost,
   type McpProvider,
   type ProviderHost,
   registerMcpProvider,
-} from '../packages/bridge/src/rpc.ts';
-import { createWorld, flush } from '../packages/bridge/tests/fakes.ts';
+} from '../../bridge/src/rpc.ts';
+import { createWorld, flush } from '../../bridge/tests/fakes.ts';
 import { createCyberMpServerWithLive } from '../src/server.js';
 import type { Env } from '../src/live/env.js';
 import { parsePs, parseTasklist } from '../src/live/process.js';
@@ -29,13 +29,13 @@ import { isReadOnlyMode, isToolAllowed } from '../src/live/policy.js';
 import { BridgeError, callBridge } from '../src/live/bridge.js';
 import { listLogFiles } from '../src/live/logs.js';
 import { toInputSchema } from '../src/live/bridge-tools.js';
-import { describeMethods } from '../packages/bridge/src/index.ts';
+import { describeMethods } from '../../bridge/src/index.ts';
 import {
   createAgentInbox,
   createEventLog,
   entityMethods,
   resourceMethods,
-} from '../packages/bridge/src/index.ts';
+} from '../../bridge/src/index.ts';
 
 const DOCS_TOOLS = [
   'cybermp_get_event',
