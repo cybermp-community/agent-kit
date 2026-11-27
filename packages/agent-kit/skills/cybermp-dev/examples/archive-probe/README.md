@@ -1,44 +1,44 @@
-# Проверка архивного пропа в CyberMP
+# Archive prop probe for CyberMP
 
-Эта папка содержит исходники ресурса `kit-archive-probe`, манифест для штатного ассета и дополнительный манифест для собственного архива. Геометрия куба и её генератор находятся в [соседнем примере](../archive-prop/). Готовые JavaScript-файлы нужно собрать из исходников, как описано ниже. Ранее подготовленный ZIP передачи отдельно содержит готовые скрипты и каталог `wolvenkit-input`.
+This folder holds the sources of the `kit-archive-probe` resource, a manifest for a stock asset and an extra manifest for your own archive. The cube geometry and its generator live in the [neighbouring example](../archive-prop/). Build the JavaScript files from the sources as described below. A previously prepared hand-off ZIP contains ready scripts and a `wolvenkit-input` folder.
 
-## Подключение на Windows
+## Setting it up on Windows
 
-1. Соберите `client.ts` и `server.ts` в `dist/client.js` и `dist/server.js` по командам ниже. Скопируйте `dist/` и `resource.toml` в `resources/kit-archive-probe` тестового сервера CyberMP. Если используете готовый ZIP передачи, скопируйте из него папку `kit-archive-probe`. Добавьте `kit-archive-probe` в список `resources` в `server.toml`, сохранив остальные ресурсы. Для появления игрока нужен действующий тестовый игровой режим.
-2. Запустите тестовый сервер, подключитесь клиентом и дождитесь появления игрока. Перейдите на открытую ровную площадку. Команды вводятся в консоль F8 клиента. Используйте ресурс на закрытом тестовом сервере.
-3. Выполните `kitprop local base`, чтобы запросить штатную модель рядом со своим персонажем. После проверки выполните `kitprop clear`. Для общего объекта выполните `kitprop shared base`. Второй клиент должен находиться рядом в том же dimension и наблюдать ту же точку. Выполните `kitprop status` на обоих клиентах и сравните один сетевой ID с локальными Game ID и видимым результатом.
+1. Build `client.ts` and `server.ts` into `dist/client.js` and `dist/server.js` with the commands below. Copy `dist/` and `resource.toml` into `resources/kit-archive-probe` of a test CyberMP server. If you use the hand-off ZIP, copy its `kit-archive-probe` folder instead. Add `kit-archive-probe` to the `resources` list in `server.toml` and keep the other resources. A working test game mode is required for a player to appear.
+2. Start the test server, connect a client and wait for the player to spawn. Move to an open, flat area. Commands are typed into the client's F8 console. Use the resource on a closed test server.
+3. Run `kitprop local base` to request a stock model next to your character, then `kitprop clear` when you are done. For a shared object run `kitprop shared base`. The second client must stand nearby in the same dimension and look at the same spot. Run `kitprop status` on both clients and compare the one network ID with the local Game ID and what you see.
 
-| Команда | Действие |
+| Command | Action |
 | --- | --- |
-| `kitprop local base` | Запрашивает штатную модель на одном клиенте. |
-| `kitprop shared base` | Создаёт один серверный объект у игрока, который ввёл команду. Повторный вызов заменяет предыдущий. |
-| `kitprop status` | Пишет локальный handle и идентификаторы общего объекта в лог. |
-| `kitprop clear` | Удаляет общий объект и локальный объект клиента, который ввёл команду. |
+| `kitprop local base` | Requests a stock model on one client. |
+| `kitprop shared base` | Creates one server object for the player who typed the command. Running it again replaces the previous object. |
+| `kitprop status` | Writes the local handle and the shared object identifiers to the log. |
+| `kitprop clear` | Removes the shared object and the local object of the client that typed the command. |
 
-## Уведомления о стриминге общей стенки
+## Streaming notifications for the shared prop
 
-После `kitprop shared base` сервер передаёт Network ID тестового объекта всем подключённым клиентам. При спавне поздно подключившегося игрока он также получает актуальный ID. `kitprop status` повторно синхронизирует отслеживание на вызвавшем команду клиенте.
+After `kitprop shared base` the server sends the network ID of the test object to every connected client. A player who connects late also receives the current ID when spawning. `kitprop status` re-syncs tracking on the client that ran the command.
 
-При событии `objectStreamOut` именно этого объекта клиент выводит на экран «Стена вышла из стриминга» и пишет `[kitprop] STREAM_OUT Network ID=..., local Game ID=...` в F8. При возвращении появляется «Стена вернулась в стриминг» и строка `STREAM_IN`. Другие объекты и повторные события без изменения состояния уведомлений не вызывают. Начальное состояние пишется отдельно как `initial state=IN/OUT`; это снимок сопоставления ID, а не событие пересечения границы.
+On `objectStreamOut` for that object the client shows "Prop left streaming" on screen and writes `[kitprop] STREAM_OUT Network ID=..., local Game ID=...` to F8. When it returns, "Prop is back in streaming" appears with a `STREAM_IN` line. Other objects and repeated events that do not change state produce no notification. The starting state is written separately as `initial state=IN/OUT`; it is a snapshot of the ID mapping, not a boundary crossing.
 
-Для проверки оставьте первого игрока около стенки, а второго отведите до уведомления `STREAM_OUT`, затем верните до `STREAM_IN`. Сравните Network ID и видимый результат на обоих клиентах. Дальность заранее не задаётся. Уведомление означает событие локального стриминга объекта; изменение dimension и удаление также могут влиять на доступность сущности. Перед намеренным удалением или заменой тестового объекта сервер сбрасывает отслеживание.
+To check it, keep the first player next to the prop and walk the second one away until `STREAM_OUT` appears, then back until `STREAM_IN`. Compare the network ID and what both clients see. The distance is not fixed in advance. The notification reports a local streaming event for the object; a dimension change or a removal can also affect whether the entity is available. Before you deliberately remove or replace the test object, the server resets tracking.
 
-В пользовательском прогоне 21 ноября 2026 уведомления, исчезновение и повторное появление штатной стенки подтверждены. Пока один серверный объект оставался существовать, его Network ID сохранялся; вне стриминга локальное сопоставление Game ID было `0`, при возвращении назначался новый Game ID. Не сохраняйте прежний локальный Game ID для дальнейших native-вызовов: после возвращения заново получите сопоставление через `mp.network.getObjectGameId` или аргумент `gameID` события `objectStreamIn`. Это результат конкретного стенда; точная дальность не измерялась.
+A user-run test on 21 November 2026 confirmed the notifications, the disappearance and the reappearance of the stock prop. While the server object kept existing, its network ID stayed the same; outside streaming the local Game ID was `0`, and a new one was assigned on return. Do not keep the old local Game ID for later native calls: after the object returns, get the mapping again through `mp.network.getObjectGameId` or the `gameID` argument of the `objectStreamIn` event. This is one stand's result, and the exact distance was not measured.
 
-## Прогон с собственным архивом
+## Running it with your own archive
 
-1. В WolvenKit импортируйте `../archive-prop/cube.glb` (или `wolvenkit-input/cube.glb` из ZIP передачи) в статический меш и подготовьте `.ent` с внутренним путём `cybermp_kit\diagnostics\cube.ent`. Проверьте материал и то, что сущность видна с внешним видом по умолчанию. Клиентский вызов использует хеш внешнего вида `0`. [Рецепт архивного пропа](https://github.com/cybermp-community/agent-kit/blob/main/skills/cybermp-dev/references/recipes/archive-prop.md)
-2. Соберите REDengine-архив и положите его в `kit-archive-probe/assets/cybermp_kit_cube.archive`. Замените `kit-archive-probe/resource.toml` файлом `resource.archive.toml` из комплекта, сохранив имя `resource.toml`. Перезапустите тестовый сервер или перечитайте манифест, затем перезапустите игровые клиенты. Для CDN обновите упакованный ресурс.
-3. Повторите проверку командами `kitprop local archive` и `kitprop shared archive`. Уберите вручную установленную копию этого архива с обоих тестовых клиентов перед прогоном доставки. Для локальной проверки второй клиент наблюдает точку первого игрока. Для общей проверки оба клиента должны видеть один серверный объект в той же точке.
-4. Запишите версии игры, клиента и сервера CyberMP, версию WolvenKit, SHA-256 `.archive`, строки `[kitprop]` и видимый результат на обоих клиентах. Проверьте, что объект исчезает после `kitprop clear` и остановки ресурса.
+1. In WolvenKit, import `../archive-prop/cube.glb` (or `wolvenkit-input/cube.glb` from the hand-off ZIP) as a static mesh and prepare an `.ent` with the internal path `cybermp_kit\diagnostics\cube.ent`. Check the material and that the entity shows with its default appearance. The client call uses appearance hash `0`. See the [archive prop recipe](https://github.com/cybermp-community/agent-kit/blob/main/packages/agent-kit/skills/cybermp-dev/references/recipes/archive-prop.md).
+2. Pack the REDengine archive and put it at `kit-archive-probe/assets/cybermp_kit_cube.archive`. Replace `kit-archive-probe/resource.toml` with the supplied `resource.archive.toml`, keeping the name `resource.toml`. Restart the test server or reload the manifest, then restart the game clients. For a CDN, update the packaged resource.
+3. Repeat the check with `kitprop local archive` and `kitprop shared archive`. Remove any manually installed copy of this archive from both test clients before testing delivery. For the local check the second client watches the first player's spot; for the shared check both clients must see one server object at the same place.
+4. Record the game, CyberMP client and server versions, the WolvenKit version, the SHA-256 of the `.archive`, the `[kitprop]` lines and what both clients saw. Confirm that the object disappears after `kitprop clear` and after the resource stops.
 
-## Пересборка из исходников
+## Rebuilding from the sources
 
-В репозитории и npm-пакете исходники лежат рядом с этим README. В ранее подготовленном ZIP передачи они находятся в `source/`. После изменения путей или логики можно пересобрать скрипты из папки с исходниками:
+In the repository and in the npm package the sources sit next to this README. In the hand-off ZIP they are under `source/`. After changing paths or logic, rebuild the scripts from the sources folder:
 
 ```sh
 pnpm dlx esbuild@0.28.2 client.ts --bundle --platform=neutral --format=iife --outfile=dist/client.js
 pnpm dlx esbuild@0.28.2 server.ts --bundle --platform=node --format=cjs --outfile=dist/server.js
 ```
 
-После пересборки замените оба файла в `kit-archive-probe/dist/`.
+After rebuilding, replace both files in `kit-archive-probe/dist/`.
