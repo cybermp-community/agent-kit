@@ -1,7 +1,7 @@
 # mcp-bridge (CyberMP resource)
 
 Lets an LLM agent inspect and drive your server through the MCP server of
-[`@cybermp-community/agent-kit`](https://github.com/mo3g666/cybermp-agent-kit).
+[`@cybermp-community/agent-kit`](https://github.com/mo3g666/cybermp-community-agent-kit).
 
 ## Install
 
@@ -111,7 +111,7 @@ await provider.unregister();
   names. The scope defaults to your resource name. If another running resource
   already holds your scope, your registration is refused and the reason is
   logged in your resource (see the
-  [bridge library README](https://github.com/mo3g666/cybermp-agent-kit/blob/main/packages/bridge/README.md),
+  [bridge library README](https://github.com/mo3g666/cybermp-community-agent-kit/blob/main/packages/bridge/README.md),
   "Scopes"). A method named `server.info` (no `tool`) is merged into
   `server_status`.
 - **Safety applies to you too.** Calls to your tools go through the bridge's

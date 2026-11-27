@@ -4,6 +4,10 @@
   "private": true,
   "license": "MIT",
   "description": "Workspace for the CyberMP Community Agent Kit CLI, bridge and resource template",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mo3g666/cybermp-community-agent-kit.git"
+  },
   "type": "module",
   "scripts": {
     "build": "pnpm run build:bridge && pnpm run build:agent-kit && pnpm run build:resource",

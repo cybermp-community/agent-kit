@@ -12,7 +12,7 @@ The binary is named `cybermp-agent-kit`. The package ships the CyberMP agent
 skills, editor rules, templates and the `mcp-bridge` resource template used by
 `init --bridge`.
 
-- Repository and full documentation: <https://github.com/mo3g666/cybermp-agent-kit>
+- Repository and full documentation: <https://github.com/mo3g666/cybermp-community-agent-kit>
 - Live server tools: [docs/live-server.md](docs/live-server.md)
 - Bridge library: [`@cybermp-community/agent-kit-bridge`](https://www.npmjs.com/package/@cybermp-community/agent-kit-bridge)
 

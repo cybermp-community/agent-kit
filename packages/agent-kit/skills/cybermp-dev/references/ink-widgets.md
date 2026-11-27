@@ -16,7 +16,7 @@ sectionPriorityAliases:
 
 INK widgets are native game UI elements for HUDs, panels, labels and geometric overlays. A minimap resource supplies the case study here; its coordinate projection is a separate [minimap recipe](recipes/minimap-projection.md). These APIs are client-side and require `use_game_natives = true`.
 
-Warning: the supplied `cybermp-mcp-minimap` snapshot reports observations on CyberMP server v4.0.5-beta.2 (Linux). The client and game builds are unspecified. Code and fake-game tests establish implementation and modeled behavior, not general engine guarantees. See the [source audit](https://github.com/mo3g666/cybermp-agent-kit/blob/main/packages/agent-kit/docs/audits/2026-11-22-ink-minimap.md), [hashed inventory](https://github.com/mo3g666/cybermp-agent-kit/blob/main/data/ink-minimap-source.json) and [MIT notice](https://github.com/mo3g666/cybermp-agent-kit/blob/main/data/LICENSE-ink-minimap).
+Warning: the supplied `cybermp-mcp-minimap` snapshot reports observations on CyberMP server v4.0.5-beta.2 (Linux). The client and game builds are unspecified. Code and fake-game tests establish implementation and modeled behavior, not general engine guarantees. See the [source audit](https://github.com/mo3g666/cybermp-community-agent-kit/blob/main/packages/agent-kit/docs/audits/2026-11-22-ink-minimap.md), [hashed inventory](https://github.com/mo3g666/cybermp-community-agent-kit/blob/main/data/ink-minimap-source.json) and [MIT notice](https://github.com/mo3g666/cybermp-community-agent-kit/blob/main/data/LICENSE-ink-minimap).
 
 ## Find a live UI owner
 
