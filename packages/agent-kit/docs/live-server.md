@@ -14,7 +14,7 @@ with no logs folder and no token, clients see only the five docs tools.
 
 1. In the server folder (the one with `server.toml` and `resources/`):
    `npx @cybermp-community/agent-kit init --bridge`. This copies
-   [`resources/mcp-bridge`](../resources/mcp-bridge/README.md) and writes a
+   [`resources/mcp-bridge`](../../../resources/mcp-bridge/README.md) and writes a
    random `DEVTOOLS_TOKEN` to `.env`. Both the resource and the MCP server read
    that file, so the token never goes into an editor configuration.
 2. Build the resource (`pnpm install && pnpm build` in `resources/mcp-bridge`)
@@ -70,7 +70,7 @@ names (`list_players`). Tools another resource adds reach the agent as
 the resource in their description and `_meta` keys `cybermp/scope` and
 `cybermp/resource`. The `list_scopes` tool lists every scope with its resource
 and tools. Rules for choosing a scope are in the
-[bridge library README](../packages/bridge/README.md#scopes).
+[bridge library README](../../bridge/README.md#scopes).
 
 ## Safety
 
@@ -115,5 +115,5 @@ a waiting session takes over as soon as the owner reports that it stopped. A
 report the server accepted before the disconnect can still land out of order:
 presence may then look wrong until the live process has two accepted reports in a
 row, without an intervening contender. See the
-[bridge library README](../packages/bridge/README.md#letting-players-talk-to-the-agent)
+[bridge library README](../../bridge/README.md#letting-players-talk-to-the-agent)
 for integration and timing options.
