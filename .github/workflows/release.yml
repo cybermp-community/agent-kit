@@ -49,6 +49,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
+      # `npm stage publish` needs npm 11.15 or newer
+      - name: Ensure npm supports staged publishing
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

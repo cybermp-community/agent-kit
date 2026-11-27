@@ -161,14 +161,19 @@ export async function waitForPublished({
 }
 
 /**
- * Publishes the missing packages in order and waits for each one to resolve
- * before moving on to its dependents.
+ * Uploads the missing packages in dependency order.
+ *
+ * `stage` (the default) submits them to the npm staging area, where a
+ * maintainer approves each version with 2FA; nothing becomes installable until
+ * then, so there is nothing to wait for. `publish` uploads straight to the
+ * registry and waits until each version resolves before the next one starts.
  */
 export async function releasePackages({
   packages,
   fetchImpl,
   publish,
   registry = REGISTRY,
+  mode = 'stage',
   attempts = POLL_ATTEMPTS,
   delayMs = POLL_DELAY_MS,
   sleep,
@@ -185,8 +190,14 @@ export async function releasePackages({
       continue;
     }
 
-    log(`Publishing ${pkg.name}@${pkg.version}`);
+    log(`${mode === 'stage' ? 'Staging' : 'Publishing'} ${pkg.name}@${pkg.version}`);
     await publish(pkg);
+
+    if (mode === 'stage') {
+      results.push({ name: pkg.name, version: pkg.version, action: 'staged' });
+      continue;
+    }
+
     await waitForPublished({
       name: pkg.name, version: pkg.version, registry, fetchImpl, attempts, delayMs, sleep, log,
     });
@@ -195,11 +206,15 @@ export async function releasePackages({
   return results;
 }
 
-/** Command that uploads one verified tarball from inside its package directory. */
+/**
+ * Command that uploads one verified tarball from inside its package directory.
+ * The trusted publisher for this repository is stage-only, so the version waits
+ * for a maintainer's approval instead of going live.
+ */
 export function publishCommandFor({ dir, tarball, distTag = 'latest' }) {
   return {
     command: 'npm',
-    args: ['publish', tarball, '--tag', distTag],
+    args: ['stage', 'publish', tarball, '--tag', distTag],
     cwd: dir,
   };
 }
@@ -339,6 +354,14 @@ async function main(argv) {
       },
     });
     for (const result of results) console.log(`${result.action}: ${result.name}@${result.version}`);
+
+    if (results.some((result) => result.action === 'staged')) {
+      console.log(
+        'Staged for review: approve each version with 2FA on npmjs.com (Staged Packages) '
+        + 'or with `npm stage approve <spec>` before it becomes installable.',
+      );
+    }
+
     return;
   }
 

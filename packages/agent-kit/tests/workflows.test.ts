@@ -281,7 +281,7 @@ describe('release.yml Configuration', () => {
     });
     expect(published.cwd).toBe('/repo/packages/bridge');
     expect(published.args).toContain('/repo/artifacts/cybermp-community-agent-kit-bridge-2.0.0.tgz');
-    expect(published.args).toContain('--tag');
+    expect(published.args).toEqual(['stage', 'publish', expect.stringContaining('.tgz'), '--tag', 'latest']);
   });
 
   it('never lets a prerelease take the latest tag', () => {
@@ -327,6 +327,9 @@ describe('release.yml Configuration', () => {
 
     const publishStep = steps.find((step) => step.run?.includes('release.mjs publish'));
     expect(publishStep.env?.NODE_AUTH_TOKEN).toBeUndefined();
+
+    // `npm stage publish` needs npm 11.15 or newer
+    expect(runText(job)).toContain('npm install -g npm@latest');
 
     const runs = runText(job);
     expect(runs).not.toContain('NPM_TOKEN');
@@ -383,6 +386,7 @@ describe('release ordering and resumability', () => {
 
     const results = await releasePackages({
       packages: [bridge, cli],
+      mode: 'publish',
       fetchImpl: fakeRegistry(answers, timeline),
       publish: async (pkg: any) => {
         published.push(pkg.name);
@@ -408,6 +412,7 @@ describe('release ordering and resumability', () => {
 
     await releasePackages({
       packages: [bridge, cli],
+      mode: 'publish',
       fetchImpl: fakeRegistry(answers, timeline),
       publish: async (pkg: any) => {
         timeline.push(`publish:${pkg.name}`);
@@ -426,6 +431,26 @@ describe('release ordering and resumability', () => {
     ]);
   });
 
+  it('stages both packages without waiting for the registry', async () => {
+    const timeline: string[] = [];
+    const results = await releasePackages({
+      packages: [bridge, cli],
+      fetchImpl: fakeRegistry({ [key(bridge)]: 'missing', [key(cli)]: 'missing' }, timeline),
+      publish: async (pkg: any) => timeline.push(`stage:${pkg.name}`),
+      sleep: async () => {},
+    });
+
+    // A staged version is not installable until a maintainer approves it, so
+    // there is nothing to poll for and the CLI goes in the same run
+    expect(timeline).toEqual([
+      `probe:${key(bridge)}`,
+      `stage:${bridge.name}`,
+      `probe:${key(cli)}`,
+      `stage:${cli.name}`,
+    ]);
+    expect(results.map((result: any) => result.action)).toEqual(['staged', 'staged']);
+  });
+
   it('polls until the just-published version is visible', async () => {
     let requests = 0;
     const timeline: string[] = [];
@@ -438,6 +463,7 @@ describe('release ordering and resumability', () => {
 
     await releasePackages({
       packages: [bridge],
+      mode: 'publish',
       fetchImpl,
       publish: async () => { timeline.push('publish'); },
       attempts: 5,
@@ -451,6 +477,7 @@ describe('release ordering and resumability', () => {
   it('fails when a published version never resolves', async () => {
     await expect(releasePackages({
       packages: [bridge],
+      mode: 'publish',
       fetchImpl: async () => ({ ok: false, status: 404, json: async () => ({}) }),
       publish: async () => {},
       attempts: 3,
