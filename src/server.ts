@@ -21,8 +21,8 @@ export type CyberMpServerOptions = {
 };
 
 /**
- * Creates the CyberMP MCP server: the 5 offline docs tools, plus the live
- * server features (see {@link registerLiveFeatures}).
+ * Creates the CyberMP MCP server, including the 5 offline docs tools, plus
+ * the live server features (see {@link registerLiveFeatures}).
  */
 export function createCyberMpServer(options: CyberMpServerOptions = {}): McpServer {
   return createCyberMpServerWithLive(options).server;
@@ -84,8 +84,12 @@ export async function startServer(): Promise<void> {
       return;
     }
     shuttingDown = true;
-    await live.stop();
-    process.exit(0);
+
+    try {
+      await live.stop();
+    } finally {
+      process.exit(0);
+    }
   };
 
   process.stdin.on('end', shutdown);

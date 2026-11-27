@@ -1,7 +1,12 @@
 import { execFile } from 'node:child_process';
+import { basename } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+/** `ps` and `tasklist` answer at once; a hung one must not hold up server_status */
+const EXEC_TIMEOUT_MS = 5_000;
+/** Linux keeps only this many characters of a process name (`comm`) */
+const LINUX_COMM_LENGTH = 15;
 
 export type ServerProcess = {
   pid: number;
@@ -60,15 +65,23 @@ export const getServerProcesses = async (
         '/FO',
         'CSV',
         '/NH',
-      ]);
+      ], { timeout: EXEC_TIMEOUT_MS });
 
       return parseTasklist(stdout);
     }
 
     if (platform === 'linux') {
-      const { stdout } = await execFileAsync('ps', ['-C', name, '-o', 'pid=,etimes=,rss=,args=']);
+      const { stdout } = await execFileAsync(
+        'ps',
+        ['-C', name.slice(0, LINUX_COMM_LENGTH), '-o', 'pid=,etimes=,rss=,args='],
+        { timeout: EXEC_TIMEOUT_MS },
+      );
+      const processes = parsePs(stdout);
 
-      return parsePs(stdout);
+      // `-C` only sees the truncated name, so check the full one in the command line
+      return name.length > LINUX_COMM_LENGTH
+        ? processes.filter((p) => basename(p.command.split(' ')[0] ?? '') === name)
+        : processes;
     }
 
     return [];

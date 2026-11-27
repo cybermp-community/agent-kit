@@ -46,6 +46,8 @@ const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
 const LOG_URI = 'cybermp://logs/';
 /** The first sync runs before the client connects: don't hold it up for long */
 const DESCRIBE_TIMEOUT_MS = 5_000;
+/** Shutdown waits this long at most for the bridge (a beat in flight, then `disconnected`) */
+const DISCONNECT_TIMEOUT_MS = 1_500;
 
 /**
  * Live server features on top of the offline docs tools. Everything is
@@ -212,6 +214,7 @@ export const registerLiveFeatures = (
   }
 
   let pending: Promise<void> | undefined;
+  let lastSyncAt = 0;
 
   const runSync = async () => {
     const env = getEnv();
@@ -238,6 +241,7 @@ export const registerLiveFeatures = (
   const sync = () => {
     pending ??= runSync().finally(() => {
       pending = undefined;
+      lastSyncAt = Date.now();
     });
 
     return pending;
@@ -247,24 +251,36 @@ export const registerLiveFeatures = (
   // This process only lives while an MCP client session is open, so its
   // heartbeat lets the game server know an agent is attached.
 
-  const reportPresence = (state: 'connected' | 'disconnected') => {
-    const env = getEnv();
+  const reportPresence = async (state: 'connected' | 'disconnected', timeoutMs: number) => {
+    try {
+      const env = getEnv();
 
-    if (!hasBridgeToken(env)) {
-      return Promise.resolve();
+      if (hasBridgeToken(env)) {
+        await callBridge('bridge.presence', { state }, { env, timeoutMs });
+      }
+    } catch {
+      // Game down or hot-reloading, so try again on the next beat
     }
-
-    return callBridge('bridge.presence', { state }, { env, timeoutMs: DESCRIBE_TIMEOUT_MS }).then(
-      () => undefined,
-      () => undefined, // Game down or hot-reloading: try again on the next beat
-    );
   };
 
   let timer: ReturnType<typeof setInterval> | undefined;
+  let stopped = false;
+  /** The `connected` report in flight, so `stop()` can send `disconnected` after it */
+  let presence: Promise<void> | undefined;
 
   const beat = () => {
-    void reportPresence('connected');
-    void sync().catch(() => {});
+    if (stopped) {
+      return;
+    }
+
+    presence ??= reportPresence('connected', DESCRIBE_TIMEOUT_MS).finally(() => {
+      presence = undefined;
+    });
+
+    // The first beat follows the sync done before the client connected
+    if (Date.now() - lastSyncAt >= heartbeatMs / 2) {
+      void sync().catch(() => {});
+    }
   };
 
   return {
@@ -275,19 +291,31 @@ export const registerLiveFeatures = (
         return;
       }
 
+      stopped = false;
+
       beat();
       timer = setInterval(beat, heartbeatMs);
       timer.unref?.();
     },
 
     async stop() {
+      stopped = true;
+
       if (timer) {
         clearInterval(timer);
         timer = undefined;
       }
 
-      // Best effort: tells the game server at once instead of timing out
-      await reportPresence('disconnected');
+      // A `connected` still in flight must not land after `disconnected`
+      if (presence) {
+        await Promise.race([
+          presence,
+          new Promise((resolve) => setTimeout(resolve, DISCONNECT_TIMEOUT_MS).unref?.()),
+        ]);
+      }
+
+      // Tells the game server at once instead of timing out
+      await reportPresence('disconnected', DISCONNECT_TIMEOUT_MS);
     },
 
     state: () => ({

@@ -169,7 +169,8 @@ These appear only when the MCP server runs next to a CyberMP server; with nothin
 | When | What appears |
 |---|---|
 | A server logs folder exists (`logs/`, `mp/linux/logs`, `mp/win/logs` under the project root, or `CYBERMP_LOGS_DIR`) | `server_status`, `list_server_logs`, `read_server_log`, logs as `cybermp://logs/<file>` resources |
-| `DEVTOOLS_TOKEN` is set (environment or `<root>/.env`) and the server runs the `mcp-bridge` resource | Every tool the bridge offers (`list_players`, `get_recent_events`, `list_resources`, ...), tools added by your resources as `<scope>__<tool>`, the `triage-server`, `investigate-player` and `post-crash-analysis` prompts |
+| `DEVTOOLS_TOKEN` is set (environment or `<root>/.env`) | The `triage-server`, `investigate-player` and `post-crash-analysis` prompts |
+| ...and the server runs the `mcp-bridge` resource | Every tool the bridge offers (`list_players`, `get_recent_events`, `list_resources`, ...) and tools added by your resources as `<scope>__<tool>` |
 
 Both are re-checked every 10 seconds, so starting the server or adding the token needs no restart. `CYBERMP_MCP_MODE=readonly`, `CYBERMP_MCP_ALLOW` and `CYBERMP_MCP_DENY` limit what the agent may use. Details, all settings and the bridge protocol: [docs/live-server.md](docs/live-server.md). The bridge library for server resources is [`cybermp-agent-kit-bridge`](packages/bridge/README.md).
 

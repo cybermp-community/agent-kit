@@ -58,13 +58,21 @@ export function setupBridge(cwd: string, force = false): BridgeSetup {
   const envText = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
   let token: BridgeSetup['token'] = 'kept';
 
-  if (!/^\s*DEVTOOLS_TOKEN\s*=\s*\S/m.test(envText)) {
+  // Horizontal whitespace only, since `\s` would read an
+  // empty `DEVTOOLS_TOKEN=` as set by the next line
+  if (!/^[ \t]*DEVTOOLS_TOKEN[ \t]*=[ \t]*\S/m.test(envText)) {
     const separator = envText && !envText.endsWith('\n') ? '\n' : '';
     fs.writeFileSync(
       envPath,
       `${envText}${separator}# Shared by the mcp-bridge resource and the cybermp MCP server\nDEVTOOLS_TOKEN=${randomBytes(24).toString('hex')}\n`,
       { mode: 0o600 },
     );
+    try {
+      // `mode` only applies to a new file; an existing .env now holds the token too
+      fs.chmodSync(envPath, 0o600);
+    } catch {
+      // Not supported (Windows)
+    }
     token = 'created';
   }
 
@@ -397,6 +405,10 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
 
     if (setup.resource === 'kept') {
       console.log('Skipping existing resources/mcp-bridge (use --force to overwrite)');
+    } else if (setup.resource === 'missing') {
+      console.warn(
+        'Warning: the mcp-bridge resource template is missing from this cybermp-agent-kit install, so resources/mcp-bridge was not created. Reinstall the package, or copy resources/mcp-bridge from the repository.',
+      );
     }
     if (setup.gitignore === 'added') {
       console.log('Added .env to .gitignore (it holds DEVTOOLS_TOKEN)');
@@ -406,7 +418,7 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     if (!options.nonInteractive) {
       console.log(
         [
-          `Live server: resources/mcp-bridge ${setup.resource === 'copied' ? 'copied' : 'already there'}, DEVTOOLS_TOKEN ${setup.token === 'created' ? 'written to' : 'kept in'} .env`,
+          `Live server: resources/mcp-bridge ${{ copied: 'copied', kept: 'already there', missing: 'NOT created (see above)' }[setup.resource]}, DEVTOOLS_TOKEN ${setup.token === 'created' ? 'written to' : 'kept in'} .env`,
           '  Next: build it (pnpm install && pnpm build in resources/mcp-bridge),',
           '  add "mcp-bridge" to the resources list in server.toml, and start the server.',
           '  If the server does not run from this folder, give it the same DEVTOOLS_TOKEN.',

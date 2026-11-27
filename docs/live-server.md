@@ -28,8 +28,8 @@ with `CYBERMP_ROOT`, or set `DEVTOOLS_TOKEN` in its environment.
 
 ## Settings (MCP server)
 
-Real environment variables win over `<root>/.env`. Everything is re-read on
-each use, so changes need no restart.
+Real environment variables win over `<root>/.env`. Everything except
+`CYBERMP_MCP_INSTRUCTIONS` is re-read on each use, so changes need no restart.
 
 | Variable | Default | |
 |---|---|---|
@@ -38,10 +38,10 @@ each use, so changes need no restart.
 | `CYBERMP_PROCESS` | `cybermp-server` | Executable name for `server_status` (`.exe` added on Windows) |
 | `DEVTOOLS_TOKEN` | none | Shared secret with the bridge; turns the game tools on |
 | `DEVTOOLS_PORT` | `2080` | Bridge port on 127.0.0.1 |
-| `CYBERMP_MCP_MODE` | | `readonly`: only read tools are listed or callable |
-| `CYBERMP_MCP_ALLOW` | | Comma-separated tool names with `*` wildcards; nothing else is exposed |
+| `CYBERMP_MCP_MODE` | | `readonly`: only read tools are listed or callable. Any value other than `full`, `write`, `readwrite` or `read-write` (a typo included) also means read-only |
+| `CYBERMP_MCP_ALLOW` | | Comma-separated tool names with `*` wildcards; nothing else is exposed. Set but empty: no bridge tools |
 | `CYBERMP_MCP_DENY` | | Same syntax; always wins. `economy__*` hides a whole scope |
-| `CYBERMP_MCP_INSTRUCTIONS` | | Appended to the server instructions (server-specific rules) |
+| `CYBERMP_MCP_INSTRUCTIONS` | | Appended to the server instructions (server-specific rules). Read once when the MCP server starts: changing it needs a restart of the MCP server |
 
 ## What appears when
 

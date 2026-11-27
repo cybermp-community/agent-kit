@@ -11,14 +11,26 @@ export const listLogFiles = async (dir: string): Promise<LogFile[]> => {
   const names = (await readdir(dir)).filter((name) => name.endsWith('.log'));
 
   const files = await Promise.all(
-    names.map(async (name) => {
-      const info = await stat(resolve(dir, name));
+    names.map(async (name): Promise<LogFile | undefined> => {
+      try {
+        const info = await stat(resolve(dir, name));
 
-      return { name, sizeKb: Math.round(info.size / 1024), modified: info.mtime };
+        // A directory named *.log, a socket...
+        if (!info.isFile()) {
+          return undefined;
+        }
+
+        return { name, sizeKb: Math.round(info.size / 1024), modified: info.mtime };
+      } catch {
+        // Broken symlink, or deleted since readdir
+        return undefined;
+      }
     }),
   );
 
-  return files.sort((a, b) => b.modified.getTime() - a.modified.getTime());
+  return files
+    .filter((file): file is LogFile => file !== undefined)
+    .sort((a, b) => b.modified.getTime() - a.modified.getTime());
 };
 
 /** Reads at most the last MAX_TAIL_BYTES of a file */
@@ -30,9 +42,9 @@ const readTail = async (path: string) => {
     const length = Math.min(size, MAX_TAIL_BYTES);
     const buffer = Buffer.alloc(length);
 
-    await handle.read(buffer, 0, length, size - length);
-
-    const text = buffer.toString('utf8');
+    // Fewer bytes when the file was truncated or rotated since stat()
+    const { bytesRead } = await handle.read(buffer, 0, length, size - length);
+    const text = buffer.subarray(0, bytesRead).toString('utf8');
 
     // Drop the first (probably partial) line when we didn't read from the start
     return length < size ? text.slice(text.indexOf('\n') + 1) : text;

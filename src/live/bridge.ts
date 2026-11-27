@@ -60,10 +60,22 @@ export const callBridge = async (
     );
   }
 
-  const body = (await response.json()) as BridgeResponse;
+  let body: Partial<BridgeResponse> | null = null;
+
+  try {
+    body = (await response.json()) as Partial<BridgeResponse> | null;
+  } catch {
+    // Not JSON, so we handle it below
+  }
+
+  if (!body || typeof body !== 'object' || typeof body.ok !== 'boolean') {
+    throw new BridgeError(
+      `127.0.0.1:${port} answered HTTP ${response.status} without a bridge reply: another program may be using the port (see DEVTOOLS_PORT), or the bridge is outdated`,
+    );
+  }
 
   if (!body.ok) {
-    throw new BridgeError(body.error);
+    throw new BridgeError(String((body as { error?: unknown }).error ?? `HTTP ${response.status}`));
   }
 
   return body.result;

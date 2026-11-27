@@ -26,9 +26,9 @@ export const errorResult = (e: unknown) => ({
  * tool still works and the bridge validates the arguments itself.
  */
 export const toInputSchema = (json: Record<string, unknown>) => {
-  const { $schema: _schema, default: _default, ...rest } = json;
-
   try {
+    // Inside the try, a bridge may send no schema at all
+    const { $schema: _schema, default: _default, ...rest } = json;
     const schema = z.fromJSONSchema({ ...rest, type: 'object' } as Parameters<
       typeof z.fromJSONSchema
     >[0]);

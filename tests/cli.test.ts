@@ -418,6 +418,25 @@ describe('CLI Init Wizard', () => {
     expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('node_modules/\n.env\n');
   });
 
+  it('writes a token when DEVTOOLS_TOKEN is empty, even with another line after it', async () => {
+    fs.writeFileSync(path.join(tempDir, '.env'), 'DEVTOOLS_TOKEN=\nOTHER=1\n');
+
+    await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
+
+    expect(fs.readFileSync(path.join(tempDir, '.env'), 'utf8')).toMatch(/DEVTOOLS_TOKEN=[0-9a-f]{48}\n$/);
+  });
+
+  it.skipIf(process.platform === 'win32')('makes an existing .env private once it holds the token', async () => {
+    const envPath = path.join(tempDir, '.env');
+
+    fs.writeFileSync(envPath, 'OTHER=1\n', { mode: 0o644 });
+    fs.chmodSync(envPath, 0o644);
+
+    await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
+
+    expect(fs.statSync(envPath).mode & 0o777).toBe(0o600);
+  });
+
   it('creates a .gitignore ignoring .env when the project has none', async () => {
     await initProject({ cwd: tempDir, editors: [], copySkill: false, bridge: true, nonInteractive: true });
     expect(fs.readFileSync(path.join(tempDir, '.gitignore'), 'utf8')).toBe('.env\n');

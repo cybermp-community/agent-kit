@@ -33,6 +33,26 @@ it('serves the installed package with the locked production dependencies', async
       fs.symlinkSync(fs.realpathSync(path.join(root, 'node_modules', name)), target, 'junction');
     }
     expect(fs.existsSync(path.join(installed, 'node_modules/@cybermp/client-types'))).toBe(false);
+    // The resource template `init --bridge` copies ships in the tarball, without build leftovers
+    const packedFiles = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).split('\n');
+    for (const file of ['resource.toml', 'package.json', 'tsconfig.json', 'src/index.ts', 'src/env.ts', 'README.md']) {
+      expect(packedFiles, file).toContain(`package/resources/mcp-bridge/${file}`);
+    }
+    expect(packedFiles.filter((file) => /resources\/mcp-bridge\/node_modules\//.test(file))).toEqual([]);
+    // `init --bridge` from the installed package sets up a fresh server project
+    const project = path.join(temp, 'project');
+    fs.mkdirSync(project);
+    execFileSync(process.execPath, [
+      path.join(installed, metadata.bin['cybermp-agent-kit']),
+      'init', '--bridge', '--yes', '--no-skill', '--editors', 'claude',
+    ], { cwd: project, encoding: 'utf8' });
+    expect(fs.existsSync(path.join(project, 'resources/mcp-bridge/resource.toml'))).toBe(true);
+    expect(fs.readFileSync(path.join(project, 'resources/mcp-bridge/src/index.ts'), 'utf8'))
+      .toContain("from 'cybermp-agent-kit-bridge'");
+    expect(fs.existsSync(path.join(project, 'resources/mcp-bridge/dist'))).toBe(false);
+    expect(fs.readFileSync(path.join(project, '.env'), 'utf8')).toMatch(/^DEVTOOLS_TOKEN=[0-9a-f]{48}$/m);
+    expect(fs.readFileSync(path.join(project, '.gitignore'), 'utf8')).toBe('.env\n');
+    expect(fs.readFileSync(path.join(project, '.mcp.json'), 'utf8')).not.toContain('DEVTOOLS_TOKEN');
     const foreign = path.join(temp, 'foreign');
     const foreignTypes = path.join(foreign, 'node_modules/@cybermp/client-types/out');
     fs.mkdirSync(foreignTypes, { recursive: true });

@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import { createServer, type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { createServer as createHttpServer } from 'node:http';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -24,7 +25,9 @@ import { createWorld, flush } from '../packages/bridge/tests/fakes.ts';
 import { createCyberMpServerWithLive } from '../src/server.js';
 import type { Env } from '../src/live/env.js';
 import { parsePs, parseTasklist } from '../src/live/process.js';
-import { isToolAllowed } from '../src/live/policy.js';
+import { isReadOnlyMode, isToolAllowed } from '../src/live/policy.js';
+import { callBridge } from '../src/live/bridge.js';
+import { listLogFiles } from '../src/live/logs.js';
 import { toInputSchema } from '../src/live/bridge-tools.js';
 import { describeMethods } from '../packages/bridge/src/index.ts';
 import {
@@ -53,8 +56,25 @@ const freePort = () =>
     });
   });
 
+const temps: string[] = [];
+
+afterAll(() => {
+  for (const dir of temps.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** A fresh folder in the system temp dir, removed after the tests */
+const makeTemp = () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-live-'));
+
+  temps.push(dir);
+
+  return dir;
+};
+
 const tempRoot = (withLogs: boolean) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-live-'));
+  const root = makeTemp();
 
   if (withLogs) {
     const logs = path.join(root, 'logs');
@@ -120,8 +140,8 @@ const startGame = async () => {
   });
   const providers: McpProvider[] = [
     registerMcpProvider({
-      mp: world.mpFor('freemode-economy'),
-      rpc: world.rpcFor('freemode-economy'),
+      mp: world.mpFor('game-economy'),
+      rpc: world.rpcFor('game-economy'),
       scope: 'economy',
       methods: economy,
       logger: {},
@@ -130,6 +150,8 @@ const startGame = async () => {
   await flush();
 
   const presence: string[] = [];
+  /** Slows `connected` reports down, as a busy server would */
+  const slow = { connectedMs: 0 };
   const core: Record<string, MethodDef> = {
     ...basicMethods(fakePlayers),
     // A bridge tool with the same name as a built-in must be skipped
@@ -148,7 +170,10 @@ const startGame = async () => {
       token: TOKEN,
       port,
       methods: () => host.methods(core),
-      onPresence: (state) => {
+      onPresence: async (state) => {
+        if (state === 'connected' && slow.connectedMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, slow.connectedMs));
+        }
         presence.push(state);
         return null;
       },
@@ -159,6 +184,7 @@ const startGame = async () => {
   return {
     port,
     presence,
+    slow,
     world,
     core,
     async stop() {
@@ -302,7 +328,7 @@ describe('live server features', () => {
     });
 
     it('finds the logs of a development layout and honours CYBERMP_LOGS_DIR', async () => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cybermp-live-'));
+      const root = makeTemp();
 
       fs.mkdirSync(path.join(root, 'mp/linux/logs'), { recursive: true });
       fs.mkdirSync(path.join(root, 'elsewhere'));
@@ -339,11 +365,11 @@ describe('live server features', () => {
 
       expect(setMoney.title).toBe('[economy] Set money');
       expect(setMoney.description).toBe(
-        "Sets a player's money.\n\nFrom resource freemode-economy (scope economy).",
+        "Sets a player's money.\n\nFrom resource game-economy (scope economy).",
       );
       expect(setMoney._meta).toEqual({
         'cybermp/scope': 'economy',
-        'cybermp/resource': 'freemode-economy',
+        'cybermp/resource': 'game-economy',
       });
       expect(setMoney.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false });
       expect(setMoney.inputSchema.required).toEqual(['playerId', 'amount']);
@@ -386,7 +412,7 @@ describe('live server features', () => {
       expect(status.game).toMatchObject({ players: 1, maxPlayers: 32 });
       expect(status.scopes).toEqual([
         { scope: 'core', tools: 5 },
-        { scope: 'economy', resource: 'freemode-economy', tools: 2 },
+        { scope: 'economy', resource: 'game-economy', tools: 2 },
       ]);
     });
 
@@ -443,7 +469,7 @@ describe('live server features', () => {
       expect(changes.count).toBeGreaterThan(0);
 
       // The provider's resource stops
-      game.world.stopResource('freemode-economy');
+      game.world.stopResource('game-economy');
       await live.sync();
 
       expect((await names()).filter((n) => n.startsWith('economy__'))).toEqual([]);
@@ -501,6 +527,19 @@ describe('live server features', () => {
       expect(game.presence[0]).toBe('connected');
       expect(game.presence.at(-1)).toBe('disconnected');
     });
+
+    it('never lets a slow connected report land after disconnected', async () => {
+      const game = await withGame();
+      const { live } = await connect(bridgeEnv(game));
+
+      game.slow.connectedMs = 200;
+      live.start();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await live.stop();
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      expect(game.presence).toEqual(['connected', 'disconnected']);
+    });
   });
 });
 
@@ -557,5 +596,51 @@ describe('live helpers', () => {
     expect(isToolAllowed({ tool: 'destroy_entity', kind: 'destructive' }, env)).toBe(false);
     expect(isToolAllowed({ tool: 'list_players', kind: 'read' }, env)).toBe(true);
     expect(isToolAllowed({ tool: 'a.b', kind: 'read' }, { CYBERMP_MCP_ALLOW: 'a?b' })).toBe(false);
+  });
+
+  it('fails closed on read-only mode spellings, and an empty allow list allows nothing', () => {
+    for (const mode of ['readonly', 'read-only', ' READONLY ', 'read_only', 'raedonly']) {
+      expect(isReadOnlyMode({ CYBERMP_MCP_MODE: mode }), mode).toBe(true);
+      expect(isToolAllowed({ tool: 'kick_player', kind: 'destructive' }, { CYBERMP_MCP_MODE: mode })).toBe(false);
+    }
+    for (const mode of [undefined, '', ' ', 'full', 'Write', 'read-write']) {
+      expect(isReadOnlyMode({ CYBERMP_MCP_MODE: mode }), String(mode)).toBe(false);
+    }
+
+    expect(isToolAllowed({ tool: 'list_players', kind: 'read' }, { CYBERMP_MCP_ALLOW: '' })).toBe(false);
+    expect(isToolAllowed({ tool: 'list_players', kind: 'read' }, { CYBERMP_MCP_ALLOW: ' , ' })).toBe(false);
+    expect(isToolAllowed({ tool: 'list_players', kind: 'read' }, {})).toBe(true);
+  });
+
+  it('accepts a missing input schema', () => {
+    expect(toInputSchema(undefined as never)).toBeInstanceOf(z.ZodObject);
+  });
+
+  it('skips directories and broken symlinks named *.log', async () => {
+    const dir = makeTemp();
+
+    fs.writeFileSync(path.join(dir, 'server_1.log'), 'boot\n');
+    fs.mkdirSync(path.join(dir, 'archive.log'));
+    fs.symlinkSync(path.join(dir, 'gone'), path.join(dir, 'broken.log'));
+
+    expect((await listLogFiles(dir)).map((f) => f.name)).toEqual(['server_1.log']);
+  });
+
+  it('reports another program on the bridge port as a BridgeError', async () => {
+    const other = createHttpServer((_req, res) => {
+      res.writeHead(500, { 'content-type': 'text/html' });
+      res.end('<h1>Internal Server Error</h1>');
+    });
+    const port = await new Promise<number>((resolve) =>
+      other.listen(0, '127.0.0.1', () => resolve((other.address() as AddressInfo).port)),
+    );
+
+    try {
+      await expect(
+        callBridge('bridge.describe', {}, { env: { DEVTOOLS_TOKEN: 't', DEVTOOLS_PORT: String(port) } }),
+      ).rejects.toMatchObject({ name: 'BridgeError', message: expect.stringMatching(/HTTP 500 without a bridge reply/) });
+    } finally {
+      await new Promise((resolve) => other.close(resolve));
+    }
   });
 });
