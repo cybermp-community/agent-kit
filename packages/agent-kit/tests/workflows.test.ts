@@ -5,6 +5,7 @@ import YAML from 'yaml';
 import {
   PUBLIC_PACKAGES,
   ReleaseError,
+  resolveDistTag,
   assertTagMatches,
   readPublicPackages,
   publishCommandFor,
@@ -281,6 +282,23 @@ describe('release.yml Configuration', () => {
     expect(published.cwd).toBe('/repo/packages/bridge');
     expect(published.args).toContain('/repo/artifacts/cybermp-community-agent-kit-bridge-2.0.0.tgz');
     expect(published.args).toContain('--tag');
+  });
+
+  it('never lets a prerelease take the latest tag', () => {
+    expect(resolveDistTag('2.0.0', undefined)).toBe('latest');
+    expect(resolveDistTag('2.1.0-beta.1', undefined)).toBe('beta');
+    expect(resolveDistTag('2.1.0-beta.1', 'next')).toBe('next');
+    expect(() => resolveDistTag('2.1.0-beta.1', 'latest')).toThrow(/prerelease/i);
+    expect(() => resolveDistTag('2.0.0', 'bad tag')).toThrow(/Invalid dist-tag/i);
+
+    const doc = parseWorkflow(releaseWorkflowPath);
+    const job = jobNamed(doc, 'release');
+    const publishStep = stepsOf(job).find((step) => step.run?.includes('release.mjs publish'));
+    // The default is computed from the version in the script, not in YAML
+    expect(publishStep.env.DIST_TAG).toBe('${{ inputs.dist-tag }}');
+
+    const upload = stepsOf(job).find((step) => step.uses?.startsWith('softprops/action-gh-release'));
+    expect(upload.with.prerelease).toContain("contains(");
   });
 
   it('configures npm auth from the token secret without a fallback login', () => {
