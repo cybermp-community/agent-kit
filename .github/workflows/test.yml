@@ -8,21 +8,23 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Test & Build (Node ${{ matrix.node-version }})
+  public-packages:
+    name: Public packages (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [20, 22]
+        node-version: [22, 26]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -33,14 +35,53 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run test suite
-        run: pnpm test
-
-      - name: Run build
-        run: pnpm run build
-
       - name: Check diagnostic example types
         run: pnpm run check:examples
 
-      - name: Verify installed MCP package
+      - name: Run test suite
+        run: pnpm test
+
+      # Only the two public packages are built here. The resource bundler
+      # (tsdown) has its own Node constraint and its own job below.
+      - name: Build the bridge and the CLI
+        run: |
+          pnpm --dir packages/bridge run build
+          pnpm --dir packages/agent-kit run build
+
+      - name: Verify the packed public packages outside the workspace
         run: pnpm run test:packed
+
+  resource:
+    name: Resource template (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # tsdown, the resource bundler, requires ^22.18.0 || >=24.11.0. A bare
+        # major resolves to the newest 22.x, which satisfies the caret range,
+        # so the resource stays on the same Node line as the public packages.
+        node-version: [22]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the bridge the resource bundles
+        run: pnpm --dir packages/bridge run build
+
+      - name: Type-check and bundle the resource
+        run: pnpm run build:resource
+
+      - name: Verify the bundled resource entry
+        run: test -f resources/mcp-bridge/server/dist/index.js

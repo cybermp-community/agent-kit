@@ -1,35 +1,43 @@
 name: Release
 
+# One tag coordinates the release of both public packages. The GitHub release
+# event is deliberately absent: publishing a release for the tag would start a
+# second, identical run.
 on:
-  release:
-    types:
-      - published
   push:
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'NPM dist-tag to publish under (e.g. latest, beta, next)'
+        description: 'Release tag to publish, for example v2.0.0'
+        required: true
+        type: string
+      dist-tag:
+        description: 'npm dist-tag to publish under'
         required: false
         default: 'latest'
         type: string
 
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
-    name: Build & Release Package
+    name: Publish public packages
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,37 +49,45 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run test suite
-        run: pnpm test
+      - name: Check the release tag against both manifests
+        run: node scripts/release.mjs check-tag --tag "$RELEASE_TAG"
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
-      - name: Build TypeScript package
-        run: pnpm run build
+      - name: Build the bridge and the CLI
+        run: |
+          pnpm --dir packages/bridge run build
+          pnpm --dir packages/agent-kit run build
 
-      - name: Verify installed MCP package
-        run: pnpm run test:packed
+      # Exactly two tarballs, packed from their package directories. Packing
+      # runs the package prepack hook, so the staged resource template is
+      # produced here; nothing is rebuilt afterwards.
+      - name: Pack exactly the two public tarballs
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts
+          pnpm --dir packages/bridge pack --pack-destination "$GITHUB_WORKSPACE/artifacts"
+          pnpm --dir packages/agent-kit pack --pack-destination "$GITHUB_WORKSPACE/artifacts"
 
-      - name: Package release tarball
-        run: pnpm pack
+      - name: Verify the tarballs that will be published
+        run: node scripts/release.mjs verify --artifacts artifacts
 
-      - name: Upload Release Asset to GitHub Releases
+      # Publishes the uploaded tarballs in dependency order: bridge, bounded
+      # wait until that exact version resolves, then the CLI. Versions already
+      # present with the same number are skipped; any other registry answer
+      # fails the run. The private resource is never published.
+      - name: Publish the bridge, wait for it, then the CLI
+        run: node scripts/release.mjs publish --artifacts artifacts --dist-tag "$DIST_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ inputs.dist-tag || 'latest' }}
+
+      - name: Attach the verified tarballs to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
         with:
-          files: cybermp-agent-kit-*.tgz
+          files: artifacts/*.tgz
+          tag_name: ${{ inputs.tag || github.ref_name }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm registry
-        run: |
-          if [ -n "$NODE_AUTH_TOKEN" ]; then
-            pnpm publish --no-git-checks --tag ${{ inputs.tag || 'latest' }} --access public
-          else
-            npm install -g npm@latest
-            rm -f "$NPM_CONFIG_USERCONFIG" ~/.npmrc 2>/dev/null || true
-            unset NPM_CONFIG_USERCONFIG
-            unset NODE_AUTH_TOKEN
-            pnpm publish --no-git-checks --tag ${{ inputs.tag || 'latest' }} --access public
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

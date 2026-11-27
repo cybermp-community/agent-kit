@@ -34,7 +34,8 @@ export const callBridge = async (
     );
   }
 
-  // `AbortSignal.any` needs Node 20.3, and the CLI supports 20.0
+  // Combine the deadline and the caller's signal explicitly rather than
+  // relying on `AbortSignal.any`
   const controller = new AbortController();
   const deadline = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
   const cancel = () => controller.abort();

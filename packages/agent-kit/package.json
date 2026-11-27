@@ -55,7 +55,7 @@
     "rules"
   ],
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/cli.js', 0o755)\"",

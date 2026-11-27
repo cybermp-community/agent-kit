@@ -19,8 +19,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,8 +29,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # The CyberMP types are devDependencies of the CLI package; the root
+      # manifest has no dependencies, so running this from the root is a no-op.
       - name: Update CyberMP type packages
-        run: pnpm update @cybermp/server-types @cybermp/client-types @cybermp/browser-types --latest
+        run: pnpm --dir packages/agent-kit update @cybermp/server-types @cybermp/client-types @cybermp/browser-types --latest
+
+      - name: Verify the lockfile covers the updated workspace
+        run: pnpm install --frozen-lockfile
 
       - name: Sync documentation
         run: pnpm run sync:docs
@@ -58,6 +61,8 @@ jobs:
             - `@cybermp/client-types`
             - `@cybermp/browser-types`
 
+            Regenerated in `packages/agent-kit` (`src/data`, `skills/cybermp-dev/references`,
+            synced docs) with a refreshed root `pnpm-lock.yaml`.
             Verified with `pnpm test` and `pnpm run build`.
           branch: auto-update/types-and-docs
           delete-branch: true
