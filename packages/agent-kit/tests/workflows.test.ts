@@ -309,22 +309,24 @@ describe('release.yml Configuration', () => {
     // No token yet: a tag still builds, verifies and publishes a GitHub
     // release, but never touches the registry until the switch is on
     expect(publishStep.if).toBe("vars.NPM_PUBLISH == 'true'");
-    expect(publishStep.env.NODE_AUTH_TOKEN).toBe('${{ secrets.NPM_TOKEN }}');
   });
 
-  it('configures npm auth from the token secret without a fallback login', () => {
+  it('publishes through OIDC instead of a stored token', () => {
     const doc = parseWorkflow(releaseWorkflowPath);
     const job = jobNamed(doc, 'release');
     const steps = stepsOf(job);
     const setupNode = steps.find((step) => step.uses?.startsWith('actions/setup-node'));
 
+    expect(doc.permissions['id-token']).toBe('write');
     expect(setupNode.with['registry-url']).toBe('https://registry.npmjs.org');
+    // npm 11.5.1 or newer is needed for the OIDC exchange
+    expect(Number(String(setupNode.with['node-version']).split('.')[0])).toBeGreaterThanOrEqual(24);
+
     const publishStep = steps.find((step) => step.run?.includes('release.mjs publish'));
-    expect(publishStep.env.NODE_AUTH_TOKEN).toBe('${{ secrets.NPM_TOKEN }}');
+    expect(publishStep.env?.NODE_AUTH_TOKEN).toBeUndefined();
 
     const runs = runText(job);
-    expect(runs).not.toContain('npm install -g npm@latest');
-    expect(runs).not.toContain('unset NODE_AUTH_TOKEN');
+    expect(runs).not.toContain('NPM_TOKEN');
     expect(runs).not.toContain('npm login');
     // Publishing the private resource is never an option.
     expect(runs).not.toMatch(/publish[^\n]*resources/);
