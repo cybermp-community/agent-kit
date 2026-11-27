@@ -68,10 +68,10 @@ npx @cybermp-community/agent-kit init -f
 npx @cybermp-community/agent-kit init --bridge
 ```
 
-The binary is still named `cybermp-agent-kit`, so an existing local install keeps working:
+The binary is still named `cybermp-agent-kit`, so an existing install keeps working; run it through the scoped package:
 
 ```bash
-npx cybermp-agent-kit --version
+npx @cybermp-community/agent-kit --version
 ```
 
 The package also ships the [CyberMP session review skill](packages/agent-kit/skills/cybermp-session-review/SKILL.md). For Codex, copy the entire `skills/cybermp-session-review` directory into your personal or project `.agents/skills` directory. Invoke `$cybermp-session-review` in a chat you want to review.
