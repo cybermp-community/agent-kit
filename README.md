@@ -323,7 +323,7 @@ The license changed from GPL-3.0-or-later to MIT for the project's own code star
 
 ## Development
 
-The repository is a private pnpm workspace with one lockfile. Release steps, including the trusted-publisher setup, live in [CONTRIBUTING.md](CONTRIBUTING.md#releases).
+The repository is a private pnpm workspace with one lockfile.
 
 ```bash
 pnpm install
@@ -346,7 +346,7 @@ pnpm run test:packed # packs both public packages and exercises the installed CL
 
 ## Contributing
 
-Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the checks to run before a pull request, the workspace layout and the release steps; [CONTRIBUTORS.md](CONTRIBUTORS.md) lists attribution.
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the checks to run before a pull request and the workspace layout; [CONTRIBUTORS.md](CONTRIBUTORS.md) lists attribution.
 
 Keep third-party notices and generated data intact, and describe any protocol change that requires updating the CLI, bridge and resource together.
 
