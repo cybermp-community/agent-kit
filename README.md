@@ -361,6 +361,13 @@ picks the beta.
 recovered after a partial failure: a rerun skips what is already published with
 the same number and continues with the rest.
 
+Publishing to npm is off until the repository variable `NPM_PUBLISH` is `true`
+(Settings → Secrets and variables → Actions → Variables). While it is off, a
+tag still runs the tests, builds and verifies both tarballs and attaches them to
+the GitHub release, so a release can be prepared before the registry access
+exists; nothing is uploaded to npm until the switch is on and `NPM_TOKEN`
+holds a token that may publish to the scope.
+
 | Path | Contents |
 |---|---|
 | `packages/agent-kit` | CLI, MCP server, runtime data, skills, rules, templates |

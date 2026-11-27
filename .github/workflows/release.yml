@@ -78,7 +78,16 @@ jobs:
       # wait until that exact version resolves, then the CLI. Versions already
       # present with the same number are skipped; any other registry answer
       # fails the run. The private resource is never published.
+      # Publishing stays off until the repository variable NPM_PUBLISH is true:
+      # the token for the scope has to exist before the first release, and a
+      # tag should still produce verified tarballs while that is pending.
+      - name: Explain why publishing is skipped
+        if: vars.NPM_PUBLISH != 'true'
+        run: |
+          echo "::warning::npm publishing is disabled. Set the repository variable NPM_PUBLISH=true (Settings → Secrets and variables → Actions → Variables) and add NPM_TOKEN to publish."
+
       - name: Publish the bridge, wait for it, then the CLI
+        if: vars.NPM_PUBLISH == 'true'
         run: node scripts/release.mjs publish --artifacts artifacts --dist-tag "$DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
