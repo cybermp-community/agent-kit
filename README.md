@@ -90,6 +90,7 @@ The package also ships the [CyberMP session review skill](packages/agent-kit/ski
 | Cline / Roo Code | `.clinerules`, `.cline/mcp_settings.json` |
 | Windsurf | `.windsurfrules`, `mcp_config.json` |
 | Zed | `.zed/settings.json` |
+| Hermes Agent | `hermes mcp add`, `hermes skills install` (see below) |
 
 You can print copy-pasteable configuration for any editor at any time:
 
@@ -178,6 +179,23 @@ npx @cybermp-community/agent-kit config [cursor|claude|antigravity|cline|windsur
 ```
 
 On Windows, `init` and `config` automatically use `npx.cmd` so that editors can spawn the server without an `ENOENT` error.
+
+### Hermes Agent
+
+Hermes keeps MCP servers and skills in its own profile instead of a project file, so register them once:
+
+```bash
+hermes mcp add cybermp --command npx --args -y @cybermp-community/agent-kit run
+hermes mcp test cybermp
+```
+
+The `cybermp-dev` skill can be installed straight from this repository:
+
+```bash
+hermes skills install https://raw.githubusercontent.com/mo3g666/cybermp-agent-kit/main/packages/agent-kit/skills/cybermp-dev/SKILL.md
+```
+
+If a project carries its own copy under `.agents/skills/`, trust that folder instead with `hermes skills trust`. Live server tools need nothing extra beyond the setup below: the MCP server reads `DEVTOOLS_TOKEN` from the server folder, exactly as it does for other editors.
 
 ---
 
