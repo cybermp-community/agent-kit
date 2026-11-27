@@ -289,6 +289,9 @@ describe('release.yml Configuration', () => {
     expect(resolveDistTag('2.1.0-beta.1', undefined)).toBe('beta');
     expect(resolveDistTag('2.1.0-beta.1', 'next')).toBe('next');
     expect(() => resolveDistTag('2.1.0-beta.1', 'latest')).toThrow(/prerelease/i);
+    // A tag push passes no input, so an empty string must behave like none
+    expect(resolveDistTag('2.0.0', '')).toBe('latest');
+    expect(resolveDistTag('2.1.0-beta.1', '')).toBe('beta');
     expect(() => resolveDistTag('2.0.0', 'bad tag')).toThrow(/Invalid dist-tag/i);
 
     const doc = parseWorkflow(releaseWorkflowPath);
