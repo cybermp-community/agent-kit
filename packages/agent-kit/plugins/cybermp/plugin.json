@@ -1,7 +1,7 @@
 {
   "name": "cybermp",
   "version": "2.0.0",
-  "description": "CyberMP Community Agent Kit: multiplayer development toolkit for Antigravity",
+  "description": "CyberMP Community Agent Kit: multiplayer development toolkit for AI agents",
   "skills": [
     "skills/cybermp-dev"
   ],

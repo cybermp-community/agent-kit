@@ -48,7 +48,8 @@ export class ReleaseError extends Error {
  */
 export function resolveDistTag(version, requested) {
   const prerelease = version.includes('-');
-  const tag = requested ?? (prerelease ? 'beta' : 'latest');
+  // A tag push has no workflow input, so the caller passes an empty string
+  const tag = requested?.trim() ? requested.trim() : prerelease ? 'beta' : 'latest';
 
   if (prerelease && tag === 'latest') {
     throw new ReleaseError(
