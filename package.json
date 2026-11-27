@@ -15,7 +15,11 @@
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "exports": {
-    ".": "./dist/src/index.js"
+    ".": "./dist/src/index.js",
+    "./client": {
+      "types": "./dist/src/client.d.ts",
+      "default": "./dist/src/client.js"
+    }
   },
   "imports": {
     "#package-info": "./package.json",
@@ -31,9 +35,11 @@
     "dist",
     "data",
     "docs/knowledge-inventory.md",
+    "docs/live-server.md",
     "skills",
     "plugins",
     "templates",
+    "resources",
     "rules"
   ],
   "engines": {
@@ -51,7 +57,7 @@
     "prepare": "pnpm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "commander": "^13.1.0",
     "minisearch": "^7.1.2",
     "prompts": "^2.4.2",

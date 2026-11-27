@@ -5,7 +5,7 @@ node_modules/
 /.cache/
 
 # Build and test output
-/dist/
+dist/
 /tmp/
 /coverage/
 *.tsbuildinfo

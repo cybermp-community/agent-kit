@@ -19,6 +19,7 @@ An offline-first Model Context Protocol (MCP) server, universal agent skills, an
 - 🔍 **Native REDengine Introspection**: Versioned declarations and inheritance resolution for REDengine classes such as `ScriptGameInstance`, `TeleportationFacility`, and `inkCircleWidget`. The npm package includes the native index and identifies the source types version in responses.
 - 📚 **Offline Guides & Recipes Search**: Full-text search across bundled references and upstream summaries covering vehicle mechanics, camera components, CEF UI integration, local storage (`mp.localStorage`), Discord Rich Presence, and 3D spatial math.
 - 🔄 **Cross-Boundary RPC Verification**: Generates paired, type-safe RPC flow templates across isolated execution environments: Server (Node.js), Client (in-game V8), and CEF (Chromium).
+- 🎮 **Live Server Tools (opt-in)**: Next to a running CyberMP server, the agent can read its status and logs and use tools the game server offers through a localhost bridge (players, events, resources, entities, and tools your own resources add). Off until configured; see [Live server tools](docs/live-server.md).
 - 🤖 **Universal AI Editor Support**: Pre-configured rules and skills for Cursor, Claude Code / Desktop, Google Antigravity, Cline / Roo Code, Windsurf, and Zed.
 
 ---
@@ -55,6 +56,10 @@ npx cybermp-agent-kit init --skill
 
 # Overwrite existing configuration files
 npx cybermp-agent-kit init -f
+
+# Let the agent inspect and drive your local server, copying
+# resources/mcp-bridge and writing a random DEVTOOLS_TOKEN to .env
+npx cybermp-agent-kit init --bridge
 ```
 
 ---
@@ -156,6 +161,18 @@ When connected, `cybermp-agent-kit` provides five specialized MCP tools:
 | `cybermp_get_event` | Fetch event callback signatures and execution context | `{"name": "playerEnterVehicle", "env": "server"}` |
 | `cybermp_get_rpc_flow` | Generate paired sender & receiver RPC boilerplate | `{"from": "client", "to": "browser"}` |
 | `cybermp_lookup_tweakdb` | Search a curated subset of TweakDB IDs | `{"query": "burning"}` |
+
+### Live server tools
+
+These appear only when the MCP server runs next to a CyberMP server; with nothing configured the five tools above are all the client sees.
+
+| When | What appears |
+|---|---|
+| A server logs folder exists (`logs/`, `mp/linux/logs`, `mp/win/logs` under the project root, or `CYBERMP_LOGS_DIR`) | `server_status`, `list_server_logs`, `read_server_log`, logs as `cybermp://logs/<file>` resources |
+| `DEVTOOLS_TOKEN` is set (environment or `<root>/.env`) | The `triage-server`, `investigate-player` and `post-crash-analysis` prompts |
+| ...and the server runs the `mcp-bridge` resource | Every tool the bridge offers (`list_players`, `get_recent_events`, `list_resources`, ...) and tools added by your resources as `<scope>__<tool>` |
+
+Both are re-checked every 10 seconds, so starting the server or adding the token needs no restart. `CYBERMP_MCP_MODE=readonly`, `CYBERMP_MCP_ALLOW` and `CYBERMP_MCP_DENY` limit what the agent may use. Details, all settings and the bridge protocol: [docs/live-server.md](docs/live-server.md). The bridge library for server resources is [`cybermp-agent-kit-bridge`](packages/bridge/README.md).
 
 ---
 

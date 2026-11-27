@@ -9,7 +9,8 @@ describe('CyberMP MCP Server', () => {
   let clientTransport: InMemoryTransport;
 
   beforeAll(async () => {
-    const server = createCyberMpServer();
+    // No server configured, so expose only the offline docs tools
+    const server = createCyberMpServer({ live: { env: () => ({ CYBERMP_ROOT: '/nonexistent' }) } });
     [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await server.connect(serverTransport);
 

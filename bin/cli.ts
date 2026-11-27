@@ -44,6 +44,8 @@ program
   .option('--no-skill', 'Do not copy cybermp-dev Agent Skill')
   .option('--global-antigravity', 'Configure Antigravity MCP in the global user settings')
   .option('--plugin', 'Copy cybermp Antigravity plugin into .agents/plugins/')
+  .option('--bridge', 'Copy the mcp-bridge server resource into resources/ and write DEVTOOLS_TOKEN to .env')
+  .option('--no-bridge', 'Do not set up the live server bridge')
   .option('-y, --yes', 'Non-interactive mode with default settings')
   .option('-f, --force', 'Overwrite existing files')
   .action(async (options) => {
@@ -52,6 +54,7 @@ program
         editors: options.editors,
         copySkill: options.skill,
         plugin: options.plugin,
+        bridge: options.bridge,
         globalAntigravity: options.globalAntigravity,
         nonInteractive: options.yes,
         force: options.force,

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -14,6 +15,87 @@ export interface InitOptions {
   isWindows?: boolean;
   force?: boolean;
   nonInteractive?: boolean;
+  /** Copy the mcp-bridge server resource and put a DEVTOOLS_TOKEN in .env */
+  bridge?: boolean;
+}
+
+/** What {@link setupBridge} did, for the summary */
+export interface BridgeSetup {
+  resource: 'copied' | 'kept' | 'missing';
+  token: 'created' | 'kept';
+  gitignore: 'created' | 'added' | 'present';
+}
+
+/**
+ * Lets the MCP server drive a local game server: copies the `mcp-bridge`
+ * resource into `resources/`, and writes a random `DEVTOOLS_TOKEN` to `.env`
+ * (read by both the resource and the MCP server, so the token never goes
+ * into an editor configuration). Adds `.env` to `.gitignore`, creating the
+ * file when the project has none.
+ */
+export function setupBridge(cwd: string, force = false): BridgeSetup {
+  const packageRoot = getPackageRoot();
+  const source = path.join(packageRoot, 'resources/mcp-bridge');
+  const destination = path.join(cwd, 'resources/mcp-bridge');
+  let resource: BridgeSetup['resource'] = 'missing';
+
+  if (fs.existsSync(source)) {
+    if (fs.existsSync(destination) && fs.readdirSync(destination).length > 0 && !force) {
+      resource = 'kept';
+    } else {
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.cpSync(source, destination, {
+        recursive: true,
+        force: true,
+        // A built copy in the package must not leak into the project
+        filter: (file) => !/(^|[\\/])(node_modules|dist)([\\/]|$)/.test(path.relative(source, file)),
+      });
+      resource = 'copied';
+    }
+  }
+
+  const envPath = path.join(cwd, '.env');
+  const envText = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+  let token: BridgeSetup['token'] = 'kept';
+
+  // Horizontal whitespace only, since `\s` would read an
+  // empty `DEVTOOLS_TOKEN=` as set by the next line
+  if (!/^[ \t]*DEVTOOLS_TOKEN[ \t]*=[ \t]*\S/m.test(envText)) {
+    const separator = envText && !envText.endsWith('\n') ? '\n' : '';
+    fs.writeFileSync(
+      envPath,
+      `${envText}${separator}# Shared by the mcp-bridge resource and the cybermp MCP server\nDEVTOOLS_TOKEN=${randomBytes(24).toString('hex')}\n`,
+      { mode: 0o600 },
+    );
+    try {
+      // `mode` only applies to a new file; an existing .env now holds the token too
+      fs.chmodSync(envPath, 0o600);
+    } catch {
+      // Not supported (Windows)
+    }
+    token = 'created';
+  }
+
+  const gitignorePath = path.join(cwd, '.gitignore');
+  let gitignore: BridgeSetup['gitignore'];
+
+  if (fs.existsSync(gitignorePath)) {
+    const ignored = fs.readFileSync(gitignorePath, 'utf8');
+
+    if (/^\/?\.env\s*$/m.test(ignored)) {
+      gitignore = 'present';
+    } else {
+      const separator = ignored && !ignored.endsWith('\n') ? '\n' : '';
+      fs.appendFileSync(gitignorePath, `${separator}.env\n`);
+      gitignore = 'added';
+    }
+  } else {
+    // A fresh project; without this, `git add .` would pick up the token
+    fs.writeFileSync(gitignorePath, '.env\n');
+    gitignore = 'created';
+  }
+
+  return { resource, token, gitignore };
 }
 
 /**
@@ -128,12 +210,14 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
   const mcpCmd = resolveMcpServerCommand(cwd, isWindows);
   let selectedEditors: string[] = [];
   let shouldCopySkill: boolean;
+  let shouldSetupBridge: boolean;
 
   if (options.nonInteractive) {
     selectedEditors = options.editors && options.editors.length > 0
       ? options.editors
       : ['cursor', 'claude', 'antigravity'];
     shouldCopySkill = options.copySkill ?? true;
+    shouldSetupBridge = Boolean(options.bridge);
   } else {
     const questions: prompts.PromptObject[] = [
       {
@@ -161,6 +245,16 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
       });
     }
 
+    if (options.bridge === undefined) {
+      questions.push({
+        type: 'confirm',
+        name: 'bridge',
+        message:
+          'Let the agent inspect and drive your local server? (copies resources/mcp-bridge, writes DEVTOOLS_TOKEN to .env)',
+        initial: false,
+      });
+    }
+
     const response = await prompts(questions);
 
     if (!response.editors) {
@@ -172,6 +266,9 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
     shouldCopySkill = options.copySkill !== undefined
       ? Boolean(options.copySkill)
       : Boolean(response.copySkill ?? true);
+    shouldSetupBridge = options.bridge !== undefined
+      ? Boolean(options.bridge)
+      : Boolean(response.bridge);
   }
 
   const normalizedEditors = selectedEditors.map((e) => e.trim().toLowerCase());
@@ -300,6 +397,33 @@ export async function initProject(options: InitOptions = {}): Promise<void> {
           console.log(`Installed CyberMP Antigravity plugin in ${pluginDest}`);
         }
       }
+    }
+  }
+
+  if (shouldSetupBridge) {
+    const setup = setupBridge(cwd, force);
+
+    if (setup.resource === 'kept') {
+      console.log('Skipping existing resources/mcp-bridge (use --force to overwrite)');
+    } else if (setup.resource === 'missing') {
+      console.warn(
+        'Warning: the mcp-bridge resource template is missing from this cybermp-agent-kit install, so resources/mcp-bridge was not created. Reinstall the package, or copy resources/mcp-bridge from the repository.',
+      );
+    }
+    if (setup.gitignore === 'added') {
+      console.log('Added .env to .gitignore (it holds DEVTOOLS_TOKEN)');
+    } else if (setup.gitignore === 'created') {
+      console.log('Created .gitignore with .env in it (it holds DEVTOOLS_TOKEN)');
+    }
+    if (!options.nonInteractive) {
+      console.log(
+        [
+          `Live server: resources/mcp-bridge ${{ copied: 'copied', kept: 'already there', missing: 'NOT created (see above)' }[setup.resource]}, DEVTOOLS_TOKEN ${setup.token === 'created' ? 'written to' : 'kept in'} .env`,
+          '  Next: build it (pnpm install && pnpm build in resources/mcp-bridge),',
+          '  add "mcp-bridge" to the resources list in server.toml, and start the server.',
+          '  If the server does not run from this folder, give it the same DEVTOOLS_TOKEN.',
+        ].join('\n'),
+      );
     }
   }
 
