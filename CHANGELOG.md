@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 — 2026-11-27
 
 - Rename the published packages to `@cybermp-community/agent-kit` and `@cybermp-community/agent-kit-bridge` for the 2.0.0 release. The CLI binary `cybermp-agent-kit` and the game resource id `mcp-bridge` are unchanged; `cybermp-agent-kit` 1.3.1 stays the last unscoped release.
 - License the project's own code under MIT. Third-party notices in `data/` are unchanged; releases up to 1.3.1 remain GPL-3.0-or-later.
