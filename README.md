@@ -193,7 +193,7 @@ hermes mcp test cybermp
 The `cybermp-dev` skill can be installed straight from this repository:
 
 ```bash
-hermes skills install https://raw.githubusercontent.com/mo3g666/cybermp-community-agent-kit/main/packages/agent-kit/skills/cybermp-dev/SKILL.md
+hermes skills install https://raw.githubusercontent.com/cybermp-community/agent-kit/main/packages/agent-kit/skills/cybermp-dev/SKILL.md
 ```
 
 If a project carries its own copy under `.agents/skills/`, trust that folder instead with `hermes skills trust`. Live server tools need nothing extra beyond the setup below: the MCP server reads `DEVTOOLS_TOKEN` from the server folder, exactly as it does for other editors.

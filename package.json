@@ -6,7 +6,7 @@
   "description": "Workspace for the CyberMP Community Agent Kit CLI, bridge and resource template",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mo3g666/cybermp-community-agent-kit.git"
+    "url": "https://github.com/cybermp-community/agent-kit.git"
   },
   "type": "module",
   "scripts": {
