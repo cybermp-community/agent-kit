@@ -301,6 +301,17 @@ describe('release.yml Configuration', () => {
     expect(upload.with.prerelease).toContain("contains(");
   });
 
+  it('keeps npm publishing behind a repository switch', () => {
+    const doc = parseWorkflow(releaseWorkflowPath);
+    const job = jobNamed(doc, 'release');
+    const publishStep = stepsOf(job).find((step) => step.run?.includes('release.mjs publish'));
+
+    // No token yet: a tag still builds, verifies and publishes a GitHub
+    // release, but never touches the registry until the switch is on
+    expect(publishStep.if).toBe("vars.NPM_PUBLISH == 'true'");
+    expect(publishStep.env.NODE_AUTH_TOKEN).toBe('${{ secrets.NPM_TOKEN }}');
+  });
+
   it('configures npm auth from the token secret without a fallback login', () => {
     const doc = parseWorkflow(releaseWorkflowPath);
     const job = jobNamed(doc, 'release');
