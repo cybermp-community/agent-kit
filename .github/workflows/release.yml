@@ -20,6 +20,9 @@ on:
 
 permissions:
   contents: write
+  # Trusted publishing: npm exchanges this short-lived OIDC token for a
+  # package-scoped publish credential, so no long-lived NPM_TOKEN is stored
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -41,7 +44,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # npm 11.5.1+ is required for trusted publishing; Node 24 ships it
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
@@ -84,13 +88,12 @@ jobs:
       - name: Explain why publishing is skipped
         if: vars.NPM_PUBLISH != 'true'
         run: |
-          echo "::warning::npm publishing is disabled. Set the repository variable NPM_PUBLISH=true (Settings → Secrets and variables → Actions → Variables) and add NPM_TOKEN to publish."
+          echo "::warning::npm publishing is disabled. Configure a trusted publisher for this repository (npm package settings → Trusted publishing: cybermp-community/agent-kit, workflow release.yml), then set the repository variable NPM_PUBLISH=true."
 
       - name: Publish the bridge, wait for it, then the CLI
         if: vars.NPM_PUBLISH == 'true'
         run: node scripts/release.mjs publish --artifacts artifacts --dist-tag "$DIST_TAG"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DIST_TAG: ${{ inputs.dist-tag }}
 
       - name: Attach the verified tarballs to the GitHub release

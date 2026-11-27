@@ -323,7 +323,7 @@ The license changed from GPL-3.0-or-later to MIT for the project's own code star
 
 ## Development
 
-The repository is a private pnpm workspace with one lockfile:
+The repository is a private pnpm workspace with one lockfile. Release steps, including the trusted-publisher setup, live in [CONTRIBUTING.md](CONTRIBUTING.md#releases).
 
 ```bash
 pnpm install
@@ -332,40 +332,6 @@ pnpm run build       # bridge, CLI and the mcp-bridge resource, in dependency or
 pnpm run check:examples
 pnpm run test:packed # packs both public packages and exercises the installed CLI
 ```
-
-### Releases
-
-One tag releases both public packages: the bridge is published first, then the
-CLI, which pins that bridge version. Both packages share one version, and the
-tag must match it.
-
-```bash
-# stable: 2.1.0
-pnpm --dir packages/bridge pkg set version=2.1.0
-pnpm --dir packages/agent-kit pkg set version=2.1.0
-pnpm pkg set version=2.1.0
-git commit -am "chore(release): 2.1.0"
-git tag v2.1.0 && git push origin main v2.1.0
-```
-
-A prerelease follows the same steps with a semver suffix, for example
-`2.1.0-beta.1` and tag `v2.1.0-beta.1`. Prereleases are published under the
-`beta` dist-tag; asking for `latest` with a prerelease version fails the
-release, so `npm install @cybermp-community/agent-kit` keeps resolving to the
-last stable release while `npm install @cybermp-community/agent-kit@beta`
-picks the beta.
-
-`workflow_dispatch` runs the same pipeline for an existing tag and accepts both
-`tag` and `dist-tag`, which is how a version is republished under another tag or
-recovered after a partial failure: a rerun skips what is already published with
-the same number and continues with the rest.
-
-Publishing to npm is off until the repository variable `NPM_PUBLISH` is `true`
-(Settings → Secrets and variables → Actions → Variables). While it is off, a
-tag still runs the tests, builds and verifies both tarballs and attaches them to
-the GitHub release, so a release can be prepared before the registry access
-exists; nothing is uploaded to npm until the switch is on and `NPM_TOKEN`
-holds a token that may publish to the scope.
 
 | Path | Contents |
 |---|---|
@@ -380,17 +346,7 @@ holds a token that may publish to the scope.
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTORS.md](CONTRIBUTORS.md) for attribution and the project's maintainers.
-
-Before opening a pull request, run the checks that CI runs:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm test
-pnpm run build
-pnpm run check:examples
-pnpm run test:packed
-```
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the checks to run before a pull request, the workspace layout and the release steps; [CONTRIBUTORS.md](CONTRIBUTORS.md) lists attribution.
 
 Keep third-party notices and generated data intact, and describe any protocol change that requires updating the CLI, bridge and resource together.
 
