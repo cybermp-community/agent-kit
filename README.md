@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@cybermp-community/agent-kit.svg)](https://www.npmjs.com/package/@cybermp-community/agent-kit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
 
 An offline-first MCP server, universal agent skills, and anti-hallucination rules for building multiplayer resources in [CyberMP](https://cyber.mp).
 
@@ -26,7 +26,7 @@ An offline-first MCP server, universal agent skills, and anti-hallucination rule
 
 ## Quick Start
 
-Node.js 20 or newer is required. Initialize CyberMP rules and MCP configuration in your project with a single command:
+Node.js 22 or newer is required. Initialize CyberMP rules and MCP configuration in your project with a single command:
 
 ```bash
 npx @cybermp-community/agent-kit init
