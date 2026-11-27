@@ -9,7 +9,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       mcpServers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
         },
       },
     },
@@ -17,7 +17,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       mcpServers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
         },
       },
     },
@@ -25,7 +25,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       mcpServers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
         },
       },
     },
@@ -33,7 +33,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       mcpServers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
           disabled: false,
           autoApprove: [],
         },
@@ -43,7 +43,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       mcpServers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
         },
       },
     },
@@ -51,7 +51,7 @@ export function getEditorSnippets(isWindows: boolean = process.platform === 'win
       context_servers: {
         cybermp: {
           command: npxCmd,
-          args: ['-y', 'cybermp-agent-kit'],
+          args: ['-y', '@cybermp-community/agent-kit'],
         },
       },
     },

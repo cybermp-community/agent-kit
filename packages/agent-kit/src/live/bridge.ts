@@ -16,7 +16,7 @@ type BridgeResponse = { ok: true; result: unknown } | { ok: false; error: string
 export const hasBridgeToken = (env: Env) => Boolean(env.DEVTOOLS_TOKEN);
 
 /**
- * Calls the bridge (`cybermp-agent-kit-bridge`) running inside a server
+ * Calls the bridge (`@cybermp-community/agent-kit-bridge`) running inside a server
  * resource, on 127.0.0.1.
  */
 export const callBridge = async (

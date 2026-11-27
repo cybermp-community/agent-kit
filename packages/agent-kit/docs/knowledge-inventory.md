@@ -1,4 +1,4 @@
-# CyberMP Agent Kit knowledge inventory
+# CyberMP Community Agent Kit knowledge inventory
 
 | Source | What it can answer | Evidence and gaps |
 | --- | --- | --- |

@@ -1,9 +1,9 @@
 ---
 name: cybermp-session-review
-description: Use when asked to review how CyberMP Agent Kit helped, failed, or misled an agent in a selected chat, or to collect evidence-backed improvements and trace where the working solution came from. Intended for retrospectives after CyberMP development or debugging.
+description: Use when asked to review how CyberMP Community Agent Kit helped, failed, or misled an agent in a selected chat, or to collect evidence-backed improvements and trace where the working solution came from. Intended for retrospectives after CyberMP development or debugging.
 ---
 
-# Review a CyberMP Agent Kit session
+# Review a CyberMP Community Agent Kit session
 
 Produce a retrospective and a prioritized backlog using the [report template](references/report-template.md). Track the source of the working change separately from the evidence that it worked.
 

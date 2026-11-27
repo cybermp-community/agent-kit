@@ -1,16 +1,17 @@
 {
-  "name": "mcp-bridge-resource",
+  "name": "@cybermp-community/agent-kit-bridge-resource",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
-  "description": "CyberMP resource hosting the cybermp-agent-kit bridge.",
+  "description": "CyberMP resource hosting the CyberMP Community Agent Kit bridge.",
   "scripts": {
     "build": "tsc --noEmit && tsdown",
     "dev": "tsdown --watch"
   },
   "dependencies": {
     "@cybermp/rpc-server": "0.2.0",
-    "cybermp-agent-kit-bridge": "workspace:*",
+    "@cybermp-community/agent-kit-bridge": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

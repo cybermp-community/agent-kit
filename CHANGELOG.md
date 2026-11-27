@@ -2,10 +2,12 @@
 
 ## Unreleased
 
+- Rename the published packages to `@cybermp-community/agent-kit` and `@cybermp-community/agent-kit-bridge` for the 2.0.0 release. The CLI binary `cybermp-agent-kit` and the game resource id `mcp-bridge` are unchanged; `cybermp-agent-kit` 1.3.1 stays the last unscoped release.
+- License the project's own code under MIT. Third-party notices in `data/` are unchanged; releases up to 1.3.1 remain GPL-3.0-or-later.
 - Add opt-in live server tools next to a CyberMP server, `server_status`, `list_server_logs`, `read_server_log` and log resources appear when a logs folder exists; with `DEVTOOLS_TOKEN` set, every tool the game server's bridge offers appears too, with the `triage-server`, `investigate-player` and `post-crash-analysis` prompts. The tool list follows the game (start, stop, hot reload) every 10 s. `CYBERMP_MCP_MODE=readonly`, `CYBERMP_MCP_ALLOW` and `CYBERMP_MCP_DENY` limit what the agent may use (any `CYBERMP_MCP_MODE` other than `full`/`write`, a typo included, means read-only; an empty `CYBERMP_MCP_ALLOW` allows no bridge tool). With nothing configured, only the five docs tools are listed, as before. See `docs/live-server.md`.
-- Ship the bridge for server resources as a separate package, `cybermp-agent-kit-bridge` (`packages/bridge`), and the resource that hosts it (`resources/mcp-bridge`). Tools added by a resource are named `<scope>__<tool>`; `list_scopes` shows which resource each tool comes from.
+- Ship the bridge for server resources as a separate package, `@cybermp-community/agent-kit-bridge` (`packages/bridge`), and the resource that hosts it (`resources/mcp-bridge`). Tools added by a resource are named `<scope>__<tool>`; `list_scopes` shows which resource each tool comes from.
 - `init --bridge` copies the resource and writes a random `DEVTOOLS_TOKEN` to `.env`, never into editor configurations.
-- New export `cybermp-agent-kit/client` (`callBridge`, `describeBridge`) for scripts.
+- New export `@cybermp-community/agent-kit/client` (`callBridge`, `describeBridge`) for scripts.
 - Raise `@modelcontextprotocol/sdk` to `^1.32.2`.
 
 ## 1.3.1 — 2026-11-22

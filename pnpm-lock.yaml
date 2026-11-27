@@ -74,12 +74,12 @@ importers:
 
   resources/mcp-bridge:
     dependencies:
+      '@cybermp-community/agent-kit-bridge':
+        specifier: workspace:*
+        version: link:../../packages/bridge
       '@cybermp/rpc-server':
         specifier: 0.2.0
         version: 0.2.0(@cybermp/server-types@3.2.8)
-      cybermp-agent-kit-bridge:
-        specifier: workspace:*
-        version: link:../../packages/bridge
       zod:
         specifier: ^4.3.6
         version: 4.6.7

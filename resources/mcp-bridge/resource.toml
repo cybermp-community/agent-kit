@@ -1,6 +1,6 @@
 #:schema https://schemas.cyber.mp/resource/schema.json
 
-author = "cybermp-agent-kit project"
+author = "CyberMP Community Agent Kit project"
 description = "MCP bridge to allow LLM agents to inspect and drive a server"
 version = "0.1.0"
 

@@ -9,7 +9,7 @@ const program = new Command();
 
 program
   .name('cybermp-agent-kit')
-  .description('CyberMP AI Agent Toolkit & MCP Server')
+  .description('CyberMP Community Agent Kit CLI & MCP Server')
   .version(packageVersion);
 
 program

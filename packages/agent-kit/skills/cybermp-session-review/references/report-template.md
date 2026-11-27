@@ -1,4 +1,4 @@
-# CyberMP Agent Kit session review
+# CyberMP Community Agent Kit session review
 
 ## Summary and coverage
 

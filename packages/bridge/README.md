@@ -1,11 +1,11 @@
-# cybermp-agent-kit-bridge
+# @cybermp-community/agent-kit-bridge
 
 Localhost RPC bridge so the MCP server of
-[`cybermp-agent-kit`](https://github.com/mo3g666/cybermp-agent-kit) can inspect
+[`@cybermp-community/agent-kit`](https://github.com/mo3g666/cybermp-agent-kit) can inspect
 and drive a CyberMP server.
 
 ```ts
-import { createBridge, defineMethod } from 'cybermp-agent-kit-bridge';
+import { createBridge, defineMethod } from '@cybermp-community/agent-kit-bridge';
 import z from 'zod';
 
 const bridge = createBridge({

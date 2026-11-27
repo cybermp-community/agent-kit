@@ -9,13 +9,13 @@ describe('CLI Config Generator', () => {
   it('returns valid JSON snippet for Cursor and Claude', () => {
     const cursorConfig = getConfigSnippet('cursor', { isWindows: false });
     expect(cursorConfig).toContain('"command": "npx"');
-    expect(cursorConfig).toContain('"cybermp-agent-kit"');
+    expect(cursorConfig).toContain('"@cybermp-community/agent-kit"');
     const parsedCursor = JSON.parse(cursorConfig);
     expect(parsedCursor.mcpServers.cybermp).toBeDefined();
 
     const claudeConfig = getConfigSnippet('claude', { isWindows: false });
     expect(claudeConfig).toContain('"command": "npx"');
-    expect(claudeConfig).toContain('"cybermp-agent-kit"');
+    expect(claudeConfig).toContain('"@cybermp-community/agent-kit"');
     const parsedClaude = JSON.parse(claudeConfig);
     expect(parsedClaude.mcpServers.cybermp).toBeDefined();
   });
@@ -117,20 +117,24 @@ describe('MCP Server Command Resolution', () => {
 
   it('resolves npx on Unix and npx.cmd on Windows when package is not local', () => {
     const unixCmd = resolveMcpServerCommand(tempDir, false);
-    expect(unixCmd).toEqual({ command: 'npx', args: ['-y', 'cybermp-agent-kit'] });
+    expect(unixCmd).toEqual({ command: 'npx', args: ['-y', '@cybermp-community/agent-kit'] });
 
     const winCmd = resolveMcpServerCommand(tempDir, true);
-    expect(winCmd).toEqual({ command: 'npx.cmd', args: ['-y', 'cybermp-agent-kit'] });
+    expect(winCmd).toEqual({ command: 'npx.cmd', args: ['-y', '@cybermp-community/agent-kit'] });
   });
 
   it('resolves direct node execution when installed locally in node_modules', () => {
-    const localCliPath = path.join(tempDir, 'node_modules/cybermp-agent-kit/dist/bin/cli.js');
+    const localCliPath = path.join(
+      tempDir, 'node_modules/@cybermp-community/agent-kit/dist/bin/cli.js',
+    );
     fs.mkdirSync(path.dirname(localCliPath), { recursive: true });
     fs.writeFileSync(localCliPath, '#!/usr/bin/env node\n', 'utf-8');
 
     const resolved = resolveMcpServerCommand(tempDir);
     expect(resolved.command).toBe('node');
-    expect(resolved.args).toEqual(['./node_modules/cybermp-agent-kit/dist/bin/cli.js']);
+    expect(resolved.args).toEqual([
+      './node_modules/@cybermp-community/agent-kit/dist/bin/cli.js',
+    ]);
   });
 });
 
@@ -402,7 +406,7 @@ describe('CLI Init Wizard', () => {
     const resource = path.join(tempDir, 'resources/mcp-bridge');
     expect(fs.existsSync(path.join(resource, 'resource.toml'))).toBe(true);
     expect(fs.readFileSync(path.join(resource, 'src/index.ts'), 'utf8')).toContain(
-      "from 'cybermp-agent-kit-bridge'",
+      "from '@cybermp-community/agent-kit-bridge'",
     );
     expect(fs.existsSync(path.join(resource, 'node_modules'))).toBe(false);
 
