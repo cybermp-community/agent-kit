@@ -46,6 +46,7 @@
     "dist",
     "LICENSE",
     "data",
+    "docs/audits",
     "docs/knowledge-inventory.md",
     "docs/live-server.md",
     "skills",
