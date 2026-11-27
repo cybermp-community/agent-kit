@@ -67,7 +67,7 @@ program
 
 program
   .command('config [editor]')
-  .description('Print MCP configuration snippet for the specified editor (cursor, claude, antigravity, cline, windsurf, zed, all)')
+  .description('Print MCP configuration snippet for the specified editor (cursor, claude, antigravity, cline, windsurf, zed, hermes, all)')
   .action((editor) => {
     try {
       const snippet = getConfigSnippet(editor || 'all');

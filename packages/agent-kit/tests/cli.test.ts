@@ -61,6 +61,17 @@ describe('CLI Config Generator', () => {
     expect(parsedAll.zed).toBeDefined();
   });
 
+  it('prints the Hermes registration command instead of JSON', () => {
+    const hermes = getConfigSnippet('hermes', { isWindows: false });
+    expect(hermes).toBe('hermes mcp add cybermp --command npx --args -y @cybermp-community/agent-kit run');
+
+    const windows = getConfigSnippet('hermes', { isWindows: true });
+    expect(windows).toContain('--command npx.cmd');
+
+    const parsedAll = JSON.parse(getConfigSnippet('all'));
+    expect(parsedAll.hermes.command).toContain('hermes mcp add cybermp');
+  });
+
   it('normalizes target name case and whitespace', () => {
     const cursorUpper = getConfigSnippet('  CURSOR  ');
     expect(cursorUpper).toContain('"cybermp"');
