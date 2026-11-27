@@ -111,6 +111,15 @@ export type BridgeLogger = {
  */
 export type PresenceState = 'connected' | 'listening' | 'disconnected';
 
+/**
+ * Optional session + monotonic sequence metadata attached by live callers so
+ * out-of-order or stale reports cannot revive a closed session or drop a new one.
+ */
+export type PresenceMeta = {
+  session?: string;
+  seq?: number;
+};
+
 export type AuditEntry = {
   time: string;
   method: string;
@@ -155,7 +164,7 @@ export type BridgeOptions = {
    * Called on every presence report. The return value is sent back to the
    * caller (e.g. a pending-events count for a waiter helper).
    */
-  onPresence?(state: PresenceState): unknown;
+  onPresence?(state: PresenceState, meta?: PresenceMeta): unknown;
   /**
    * Called after every `write` and `destructive` call (reads are not
    * audited), whether it succeeded or not. See {@link fileAudit}.
@@ -275,6 +284,8 @@ const digest = (value: string) => createHash('sha256').update(value).digest();
 
 const PRESENCE_PARAMS = z.object({
   state: z.enum(['connected', 'listening', 'disconnected']),
+  session: z.string().min(1).max(128).optional(),
+  seq: z.number().int().min(0).optional(),
 });
 
 /**
@@ -320,7 +331,10 @@ export const createBridge = (options: BridgeOptions): Bridge => {
         throw new BridgeError(`Invalid params: ${z.prettifyError(parsed.error)}`);
       }
 
-      return (await options.onPresence?.(parsed.data.state)) ?? null;
+      const { state, ...params } = parsed.data;
+      const meta = params.session !== undefined || params.seq !== undefined ? params : undefined;
+
+      return (await options.onPresence?.(state, meta)) ?? null;
     }
 
     const methods = await getMethods();

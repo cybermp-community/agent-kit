@@ -9,7 +9,6 @@ import {
   fileAudit,
   MCP_BRIDGE_RPC_NAME,
   resourceMethods,
-  type PresenceState,
 } from 'cybermp-agent-kit-bridge';
 import { bridgePort, loadConfig, startDelayMs } from './env';
 
@@ -60,7 +59,7 @@ const bridge = createBridge({
   port,
   listenDelayMs: serverJustStarted ? START_DELAY_MS : 0,
   methods: () => host.methods(core),
-  onPresence: (state: PresenceState) => host.onPresence(state),
+  onPresence: host.onPresence,
   onAudit: config.DEVTOOLS_AUDIT_FILE
     ? fileAudit(config.DEVTOOLS_AUDIT_FILE)
     : undefined,

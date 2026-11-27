@@ -153,13 +153,13 @@ describe('createBridge over HTTP', () => {
   });
 
   it('forwards presence', async () => {
-    const seen: string[] = [];
+    const seen: Array<[string, unknown]> = [];
     let port: number;
     ({ bridge, port } = await started({
       token: TOKEN,
       methods,
-      onPresence: (state) => {
-        seen.push(state);
+      onPresence: (state, meta) => {
+        seen.push([state, meta]);
         return { pending: 2 };
       },
     }));
@@ -168,7 +168,21 @@ describe('createBridge over HTTP', () => {
       ok: true,
       result: { pending: 2 },
     });
-    expect(seen).toEqual(['connected']);
+    expect(
+      (
+        await call(port, {
+          method: 'bridge.presence',
+          params: { state: 'disconnected', session: 's1', seq: 2 },
+        })
+      ).body,
+    ).toEqual({
+      ok: true,
+      result: { pending: 2 },
+    });
+    expect(seen).toEqual([
+      ['connected', undefined],
+      ['disconnected', { session: 's1', seq: 2 }],
+    ]);
   });
 
   it('answers an oversized body with a JSON error instead of dropping the connection', async () => {

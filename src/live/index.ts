@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type McpServer,
   type RegisteredTool,
@@ -251,12 +252,26 @@ export const registerLiveFeatures = (
   // This process only lives while an MCP client session is open, so its
   // heartbeat lets the game server know an agent is attached.
 
-  const reportPresence = async (state: 'connected' | 'disconnected', timeoutMs: number) => {
+  const reportPresence = async (
+    state: 'connected' | 'disconnected',
+    timeoutMs: number,
+    reportSession: string,
+    reportSeq: number,
+    signal?: AbortSignal,
+  ) => {
     try {
       const env = getEnv();
 
       if (hasBridgeToken(env)) {
-        await callBridge('bridge.presence', { state }, { env, timeoutMs });
+        await callBridge(
+          'bridge.presence',
+          {
+            state,
+            session: reportSession,
+            seq: reportSeq,
+          },
+          { env, timeoutMs, signal },
+        );
       }
     } catch {
       // Game down or hot-reloading, so try again on the next beat
@@ -265,17 +280,38 @@ export const registerLiveFeatures = (
 
   let timer: ReturnType<typeof setInterval> | undefined;
   let stopped = false;
+  let session: string | undefined;
+  let seq = 0;
   /** The `connected` report in flight, so `stop()` can send `disconnected` after it */
   let presence: Promise<void> | undefined;
+  /** Cancels that report when the run stops, so it cannot outlive the session */
+  let presenceController: AbortController | undefined;
 
   const beat = () => {
-    if (stopped) {
+    if (stopped || !session) {
       return;
     }
 
-    presence ??= reportPresence('connected', DESCRIBE_TIMEOUT_MS).finally(() => {
-      presence = undefined;
-    });
+    if (!presence) {
+      const activeSession = session;
+      const nextSeq = ++seq;
+      const controller = new AbortController();
+      let inFlight: Promise<void>;
+      presenceController = controller;
+      inFlight = reportPresence(
+        'connected',
+        DESCRIBE_TIMEOUT_MS,
+        activeSession,
+        nextSeq,
+        controller.signal,
+      ).finally(() => {
+        if (presence === inFlight) {
+          presence = undefined;
+          presenceController = undefined;
+        }
+      });
+      presence = inFlight;
+    }
 
     // The first beat follows the sync done before the client connected
     if (Date.now() - lastSyncAt >= heartbeatMs / 2) {
@@ -292,6 +328,11 @@ export const registerLiveFeatures = (
       }
 
       stopped = false;
+      session = randomUUID();
+      seq = 0;
+      // A previous run's in-flight heartbeat must not block or clear the new run
+      presence = undefined;
+      presenceController = undefined;
 
       beat();
       timer = setInterval(beat, heartbeatMs);
@@ -306,16 +347,24 @@ export const registerLiveFeatures = (
         timer = undefined;
       }
 
-      // A `connected` still in flight must not land after `disconnected`
-      if (presence) {
-        await Promise.race([
-          presence,
-          new Promise((resolve) => setTimeout(resolve, DISCONNECT_TIMEOUT_MS).unref?.()),
-        ]);
+      const stoppedSession = session;
+      if (!stoppedSession) {
+        return;
       }
 
+      const disconnectSeq = ++seq;
+
+      session = undefined;
+      seq = 0;
+
+      // Cancel the heartbeat that is still on the wire rather than waiting for
+      // it: a `connected` for the run that just stopped must not outlive it.
+      presenceController?.abort();
+      presenceController = undefined;
+      presence = undefined;
+
       // Tells the game server at once instead of timing out
-      await reportPresence('disconnected', DISCONNECT_TIMEOUT_MS);
+      await reportPresence('disconnected', DISCONNECT_TIMEOUT_MS, stoppedSession, disconnectSeq);
     },
 
     state: () => ({

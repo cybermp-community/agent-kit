@@ -3,7 +3,7 @@ import { createServer, type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
@@ -26,7 +26,7 @@ import { createCyberMpServerWithLive } from '../src/server.js';
 import type { Env } from '../src/live/env.js';
 import { parsePs, parseTasklist } from '../src/live/process.js';
 import { isReadOnlyMode, isToolAllowed } from '../src/live/policy.js';
-import { callBridge } from '../src/live/bridge.js';
+import { BridgeError, callBridge } from '../src/live/bridge.js';
 import { listLogFiles } from '../src/live/logs.js';
 import { toInputSchema } from '../src/live/bridge-tools.js';
 import { describeMethods } from '../packages/bridge/src/index.ts';
@@ -201,6 +201,7 @@ describe('live server features', () => {
   const cleanup: Array<() => unknown> = [];
 
   afterEach(async () => {
+    vi.useRealTimers();
     for (const fn of cleanup.splice(0).reverse()) {
       await fn();
     }
@@ -535,10 +536,325 @@ describe('live server features', () => {
       game.slow.connectedMs = 200;
       live.start();
       await new Promise((resolve) => setTimeout(resolve, 20));
-      await live.stop();
-      await new Promise((resolve) => setTimeout(resolve, 250));
 
-      expect(game.presence).toEqual(['connected', 'disconnected']);
+      const started = Date.now();
+      await live.stop();
+      const elapsed = Date.now() - started;
+
+      // The heartbeat is cancelled instead of awaited: stop does not wait for it,
+      // and the stopped session's late report is ignored by the game's inbox
+      expect(elapsed).toBeLessThan(500);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      expect(game.presence.filter((state) => state === 'disconnected')).toHaveLength(1);
+    });
+
+    it('does not revive a stopped session when the heartbeat arrives late', async () => {
+      const world = createWorld();
+      const inbox = createAgentInbox({ onReply: () => {} });
+      cleanup.push(() => inbox.dispose());
+
+      const host = createProviderHost({
+        mp: world.mpFor('mcp-bridge'),
+        rpc: world.rpcFor('mcp-bridge'),
+        logger: {},
+      });
+      const provider = registerMcpProvider({
+        mp: world.mpFor('game-inbox'),
+        rpc: world.rpcFor('game-inbox'),
+        scope: 'inbox',
+        methods: inbox.methods,
+        onPresence: (state, meta) => inbox.onPresence(state, meta),
+        logger: {},
+      });
+      await flush();
+
+      const reports: Array<{ state: string; meta: any }> = [];
+      const port = await freePort();
+      let bridge!: Bridge;
+
+      await new Promise<void>((resolve) => {
+        bridge = createBridge({
+          token: TOKEN,
+          port,
+          methods: () => host.methods(basicMethods(fakePlayers)),
+          onPresence: (state, meta) => {
+            reports.push({ state, meta });
+            return host.onPresence(state, meta);
+          },
+          logger: { success: () => resolve() },
+        });
+      });
+
+      cleanup.push(async () => {
+        bridge.stop();
+        await provider.unregister();
+        host.dispose();
+      });
+
+      const { live } = await connect({
+        CYBERMP_ROOT: '/nonexistent',
+        DEVTOOLS_TOKEN: TOKEN,
+        DEVTOOLS_PORT: String(port),
+      });
+
+      live.start();
+      await vi.waitFor(() => expect(reports.some((r) => r.state === 'connected')).toBe(true));
+      await live.stop();
+
+      expect(inbox.isConnected()).toBe(false);
+
+      // The stopped run's heartbeat reaches the game late; its own disconnect
+      // has already terminated the session, so it cannot come back
+      const connectedReport = reports.find((r) => r.state === 'connected')!;
+      inbox.onPresence('connected', connectedReport.meta);
+      expect(inbox.isConnected()).toBe(false);
+    });
+
+    it('isolates a restarted session from an in-flight heartbeat of the previous run', async () => {
+      const world = createWorld();
+      const inbox = createAgentInbox({ onReply: () => {} });
+      cleanup.push(() => inbox.dispose());
+
+      const host = createProviderHost({
+        mp: world.mpFor('mcp-bridge'),
+        rpc: world.rpcFor('mcp-bridge'),
+        logger: {},
+      });
+      const provider = registerMcpProvider({
+        mp: world.mpFor('game-inbox'),
+        rpc: world.rpcFor('game-inbox'),
+        scope: 'inbox',
+        methods: inbox.methods,
+        onPresence: (state, meta) => inbox.onPresence(state, meta),
+        logger: {},
+      });
+      await flush();
+
+      let enteredFirst!: () => void;
+      const firstEntered = new Promise<void>((resolve) => {
+        enteredFirst = resolve;
+      });
+      let releaseFirst!: () => void;
+      const firstGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let finishFirst!: () => void;
+      const firstDone = new Promise<void>((resolve) => {
+        finishFirst = resolve;
+      });
+      let finishSecond!: () => void;
+      const secondDone = new Promise<void>((resolve) => {
+        finishSecond = resolve;
+      });
+
+      let count = 0;
+      const port = await freePort();
+      let bridge!: Bridge;
+
+      await new Promise<void>((resolve) => {
+        bridge = createBridge({
+          token: TOKEN,
+          port,
+          methods: () => host.methods(basicMethods(fakePlayers)),
+          onPresence: async (state, meta) => {
+            if (state === 'connected') {
+              count += 1;
+              if (count === 1) {
+                enteredFirst();
+                await firstGate;
+                const res = await host.onPresence(state, meta);
+                finishFirst();
+                return res;
+              }
+              const res = await host.onPresence(state, meta);
+              finishSecond();
+              return res;
+            }
+            return host.onPresence(state, meta);
+          },
+          logger: { success: () => resolve() },
+        });
+      });
+
+      cleanup.push(async () => {
+        bridge.stop();
+        await provider.unregister();
+        host.dispose();
+      });
+
+      const { live } = await connect({
+        CYBERMP_ROOT: '/nonexistent',
+        DEVTOOLS_TOKEN: TOKEN,
+        DEVTOOLS_PORT: String(port),
+      });
+
+      vi.useFakeTimers({
+        toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+      });
+      live.start();
+      await firstEntered;
+
+      const stopPromise = live.stop();
+      await vi.advanceTimersByTimeAsync(1_500);
+      await stopPromise;
+      expect(inbox.isConnected()).toBe(false);
+
+      // Restart before the first run's connected request finishes
+      live.start();
+      await secondDone;
+      expect(inbox.isConnected()).toBe(true);
+
+      releaseFirst();
+      await firstDone;
+      expect(inbox.isConnected()).toBe(true);
+    });
+
+    it('never sends a sessionless disconnect when stopped without starting or stopped twice', async () => {
+      const seen: Array<{ state: string; meta: unknown }> = [];
+      const port = await freePort();
+      let bridge!: Bridge;
+
+      await new Promise<void>((resolve) => {
+        bridge = createBridge({
+          token: TOKEN,
+          port,
+          methods: basicMethods(fakePlayers),
+          onPresence: (state, meta) => {
+            seen.push({ state, meta });
+            return { pending: 0 };
+          },
+          logger: { success: () => resolve() },
+        });
+      });
+
+      cleanup.push(() => bridge.stop());
+
+      const { live } = await connect({
+        CYBERMP_ROOT: '/nonexistent',
+        DEVTOOLS_TOKEN: TOKEN,
+        DEVTOOLS_PORT: String(port),
+      });
+
+      await live.stop();
+      expect(seen).toEqual([]);
+
+      live.start();
+      await vi.waitFor(() => expect(seen.length).toBeGreaterThanOrEqual(1));
+      await live.stop();
+      await live.stop();
+
+      const disconnects = seen.filter((entry) => entry.state === 'disconnected');
+      expect(disconnects).toHaveLength(1);
+      expect(disconnects[0].meta).toMatchObject({
+        session: expect.any(String),
+        seq: expect.any(Number),
+      });
+    });
+
+    it('snapshots and detaches stopped session before await when start overlaps stop', async () => {
+      const world = createWorld();
+      const inbox = createAgentInbox({ onReply: () => {} });
+      cleanup.push(() => inbox.dispose());
+
+      const host = createProviderHost({
+        mp: world.mpFor('mcp-bridge'),
+        rpc: world.rpcFor('mcp-bridge'),
+        logger: {},
+      });
+      const provider = registerMcpProvider({
+        mp: world.mpFor('game-inbox'),
+        rpc: world.rpcFor('game-inbox'),
+        scope: 'inbox',
+        methods: inbox.methods,
+        onPresence: (state, meta) => inbox.onPresence(state, meta),
+        logger: {},
+      });
+      await flush();
+
+      let enteredFirst!: () => void;
+      const firstEntered = new Promise<void>((resolve) => {
+        enteredFirst = resolve;
+      });
+      let releaseFirst!: () => void;
+      const firstGate = new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+      let finishFirst!: () => void;
+      const firstDone = new Promise<void>((resolve) => {
+        finishFirst = resolve;
+      });
+      let finishSecond!: () => void;
+      const secondDone = new Promise<void>((resolve) => {
+        finishSecond = resolve;
+      });
+
+      const seen: Array<{ state: string; meta: any }> = [];
+      let connectedCount = 0;
+      const port = await freePort();
+      let bridge!: Bridge;
+
+      await new Promise<void>((resolve) => {
+        bridge = createBridge({
+          token: TOKEN,
+          port,
+          methods: () => host.methods(basicMethods(fakePlayers)),
+          onPresence: async (state, meta) => {
+            seen.push({ state, meta });
+            if (state === 'connected') {
+              connectedCount += 1;
+              if (connectedCount === 1) {
+                enteredFirst();
+                await firstGate;
+                const res = await host.onPresence(state, meta);
+                finishFirst();
+                return res;
+              }
+              const res = await host.onPresence(state, meta);
+              finishSecond();
+              return res;
+            }
+            return host.onPresence(state, meta);
+          },
+          logger: { success: () => resolve() },
+        });
+      });
+
+      cleanup.push(async () => {
+        bridge.stop();
+        await provider.unregister();
+        host.dispose();
+      });
+
+      const { live } = await connect({
+        CYBERMP_ROOT: '/nonexistent',
+        DEVTOOLS_TOKEN: TOKEN,
+        DEVTOOLS_PORT: String(port),
+      });
+
+      live.start();
+      await firstEntered;
+
+      // Start stop() while first connected heartbeat is still in flight, then immediately start() a new session
+      const stopPromise = live.stop();
+      live.start();
+      await secondDone;
+      expect(inbox.isConnected()).toBe(true);
+
+      // The stopped run's heartbeat is cancelled, so its late report cannot
+      // outlive the session and the restart keeps the inbox online
+      releaseFirst();
+      await firstDone;
+      await stopPromise;
+
+      expect(inbox.isConnected()).toBe(true);
+      const disconnects = seen.filter((entry) => entry.state === 'disconnected');
+      expect(disconnects).toHaveLength(1);
+      expect(disconnects[0].meta.session).toBe(seen[0].meta.session);
+      expect(disconnects[0].meta.seq).toBeGreaterThan(seen[0].meta.seq);
+      const restarted = seen.find(
+        (entry) => entry.state === 'connected' && entry.meta.session !== seen[0].meta.session,
+      );
+      expect(restarted).toBeDefined();
     });
   });
 });
@@ -641,6 +957,95 @@ describe('live helpers', () => {
       ).rejects.toMatchObject({ name: 'BridgeError', message: expect.stringMatching(/HTTP 500 without a bridge reply/) });
     } finally {
       await new Promise((resolve) => other.close(resolve));
+    }
+  });
+
+  it('sends nothing when its caller signal is already aborted', async () => {
+    let calls = 0;
+    const server = createHttpServer((_req, res) => {
+      calls += 1;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{"ok":true,"result":null}');
+    });
+    const port = await new Promise<number>((resolve) =>
+      server.listen(0, '127.0.0.1', () => resolve((server.address() as AddressInfo).port)),
+    );
+
+    try {
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        callBridge(
+          'bridge.presence',
+          {},
+          {
+            env: { DEVTOOLS_TOKEN: 't', DEVTOOLS_PORT: String(port) },
+            timeoutMs: 1_000,
+            signal: controller.signal,
+          },
+        ),
+      ).rejects.toBeInstanceOf(BridgeError);
+      expect(calls).toBe(0);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  it('applies the RPC deadline to a stalled body, not only to headers', async () => {
+    const stalled = createHttpServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.write('{"ok":');
+    });
+    const port = await new Promise<number>((resolve) =>
+      stalled.listen(0, '127.0.0.1', () => resolve((stalled.address() as AddressInfo).port)),
+    );
+
+    try {
+      const started = Date.now();
+      await expect(
+        callBridge(
+          'bridge.presence',
+          {},
+          { env: { DEVTOOLS_TOKEN: 't', DEVTOOLS_PORT: String(port) }, timeoutMs: 100 },
+        ),
+      ).rejects.toBeInstanceOf(BridgeError);
+      expect(Date.now() - started).toBeLessThan(1_000);
+    } finally {
+      stalled.closeAllConnections();
+      await new Promise((resolve) => stalled.close(resolve));
+    }
+  });
+
+  it('cancels a bridge call at once when its caller aborts', async () => {
+    // A bridge that sends headers and then stalls the body
+    const stalled = createHttpServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.write('{"ok":');
+    });
+    const port = await new Promise<number>((resolve) =>
+      stalled.listen(0, '127.0.0.1', () => resolve((stalled.address() as AddressInfo).port)),
+    );
+
+    try {
+      const controller = new AbortController();
+      const started = Date.now();
+      const call = callBridge(
+        'bridge.presence',
+        { state: 'connected' },
+        {
+          env: { DEVTOOLS_TOKEN: 't', DEVTOOLS_PORT: String(port) },
+          timeoutMs: 60_000,
+          signal: controller.signal,
+        },
+      );
+
+      setTimeout(() => controller.abort(), 50);
+      await expect(call).rejects.toBeInstanceOf(BridgeError);
+      // Without forwarding the signal the call would hang for the full timeout
+      expect(Date.now() - started).toBeLessThan(1_000);
+    } finally {
+      stalled.closeAllConnections();
+      await new Promise((resolve) => stalled.close(resolve));
     }
   });
 });

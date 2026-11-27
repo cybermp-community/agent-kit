@@ -58,7 +58,7 @@ const inbox = createAgentInbox<{ playerId: number }>({
 createBridge({
   token,
   methods: { ...basicMethods(mp), ...inbox.methods },
-  onPresence: (state) => inbox.onPresence(state), // returns { pending }
+  onPresence: (state, meta) => inbox.onPresence(state, meta), // returns { pending }
 });
 
 // in your command handler:
@@ -74,6 +74,22 @@ The agent is often not attached. By default `submit` refuses at once with
 (10 min). Requests nobody read expire through `onExpire`, and ones the agent
 already took stay answerable for `replyWindowMs` (1 h), even across a
 reconnect. The request text is written by players, so treat it as untrusted.
+
+Upgrade the CLI, bridge library, and `mcp-bridge` resource together. Presence
+protection works only when `meta` (`session` and `seq`) reaches `inbox.onPresence`
+end to end, including through `registerMcpProvider` callbacks. Legacy reports
+without a session are accepted only when no session is active. A newcomer takes
+ownership on its second report, so a single last heartbeat from a process that
+already stopped cannot steal it; a `disconnected` is final for its own session and
+cannot touch another, and a session already waiting takes over the moment the owner
+disconnects or is retired. A session silent for `presenceTtlMs` (30 s by default)
+drops out of presence and may resume with a higher `seq`. Terminated records are
+kept for minutes so that reports still on the wire cannot revive them, and a queued
+request waits out one presence TTL before it is expired as `agent-left`. Reports the
+server already accepted can still land out of order: presence may then look wrong until the live process has two accepted reports in a
+row, without an intervening contender. Pass
+`exportState()` as `restore` to keep sessions, the waiting session and the queue
+across a hot reload.
 
 ## What happened? Event log
 
